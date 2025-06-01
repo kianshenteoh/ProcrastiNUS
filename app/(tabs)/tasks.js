@@ -10,7 +10,7 @@ export default function tasks() {
         <Image
         source = {require('../../assets/images/task-image.png')}
         style = {{width: '100%', flex: 1 }}
-        
+        resizeMode = "contain"
         ></Image>
         </View>
     </View>
