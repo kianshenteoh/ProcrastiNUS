@@ -1,10 +1,9 @@
 // LoginScreen.js
-import { useRouter } from 'expo-router';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { Link, useRouter } from 'expo-router';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
 import { Button, Image, StyleSheet, Text, TextInput, View } from 'react-native';
 import { auth } from '../firebase';
-
 
 
 export default function LoginScreen() {
@@ -22,17 +21,6 @@ export default function LoginScreen() {
       alert(error.message);
     }
   }
-
-  const handleRegister = async () => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log(userCredential.user);
-    } catch(error) {
-      console.log(error);
-      alert(error.message);
-    }
-  }
-
 
 
   return (
@@ -61,12 +49,20 @@ export default function LoginScreen() {
         value={password}
       />
       <View style = {{ marginTop: 20}}/>
-      <Button title="Login" onPress={handleLogin} />
+        <Button title="Login" onPress={handleLogin} />
       <View style = {{ marginTop: 20}}/>
-      <Button title="Register" onPress={handleRegister} color="#888" />
-    </View>
-  );
-}
+      <View style = {{flexDirection: 'row'}}>
+      <Text style = {{fontSize:15}}>Don't have an account? Register</Text>
+        <Link href = "/RegisterScreen">
+         <Text style = {{fontSize: 15, color: '#0000FF'}}> here</Text>
+        </Link>
+        </View> 
+        <View style = {{marginTop: 50}}>                     
+        <Button title = "Quick Login (temporary)" color = '#FF2400' onPress = {() => router.replace('./(tabs)/tasks')}/>
+          </View>
+    </View> 
+  ); 
+} 
 
 const styles = StyleSheet.create({
   container: {
