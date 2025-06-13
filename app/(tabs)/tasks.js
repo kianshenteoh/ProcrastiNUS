@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import TopBar from '../../components/ui/TopBar.js';
 
@@ -27,7 +28,8 @@ export default function TasksScreen() {
       id: editId || Date.now().toString(),
       title: title.trim(),
       priority,
-      dueDate: hasDueDate ? dueDate : null
+      dueDate: hasDueDate ? dueDate : null,
+      completed: false
     };
     if (editId) {
       setTasks(t => t.map(x => (x.id === editId ? task : x)));
@@ -52,10 +54,14 @@ export default function TasksScreen() {
     if (id === editId) resetForm();
   };
 
+  const completeTask = id => {
+    setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
+  };
+
   const groupTasks = () => {
     const priorities = ['High', 'Medium', 'Low'];
     return priorities.map(priority => {
-      const tasksByPriority = tasks.filter(t => t.priority === priority);
+      const tasksByPriority = tasks.filter(t => t.priority === priority && !t.completed);
       const withDueDate = tasksByPriority.filter(t => t.dueDate).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
       const withoutDueDate = tasksByPriority.filter(t => !t.dueDate);
       return { priority, tasks: [...withDueDate, ...withoutDueDate] };
@@ -72,75 +78,90 @@ export default function TasksScreen() {
     </View>
   );
 
-  return (
-    <View style={styles.container}>
-      <TopBar />
-
-      <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
-        <Text style={styles.addBtnText}>+ New Task</Text>
+  const renderRightActions = (progress, dragX, taskId) => {
+    const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+    return (
+      <Pressable onPress={() => completeTask(taskId)} style={styles.completeAction}>
+        <Animated.Text style={[styles.completeText, { transform: [{ scale }] }]}>✓ Complete</Animated.Text>
       </Pressable>
+    );
+  };
 
-      <ScrollView style={styles.list}>
-        {groupTasks().map(group => (
-          <View key={group.priority}>
-            <Text style={styles.groupHeader}>{group.priority} Priority</Text>
-            {group.tasks.length === 0 ? (
-              <Text style={styles.empty}>No tasks</Text>
-            ) : (
-              group.tasks.map(item => (
-                <View key={item.id} style={styles.card}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.cardTitle}>{item.title}</Text>
-                    <Text style={styles.cardSubtitle}>
-                      {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
-                    </Text>
-                  </View>
-                  <View style={styles.cardActions}>
-                    <Pressable onPress={() => startEdit(item)}><Text style={styles.action}>Edit</Text></Pressable>
-                    <Pressable onPress={() => deleteTask(item.id)}><Text style={[styles.action, styles.delete]}>Delete</Text></Pressable>
-                  </View>
-                </View>
-              ))
-            )}
-          </View>
-        ))}
-      </ScrollView>
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <TopBar />
 
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalHeader}>{editId ? 'Edit Task' : 'New Task'}</Text>
-            <TextInput value={title} onChangeText={setTitle} placeholder="Title" style={styles.input} />
-            <PrioritySelector />
-            <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>Has Due Date</Text>
-              <Switch value={hasDueDate} onValueChange={setHasDueDate} />
+        <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
+          <Text style={styles.addBtnText}>+ New Task</Text>
+        </Pressable>
+
+        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task</Text>
+
+        <ScrollView style={styles.list}>
+          {groupTasks().map(group => (
+            <View key={group.priority}>
+              <Text style={styles.groupHeader}>{group.priority} Priority</Text>
+              {group.tasks.length === 0 ? (
+                <Text style={styles.empty}>No tasks</Text>
+              ) : (
+                group.tasks.map(item => (
+                  <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}>
+                    <View style={styles.card}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.cardTitle}>{item.title}</Text>
+                        <Text style={styles.cardSubtitle}>
+                          {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
+                        </Text>
+                      </View>
+                      <View style={styles.cardActions}>
+                        <Pressable onPress={() => startEdit(item)}><Text style={styles.action}>Edit</Text></Pressable>
+                        <Pressable onPress={() => deleteTask(item.id)}><Text style={[styles.action, styles.delete]}>Delete</Text></Pressable>
+                      </View>
+                    </View>
+                  </Swipeable>
+                ))
+              )}
             </View>
-            {hasDueDate && (
-              <>
-                <Pressable onPress={() => setShowDatePicker(true)} style={styles.datePickerBtn}>
-                  <Text style={styles.datePickerText}>{dueDate ? new Date(dueDate).toLocaleString() : 'Pick due date & time'}</Text>
-                </Pressable>
-                <DateTimePickerModal
-                  isVisible={showDatePicker}
-                  mode="datetime"
-                  date={dueDate || new Date()}
-                  onConfirm={date => {
-                    setShowDatePicker(false);
-                    setDueDate(date);
-                  }}
-                  onCancel={() => setShowDatePicker(false)}
-                />
-              </>
-            )}
-            <View style={styles.modalBtns}>
-              <Pressable style={[styles.btn, styles.cancelBtn]} onPress={() => { resetForm(); setModalVisible(false); }}><Text style={styles.btnTxt}>Cancel</Text></Pressable>
-              <Pressable style={[styles.btn, styles.saveBtn]} onPress={saveTask}><Text style={[styles.btnTxt, { color: '#fff' }]}>{editId ? 'Update' : 'Save'}</Text></Pressable>
+          ))}
+        </ScrollView>
+
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalHeader}>{editId ? 'Edit Task' : 'New Task'}</Text>
+              <TextInput value={title} onChangeText={setTitle} placeholder="Title" style={styles.input} />
+              <PrioritySelector />
+              <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>Has Due Date</Text>
+                <Switch value={hasDueDate} onValueChange={setHasDueDate} />
+              </View>
+              {hasDueDate && (
+                <>
+                  <Pressable onPress={() => setShowDatePicker(true)} style={styles.datePickerBtn}>
+                    <Text style={styles.datePickerText}>{dueDate ? new Date(dueDate).toLocaleString() : 'Pick due date & time'}</Text>
+                  </Pressable>
+                  <DateTimePickerModal
+                    isVisible={showDatePicker}
+                    mode="datetime"
+                    date={dueDate || new Date()}
+                    onConfirm={date => {
+                      setShowDatePicker(false);
+                      setDueDate(date);
+                    }}
+                    onCancel={() => setShowDatePicker(false)}
+                  />
+                </>
+              )}
+              <View style={styles.modalBtns}>
+                <Pressable style={[styles.btn, styles.cancelBtn]} onPress={() => { resetForm(); setModalVisible(false); }}><Text style={styles.btnTxt}>Cancel</Text></Pressable>
+                <Pressable style={[styles.btn, styles.saveBtn]} onPress={saveTask}><Text style={[styles.btnTxt, { color: '#fff' }]}>{editId ? 'Update' : 'Save'}</Text></Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -148,6 +169,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa' },
   addBtn: { backgroundColor: '#3479DB', margin: 16, padding: 12, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  swipeToCompleteText: { textAlign: 'center', color: '#999', marginVertical: 5 },
   list: { paddingHorizontal: 16 },
   empty: { textAlign: 'center', color: '#999', marginBottom: 10 },
   groupHeader: { fontSize: 18, fontWeight: '700', marginVertical: 10 },
@@ -174,5 +196,7 @@ const styles = StyleSheet.create({
   datePickerBtn: { borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 10, marginBottom: 16 },
   datePickerText: { color: '#333' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  switchLabel: { fontSize: 16 }
+  switchLabel: { fontSize: 16 },
+  completeAction: { backgroundColor: 'green', justifyContent: 'center', alignItems: 'center', width: 100, borderRadius: 10, marginBottom: 12 },
+  completeText: { color: '#fff', fontWeight: '700', fontSize: 14 }
 });
