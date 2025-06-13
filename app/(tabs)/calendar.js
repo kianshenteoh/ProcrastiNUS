@@ -1,7 +1,7 @@
 import { Image, View } from 'react-native';
 import TopBar from '../../components/ui/TopBar.js';
 
-export default function tasks() {
+export default function calendar() {
     
     return (<>
     <View style = {{flex: 1}}> 
