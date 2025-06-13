@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import TopBar from '../../components/ui/TopBar.js';
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState([]);
@@ -90,7 +89,6 @@ export default function TasksScreen() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-        <TopBar />
 
         <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Text style={styles.addBtnText}>+ New Task</Text>
@@ -166,7 +164,7 @@ export default function TasksScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
+  container: { flex: 1, backgroundColor: '#f5f7fa', marginTop: 40},
   addBtn: { backgroundColor: '#3479DB', margin: 16, padding: 12, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   swipeToCompleteText: { textAlign: 'center', color: '#999', marginVertical: 5 },

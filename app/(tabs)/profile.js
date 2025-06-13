@@ -7,7 +7,7 @@ export default function ProfileScreen() {
 
   const user = {
     name: 'Teoh Kian Shen',
-    avatar: 'https://i.pravatar.cc/300?img=12',
+    avatar: 'https://i.pinimg.com/736x/63/1b/32/631b328b52a0d901b1f3b3bf10c058f2.jpg',
     level: 7,
     xp: 3800,
     xpToNext: 5000,
