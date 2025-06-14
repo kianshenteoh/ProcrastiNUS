@@ -134,13 +134,34 @@ export default function TasksScreen() {
     </View>
   );
 
-  const renderRightActions = (progress, dragX, taskId) => {
-    const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
-    return (
-      <Pressable onPress={() => completeTask(taskId)} style={styles.completeAction}>
-        <Animated.Text style={[styles.completeText, { transform: [{ scale }] }]}>✓ Complete</Animated.Text>
-      </Pressable>
-    );
+const renderRightActions = (progress, dragX, task) => {
+  const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+
+  const isCompleted = task.completed;
+  const actionText = isCompleted ? '↺ Undo' : '✓ Complete';
+  const actionColor = isCompleted ? '#f0a500' : 'green';
+  const onPress = isCompleted ? () => uncompleteTask(task.id) : () => completeTask(task.id);
+
+  return (
+    <Pressable onPress={onPress} style={[styles.completeAction, { backgroundColor: actionColor }]}>
+      <Animated.Text style={[styles.completeText, { transform: [{ scale }] }]}>
+        {actionText}
+      </Animated.Text>
+    </Pressable>
+  );
+};
+
+  const uncompleteTask = async id => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      const ref = doc(db, 'users', uid, 'tasks', id);
+      await updateDoc(ref, { completed: false });
+      setTasks(t => t.map(task => task.id === id ? { ...task, completed: false } : task));
+    } catch (error) {
+      console.error('Error marking task as incomplete:', error);
+    }
   };
 
   return (
@@ -151,7 +172,7 @@ export default function TasksScreen() {
           <Text style={styles.addBtnText}>+ New Task</Text>
         </Pressable>
 
-        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task</Text>
+        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task / mark a task as incomplete</Text>
 
         <ScrollView style={styles.list}>
           {groupTasks().map(group => (
@@ -161,7 +182,7 @@ export default function TasksScreen() {
                 <Text style={styles.empty}>No tasks</Text>
               ) : (
                 group.tasks.map(item => (
-                  <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}>
+                  <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item)}>
                     <View style={styles.card}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cardTitle}>{item.title}</Text>
@@ -179,6 +200,34 @@ export default function TasksScreen() {
               )}
             </View>
           ))}
+
+           <View>          
+            <Text style={styles.groupHeader}>Completed</Text>
+            {tasks.filter(t => t.completed).length === 0 ? (
+              <Text style={styles.empty}>No completed tasks</Text>
+            ) : (
+              tasks
+              .filter(t => t.completed)
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map(item => (
+                <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item)}>
+                  <View style={[styles.card, styles.cardCompleted]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.cardTitle, styles.completedText]}>{item.title}</Text>
+                      <Text style={styles.cardSubtitle}>
+                        {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
+                      </Text>
+                    </View>
+                    <View style={styles.cardActions}>
+                      <Pressable onPress={() => deleteTask(item.id)}>
+                        <Text style={[styles.action, styles.delete]}>Delete</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </Swipeable>
+              ))
+            )}
+          </View>
         </ScrollView>
 
         <Modal visible={modalVisible} animationType="slide" transparent>
@@ -253,5 +302,5 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   switchLabel: { fontSize: 16 },
   completeAction: { backgroundColor: 'green', justifyContent: 'center', alignItems: 'center', width: 100, borderRadius: 10, marginBottom: 12 },
-  completeText: { color: '#fff', fontWeight: '700', fontSize: 14 }
+  completeText: { color: '#fff', fontWeight: '700', fontSize: 16 }
 });
