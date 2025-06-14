@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { auth, db } from '../../firebase';
 
 export default function TasksScreen() {
   const [tasks, setTasks] = useState([]);
@@ -12,6 +14,30 @@ export default function TasksScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [editId, setEditId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return;
+
+        const q = query(collection(db, 'users', uid, 'tasks'), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        const fetchedTasks = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          dueDate: doc.data().dueDate?.toDate?.() || null,
+        }));
+        setTasks(fetchedTasks);
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+      loadTasks();
+  }, []);
 
   const resetForm = () => {
     setTitle('');
@@ -21,20 +47,33 @@ export default function TasksScreen() {
     setEditId(null);
   };
 
-  const saveTask = () => {
+  const saveTask = async () => {
     if (!title.trim()) return;
+
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
     const task = {
-      id: editId || Date.now().toString(),
       title: title.trim(),
       priority,
       dueDate: hasDueDate ? dueDate : null,
-      completed: false
+      completed: false,
+      createdAt: new Date()
     };
-    if (editId) {
-      setTasks(t => t.map(x => (x.id === editId ? task : x)));
-    } else {
-      setTasks(t => [...t, task]);
+
+    try {
+      if (editId) {
+        const ref = doc(db, 'users', uid, 'tasks', editId);
+        await updateDoc(ref, task);
+        setTasks(t => t.map(x => (x.id === editId ? { ...x, ...task } : x)));
+      } else {
+        const ref = await addDoc(collection(db, 'users', uid, 'tasks'), task);
+        setTasks(t => [{ id: ref.id, ...task }, ...t]);
+      }
+    } catch (error) {
+      console.error('Error saving task:', error);
     }
+
     resetForm();
     setModalVisible(false);
   };
@@ -48,13 +87,31 @@ export default function TasksScreen() {
     setModalVisible(true);
   };
 
-  const deleteTask = id => {
-    setTasks(t => t.filter(x => x.id !== id));
-    if (id === editId) resetForm();
+  const deleteTask = async id => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      const ref = doc(db, 'users', uid, 'tasks', id);
+      await deleteDoc(ref);
+      setTasks(t => t.filter(x => x.id !== id));
+      if (id === editId) resetForm();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
-  const completeTask = id => {
-    setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
+  const completeTask = async id => {
+    const uid = auth.currentUser?.uid;
+    if (!uid) return;
+
+    try {
+      const ref = doc(db, 'users', uid, 'tasks', id);
+      await updateDoc(ref, { completed: true });
+      setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
+    } catch (error) {
+      console.error('Error marking task as complete:', error);
+    }
   };
 
   const groupTasks = () => {
