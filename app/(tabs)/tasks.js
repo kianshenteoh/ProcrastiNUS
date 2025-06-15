@@ -202,7 +202,7 @@ const renderRightActions = (progress, dragX, task) => {
           ))}
 
            <View>          
-            <Text style={styles.groupHeader}>Completed</Text>
+          <Text style={[styles.groupHeader, {color: 'green'}]}>✓ Completed Tasks</Text>
             {tasks.filter(t => t.completed).length === 0 ? (
               <Text style={styles.empty}>No completed tasks</Text>
             ) : (
