@@ -98,7 +98,7 @@ export default function PomodoroScreen() {
     <View style={styles.container}>
 
     <View style={styles.studyRow}>
-        <IconText icon="hourglass-half" text={`12.5h`} color="#0ea5e9" header="  Week" />
+        <IconText icon="hourglass-half" text={`12.5h`} color="rgb(46, 192, 245)" header="  Week" />
         <IconText icon="clock" text={`240h`} color="#f59e0b" header="  Total" />
     </View>
 
@@ -144,11 +144,11 @@ function Preset({ label, onPress }) {
   return (<Pressable style={styles.presetBtn} onPress={onPress}><Text style={styles.presetTxt}>{label}</Text></Pressable>);
 }
 
-function IconText({ icon, color, text, small, header }) {
+function IconText({ icon, color, text, header }) {
   return (
     <View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 25 }}>
-            <FontAwesome5 name={icon} size={small ? 14 : 18} color={color} style={{ marginRight: 6 }} />
+            <FontAwesome5 name={icon} size={18} color={color} style={{ marginRight: 6 }} />
             <Text style={{ color, fontWeight: '700' }}>{text}</Text>
         </View>
         <Text style={[styles.studyLbl, {color: color}]}>{header}</Text>
@@ -158,9 +158,9 @@ function IconText({ icon, color, text, small, header }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'rgb(29, 114, 89)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 20 },
+  timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 0 },
   timerText: { fontSize: 70, fontWeight: '700', color: '#fff', position: 'absolute' },
-  quote: { fontSize: 23, color: '#fff', marginVertical: 30, textAlign: 'center', maxWidth: '90%' },
+  quote: { fontSize: 18, color: '#fff', marginTop: 30, marginBottom: 35, textAlign: 'center', maxWidth: '90%' },
   row: { flexDirection: 'row', marginVertical: 12, flexWrap: 'wrap', justifyContent: 'center' },
   presetBtn: { backgroundColor: 'rgb(72, 175, 248)', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 14, margin: 6 },
   presetTxt: { color: '#fff', fontWeight: '700', fontSize: 18 },

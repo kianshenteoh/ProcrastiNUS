@@ -2,7 +2,7 @@ import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -69,7 +69,7 @@ export default function TabLayout() {
         name="my-pet"
         options={{
           title: 'My Pet',
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="medal" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="pets" color={color} />,
         }}
       />
       <Tabs.Screen
