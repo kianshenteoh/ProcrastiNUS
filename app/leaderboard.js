@@ -1,6 +1,6 @@
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function LeaderboardScreen() {
   const [players] = useState([
@@ -24,11 +24,12 @@ export default function LeaderboardScreen() {
   };
 
   return (
-    <View style={styles.wrapper}>
+    <ScrollView style={styles.wrapper}>
       <Text style={styles.title}>🏆 Weekly Ranking</Text>
       <FlatList
         data={players}
         keyExtractor={item=>item.id}
+        scrollEnabled={false} // did this to avoid warning
         contentContainerStyle={{paddingBottom:40}}
         renderItem={({item,index})=> (
           <View style={[styles.card,index<3&&{borderColor:'#facc15',borderWidth:2}]}> 
@@ -55,14 +56,14 @@ export default function LeaderboardScreen() {
           </View>
         )}
       />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   wrapper:{flex:1,backgroundColor:'#fffbe6',paddingTop:30},
   title:{fontSize:24,fontWeight:'800',color:'#1e3a8a',alignSelf:'center',marginBottom:20},
-  card:{flexDirection:'row',alignItems:'center',marginHorizontal:20,marginVertical:8,padding:14,borderRadius:16,backgroundColor:'#fff'},
+  card:{flexDirection:'row',alignItems:'center',marginHorizontal:20,marginVertical:8,padding:14,borderRadius:16,backgroundColor:'#fff',borderWidth:2,borderColor:'rgb(199, 199, 199)'},
   rank:{width:30},rankTxt:{fontSize:18,fontWeight:'800',color:'#065f46'},
   avatar:{width:60,height:60,resizeMode:'contain',marginHorizontal:6},
   infoCol:{flex:1,marginLeft:8},
@@ -76,5 +77,5 @@ const styles = StyleSheet.create({
   hourRow:{flexDirection:'row',alignItems:'center'},
   hourVal:{marginLeft:4,fontSize:20,fontWeight:'700',color:'#0ea5e9'},
   weekLbl:{fontSize:10,color:'#6b7280', marginTop: -2},
-  totalLbl:{fontSize:10,color:'#6b7280',marginTop:7},
+  totalLbl:{fontSize:10,color:'#6b7280',marginTop:10},
 });
