@@ -1,3 +1,5 @@
+import { FontAwesome6 } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -6,6 +8,8 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { auth, db } from '../../firebase';
 
 export default function TasksScreen() {
+  const nav = useNavigation();
+
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState('Medium');
@@ -169,15 +173,14 @@ const renderRightActions = (progress, dragX, task) => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
 
-        <Text style={[styles.headerTitle, {marginLeft: 15, marginTop: 5}]}>My Tasks</Text>
+        <Text style={[styles.headerTitle]}>My Tasks</Text>
 
         <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Text style={styles.addBtnText}>+ New Task</Text>
         </Pressable>
 
-        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task</Text>
-
         <ScrollView style={styles.list}>
+          <Text style={styles.swipeToCompleteText}>Swipe left to complete a task</Text>
           {groupTasks().map(group => (
             <View key={group.priority}>
               <Text style={styles.groupHeader}>{group.priority} Priority</Text>
@@ -204,7 +207,7 @@ const renderRightActions = (progress, dragX, task) => {
             </View>
           ))}
 
-           <View>          
+          <View style={{ paddingBottom: 120 }}>          
           <Text style={[styles.groupHeader, {color: 'green'}]}>✓ Completed Tasks</Text>
             {tasks.filter(t => t.completed).length === 0 ? (
               <Text style={[styles.empty, {marginVertical: 10}]}>No completed tasks</Text>
@@ -235,6 +238,10 @@ const renderRightActions = (progress, dragX, task) => {
             )}
           </View>
         </ScrollView>
+
+        <Pressable onPress={() => nav.navigate('calendar')} style={styles.calendarBtn}>
+          <FontAwesome6 name="calendar-days" size={30} color="#fff" />
+        </Pressable>
 
         <Modal visible={modalVisible} animationType="slide" transparent>
           <View style={styles.modalOverlay}>
@@ -276,8 +283,8 @@ const renderRightActions = (progress, dragX, task) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa', marginTop: 40},
-  headerTitle: { fontSize: 28, fontWeight: '700'},
+  container: { flex: 1, backgroundColor: '#f5f7fa', paddingTop: 40},
+  headerTitle: { fontSize: 28, fontWeight: '700', paddingLeft: 16, paddingTop: 10},
   addBtn: { backgroundColor: '#3479DB', margin: 16, padding: 12, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   swipeToCompleteText: { textAlign: 'center', color: '#999', marginVertical: 5 },
@@ -309,5 +316,6 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   switchLabel: { fontSize: 16 },
   completeAction: { backgroundColor: 'green', justifyContent: 'center', alignItems: 'center', width: 100, borderRadius: 10, marginBottom: 12 },
-  completeText: { color: '#fff', fontWeight: '700', fontSize: 16 }
+  completeText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:18,borderRadius:60,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4}
 });

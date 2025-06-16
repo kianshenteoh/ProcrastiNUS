@@ -6,7 +6,7 @@ export default function calendar() {
     <View style = {{flex: 1}}> 
     <View style = {{flex: 1}}>
         <Image
-        source = {require('../../assets/images/timetable-image.png')}
+        source = {require('@/assets/images/timetable-image.png')}
         style = {{width: '100%', flex: 1 }}
         resizeMode = "contain"
         ></Image>

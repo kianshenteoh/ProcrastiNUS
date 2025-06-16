@@ -2,6 +2,7 @@ import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+
 export default function ProfileScreen() {
   const nav = useNavigation();
 
@@ -98,7 +99,7 @@ function QuickBtn({ label, icon, onPress }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fafafa', marginTop: 20 },
+  container: { flex: 1, backgroundColor: '#fafafa', paddingTop: 20 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   headerTitle: { fontSize: 28, fontWeight: '700'},
