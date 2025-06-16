@@ -317,5 +317,5 @@ const styles = StyleSheet.create({
   switchLabel: { fontSize: 16 },
   completeAction: { backgroundColor: 'green', justifyContent: 'center', alignItems: 'center', width: 100, borderRadius: 10, marginBottom: 12 },
   completeText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:18,borderRadius:60,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4}
+  calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:20,borderRadius:25,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4}
 });
