@@ -169,6 +169,8 @@ const renderRightActions = (progress, dragX, task) => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
 
+        <Text style={[styles.headerTitle, {marginLeft: 15, marginTop: 5}]}>My Tasks</Text>
+
         <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Text style={styles.addBtnText}>+ New Task</Text>
         </Pressable>
@@ -275,6 +277,7 @@ const renderRightActions = (progress, dragX, task) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fa', marginTop: 40},
+  headerTitle: { fontSize: 28, fontWeight: '700'},
   addBtn: { backgroundColor: '#3479DB', margin: 16, padding: 12, borderRadius: 8, alignItems: 'center' },
   addBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   swipeToCompleteText: { textAlign: 'center', color: '#999', marginVertical: 5 },
