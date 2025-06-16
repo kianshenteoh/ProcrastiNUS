@@ -16,6 +16,11 @@ export default function RootLayout() {
         name="calendar"
         options={{ headerShown: true, title: 'Calendar' }}
       />
+
+      <Stack.Screen
+        name="leaderboard"
+        options={{ headerShown: true, title: 'Leaderboard' }}
+      />
     </Stack>
   );
 }

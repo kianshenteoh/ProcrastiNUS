@@ -66,9 +66,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="achievements"
+        name="my-pet"
         options={{
-          title: 'Acheivements',
+          title: 'My Pet',
           tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="medal" color={color} />,
         }}
       />

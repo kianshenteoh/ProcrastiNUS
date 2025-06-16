@@ -95,39 +95,45 @@ export default function PomodoroScreen() {
   const progress = initialTime ? (1 - secondsLeft / initialTime) * CIRCUMFERENCE : 0;
 
   return (
-    <View style={S.container}>
-      <View style={S.timerContainer}>
+    <View style={styles.container}>
+
+    <View style={styles.studyRow}>
+        <IconText icon="hourglass-half" text={`12.5h`} color="#0ea5e9" header="  Week" />
+        <IconText icon="clock" text={`240h`} color="#f59e0b" header="  Total" />
+    </View>
+
+      <View style={styles.timerContainer}>
         <Svg width={2 * (RADIUS + STROKE_WIDTH)} height={2 * (RADIUS + STROKE_WIDTH)}>
           <Circle stroke="#e0e0e0" cx={RADIUS + STROKE_WIDTH} cy={RADIUS + STROKE_WIDTH} r={RADIUS} strokeWidth={STROKE_WIDTH} fill="none" />
           <Circle stroke='rgb(29, 114, 89)' cx={RADIUS + STROKE_WIDTH} cy={RADIUS + STROKE_WIDTH} r={RADIUS} strokeWidth={STROKE_WIDTH + 1} fill="none" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={CIRCUMFERENCE - progress} />
         </Svg>
-        <Text style={S.timerText}>{displayTime()}</Text>
+        <Text style={styles.timerText}>{displayTime()}</Text>
       </View>
 
-      <Text style={S.quote}>{initialTime === 0? "Start the timer and put down your phone!" : quote}</Text>
+      <Text style={styles.quote}>{initialTime === 0? "Start the timer and put down your phone!" : quote}</Text>
 
       {!running && secondsLeft === 0 && (
         <View>
-          <View style={S.row}>
+          <View style={styles.row}>
             <Preset label="15m" onPress={() => startTimer(900)} />
             <Preset label="30m" onPress={() => startTimer(1800)} />
             <Preset label="60m" onPress={() => startTimer(3600)} />
           </View>
-          <View style={S.customInputContainer}>
-            <TextInput style={S.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
-            <Pressable style={S.startBtn} onPress={handleCustomStart}><Text style={S.startBtnText}>Start</Text></Pressable>
+          <View style={styles.customInputContainer}>
+            <TextInput style={styles.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
+            <Pressable style={styles.startBtn} onPress={handleCustomStart}><Text style={styles.startBtnText}>Start</Text></Pressable>
           </View>
         </View>
       )}
 
       {secondsLeft > 0 && (
-        <View style={S.row}>
+        <View style={styles.row}>
           {running ? (
-            <Pressable style={S.pauseBtn} onPress={pause}><FontAwesome5 name="pause" size={24} color="#fff" /></Pressable>
+            <Pressable style={styles.pauseBtn} onPress={pause}><FontAwesome5 name="pause" size={24} color="#fff" /></Pressable>
           ) : (
-            <Pressable style={S.resumeBtn} onPress={resume}><FontAwesome5 name="play" size={24} color="#fff" /></Pressable>
+            <Pressable style={styles.resumeBtn} onPress={resume}><FontAwesome5 name="play" size={24} color="#fff" /></Pressable>
           )}
-          <Pressable style={S.resetBtn} onPress={giveUp}><FontAwesome5 name="times" size={28} color="#fff" /></Pressable>
+          <Pressable style={styles.resetBtn} onPress={giveUp}><FontAwesome5 name="times" size={28} color="#fff" /></Pressable>
         </View>
       )}
     </View>
@@ -135,10 +141,22 @@ export default function PomodoroScreen() {
 }
 
 function Preset({ label, onPress }) {
-  return (<Pressable style={S.presetBtn} onPress={onPress}><Text style={S.presetTxt}>{label}</Text></Pressable>);
+  return (<Pressable style={styles.presetBtn} onPress={onPress}><Text style={styles.presetTxt}>{label}</Text></Pressable>);
 }
 
-const S = StyleSheet.create({
+function IconText({ icon, color, text, small, header }) {
+  return (
+    <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 25 }}>
+            <FontAwesome5 name={icon} size={small ? 14 : 18} color={color} style={{ marginRight: 6 }} />
+            <Text style={{ color, fontWeight: '700' }}>{text}</Text>
+        </View>
+        <Text style={[styles.studyLbl, {color: color}]}>{header}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'rgb(29, 114, 89)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 20 },
   timerText: { fontSize: 70, fontWeight: '700', color: '#fff', position: 'absolute' },
@@ -153,4 +171,6 @@ const S = StyleSheet.create({
   input: { color: '#fff', borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 9, width: 155, marginRight: 14, backgroundColor: 'rgb(29, 114, 89)', fontSize: 16 },
   startBtn: { backgroundColor: '#27ae60', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 },
   startBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+  studyRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 40 },
+  studyLbl: { fontSize:10, color: '#fff', marginHorizontal: 5, textAlign: 'center' },
 });
