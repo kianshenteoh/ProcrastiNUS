@@ -24,18 +24,18 @@ export default function LoginScreen() {
   const handleQuickLogin = () => handleLogin({ email: 'test@gmail.com', password: '123456' });
 
   return (
-    <View style={s.wrapper}>
-      <View style={s.card}>
-        <View style={s.logoRow}>
-          <Text style={s.logoPrimary}>Procrasti</Text>
-          <Text style={s.logoAccent}>NUS</Text>
-          <Image source={require('@/assets/images/logo.png')} style={s.logoImgSmall} />
+    <View style={styles.wrapper}>
+      <View style={styles.card}>
+        <View style={styles.logoRow}>
+          <Text style={styles.logoPrimary}>Procrasti</Text>
+          <Text style={styles.logoAccent}>NUS</Text>
+          <Image source={require('@/assets/images/logo.png')} style={styles.logoImgSmall} />
         </View>
 
         <TextInput
           placeholder="Email"
           placeholderTextColor="#94a3b8"
-          style={s.input}
+          style={styles.input}
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
@@ -43,31 +43,31 @@ export default function LoginScreen() {
         <TextInput
           placeholder="Password"
           placeholderTextColor="#94a3b8"
-          style={s.input}
+          style={styles.input}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        <Pressable style={s.btn} onPress={() => handleLogin()}>
+        <Pressable style={styles.btn} onPress={() => handleLogin()}>
           <FontAwesome5 name="sign-in-alt" size={16} color="#fff" />
-          <Text style={s.btnTxt}>Login</Text>
+          <Text style={styles.btnTxt}>Login</Text>
         </Pressable>
 
-        <View style={s.registerRow}>
-          <Text style={s.registerTxt}>No account? </Text>
-          <Link href="/RegisterScreen"><Text style={s.registerLink}>Register</Text></Link>
+        <View style={styles.registerRow}>
+          <Text style={styles.registerTxt}>No account? </Text>
+          <Link href="/RegisterScreen"><Text style={styles.registerLink}>Register</Text></Link>
         </View>
 
-        <Pressable style={s.quickBtn} onPress={handleQuickLogin}>
-          <Text style={s.quickTxt}>Quick Login (Developer)</Text>
+        <Pressable style={styles.quickBtn} onPress={handleQuickLogin}>
+          <Text style={styles.quickTxt}>Quick Login (Developer)</Text>
         </Pressable>
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrapper:{flex:1,justifyContent:'center',alignItems:'center',backgroundColor:'#f1f5f9',padding:24},
   card:{width:'100%',maxWidth:420,backgroundColor:'#ffffff',padding:30,borderRadius:20,elevation:4,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6},
   logoRow:{flexDirection:'row',alignItems:'center',justifyContent:'center',marginBottom:24},

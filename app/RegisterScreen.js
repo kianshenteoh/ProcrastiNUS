@@ -20,15 +20,15 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={s.wrapper}>
-      <View style={s.card}>
-        <Image source={require('@/assets/images/logo.png')} style={s.logo} />
-        <Text style={s.heading}>Create Account</Text>
+    <View style={styles.wrapper}>
+      <View style={styles.card}>
+        <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
+        <Text style={styles.heading}>Create Account</Text>
 
         <TextInput
           placeholder="Email"
           placeholderTextColor="#94a3b8"
-          style={s.input}
+          style={styles.input}
           autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
@@ -36,31 +36,31 @@ export default function RegisterScreen() {
         <TextInput
           placeholder="Password"
           placeholderTextColor="#94a3b8"
-          style={s.input}
+          style={styles.input}
           secureTextEntry
           value={password}
           onChangeText={setPassword}
         />
 
-        <Pressable style={s.btn} onPress={handleRegister}>
+        <Pressable style={styles.btn} onPress={handleRegister}>
           <FontAwesome5 name="user-plus" size={16} color="#fff" />
-          <Text style={s.btnTxt}>Register</Text>
+          <Text style={styles.btnTxt}>Register</Text>
         </Pressable>
 
-        <View style={s.loginRow}>
-          <Text style={s.loginTxt}>Have an account? </Text>
-          <Link href="./LoginScreen"><Text style={s.loginLink}>Login</Text></Link>
+        <View style={styles.loginRow}>
+          <Text style={styles.loginTxt}>Have an account? </Text>
+          <Link href="./LoginScreen"><Text style={styles.loginLink}>Login</Text></Link>
         </View>
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrapper:{flex:1,backgroundColor:'#e0f2fe',justifyContent:'center',alignItems:'center',padding:24},
   topBar:{position:'absolute',top:0,left:0,right:0,height:56,backgroundColor:'#0ea5e9',flexDirection:'row',alignItems:'center',paddingHorizontal:16,justifyContent:'space-between'},
   topTitle:{color:'#fff',fontSize:18,fontWeight:'700'},
-  card:{width:'100%',maxWidth:420,backgroundColor:'#fff',padding:30,borderRadius:24,elevation:4,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6},
+  card:{width:'100%',maxWidth:420,backgroundColor:'#ffffff',padding:30,borderRadius:20,elevation:4,shadowColor:'#000',shadowOpacity:0.08,shadowRadius:6},
   logo:{width:60,height:60,alignSelf:'center',marginBottom:16},
   heading:{fontSize:22,fontWeight:'800',textAlign:'center',marginBottom:24,color:'#0f172a'},
   input:{borderWidth:1,borderColor:'#cbd5e1',borderRadius:14,padding:14,fontSize:16,color:'#0f172a',marginBottom:14,backgroundColor:'#f8fafc'},

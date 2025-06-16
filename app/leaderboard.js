@@ -24,33 +24,33 @@ export default function LeaderboardScreen() {
   };
 
   return (
-    <View style={s.wrapper}>
-      <Text style={s.title}>🏆 Weekly Ranking</Text>
+    <View style={styles.wrapper}>
+      <Text style={styles.title}>🏆 Weekly Ranking</Text>
       <FlatList
         data={players}
         keyExtractor={item=>item.id}
         contentContainerStyle={{paddingBottom:40}}
         renderItem={({item,index})=> (
-          <View style={[s.card,index<3&&{borderColor:'#facc15',borderWidth:2}]}> 
-            <View style={s.rank}><Text style={s.rankTxt}>{index+1}</Text></View>
-            <Image source={item.pet} style={s.avatar} />
-            <View style={s.infoCol}>
-              <Text style={s.name}>{item.name}</Text>
-              <Text style={s.level}>Lvl {item.level}</Text>
-              <View style={s.badgeRow}>
+          <View style={[styles.card,index<3&&{borderColor:'#facc15',borderWidth:2}]}> 
+            <View style={styles.rank}><Text style={styles.rankTxt}>{index+1}</Text></View>
+            <Image source={item.pet} style={styles.avatar} />
+            <View style={styles.infoCol}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.level}>Lvl {item.level}</Text>
+              <View style={styles.badgeRow}>
                 {item.badgeIcons.map((icon, i) => (
-                  <View key={icon} style={[s.badgeIcon,{backgroundColor:badgeColors[icon]||'#0ea5e9'}]}>
+                  <View key={icon} style={[styles.badgeIcon,{backgroundColor:badgeColors[icon]||'#0ea5e9'}]}>
                     <FontAwesome5 name={icon} size={14} color="#fff" />
                   </View>
                 ))}
-                <Text style={s.moreDots}>...</Text>
+                <Text style={styles.moreDots}>...</Text>
               </View>
-              <Text style={s.totalBadges}>{item.totalBadges} badges total</Text>
+              <Text style={styles.totalBadges}>{item.totalBadges} badges total</Text>
             </View>
-            <View style={s.hoursCol}>
-              <View style={s.hourRow}><MaterialIcons name="query-builder" size={16} color="#60a5fa" /><Text style={s.hourVal}>{item.hoursWeek}h</Text></View>
-              <Text style={s.weekLbl}>this week</Text>
-              <Text style={s.totalLbl}>{item.hoursTotal}h total</Text>
+            <View style={styles.hoursCol}>
+              <View style={styles.hourRow}><MaterialIcons name="query-builder" size={16} color="#60a5fa" /><Text style={styles.hourVal}>{item.hoursWeek}h</Text></View>
+              <Text style={styles.weekLbl}>this week</Text>
+              <Text style={styles.totalLbl}>{item.hoursTotal}h total</Text>
             </View>
           </View>
         )}
@@ -59,7 +59,7 @@ export default function LeaderboardScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrapper:{flex:1,backgroundColor:'#fffbe6',paddingTop:30},
   title:{fontSize:24,fontWeight:'800',color:'#1e3a8a',alignSelf:'center',marginBottom:20},
   card:{flexDirection:'row',alignItems:'center',marginHorizontal:20,marginVertical:8,padding:14,borderRadius:16,backgroundColor:'#fff'},
