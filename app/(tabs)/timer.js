@@ -16,7 +16,25 @@ export default function PomodoroScreen() {
   const [initialTime, setInitialTime] = useState(0);
   const intervalRef = useRef(null);
 
-  const quotes = ['Focus on the goal, not the clock.', 'Small steps turn into miles.', 'Your future self will thank you.', 'One Pomodoro at a time!', 'Discipline beats motivation.'];
+  const quotes = [
+  "Stay focused—your future self is watching with popcorn.",
+  "Brains in gear, distractions in the trunk.",
+  "You’re just one Pomodoro away from world domination (or at least finishing that assignment).",
+  "Study like you’re trying to impress your future boss… or crush.",
+  "The coffee’s strong, but your focus is stronger.",
+  "Every tick is a step closer to freedom (or snacks).",
+  "Work now, flex later.",
+  "You can do anything for 25 minutes. Even this.",
+  "Be the main character in your study montage.",
+  "Focus like your GPA depends on it. (It probably does.)",
+  "This Pomodoro is sponsored by sheer willpower and questionable caffeine intake.",
+  "Don't scroll. Your pet is watching.",
+  "You’re not procrastinating, you’re pre-successing.",
+  "Discipline: because motivation slept in today.",
+  "Get that First Class Honours.",
+  "Uni is tough, but you are tougher."
+];
+
 
   useEffect(() => {
     if (!running) return;
@@ -86,14 +104,14 @@ export default function PomodoroScreen() {
         <Text style={S.timerText}>{displayTime()}</Text>
       </View>
 
-      <Text style={S.quote}>{quote}</Text>
+      <Text style={S.quote}>{initialTime === 0? "Start the timer and put down your phone!" : quote}</Text>
 
       {!running && secondsLeft === 0 && (
         <View>
           <View style={S.row}>
             <Preset label="15m" onPress={() => startTimer(900)} />
             <Preset label="30m" onPress={() => startTimer(1800)} />
-            <Preset label="1hr" onPress={() => startTimer(3600)} />
+            <Preset label="60m" onPress={() => startTimer(3600)} />
           </View>
           <View style={S.customInputContainer}>
             <TextInput style={S.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
@@ -124,7 +142,7 @@ const S = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'rgb(29, 114, 89)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 20 },
   timerText: { fontSize: 70, fontWeight: '700', color: '#fff', position: 'absolute' },
-  quote: { fontSize: 22, color: '#fff', marginVertical: 30, textAlign: 'center', maxWidth: '90%' },
+  quote: { fontSize: 23, color: '#fff', marginVertical: 30, textAlign: 'center', maxWidth: '90%' },
   row: { flexDirection: 'row', marginVertical: 12, flexWrap: 'wrap', justifyContent: 'center' },
   presetBtn: { backgroundColor: 'rgb(72, 175, 248)', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 14, margin: 6 },
   presetTxt: { color: '#fff', fontWeight: '700', fontSize: 18 },
@@ -132,7 +150,7 @@ const S = StyleSheet.create({
   resumeBtn: { backgroundColor: '#32CD32', paddingVertical: 14, paddingHorizontal: 34, borderRadius: 22, marginRight: 30 },
   resetBtn: { backgroundColor: '#e74c3c', paddingVertical: 14, paddingHorizontal: 34, borderRadius: 22 },
   customInputContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  input: { color: '#fff', borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 9, width: 150, marginRight: 12, backgroundColor: 'rgb(29, 114, 89)', fontSize: 16 },
+  input: { color: '#fff', borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 9, width: 155, marginRight: 14, backgroundColor: 'rgb(29, 114, 89)', fontSize: 16 },
   startBtn: { backgroundColor: '#27ae60', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 },
   startBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });
