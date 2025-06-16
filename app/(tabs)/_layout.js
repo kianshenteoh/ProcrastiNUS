@@ -85,6 +85,6 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   centerWrapper: { top: -10, justifyContent: 'center', alignItems: 'center' },
-  centerButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#ED2939', justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5 },
+  centerButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgb(232, 77, 77)', justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5 },
   centerFocused: { backgroundColor: '#cc0000' },
 });

@@ -47,8 +47,8 @@ export default function PomodoroScreen() {
 
   const giveUp = () => {
     Alert.alert(
-      'Don\'t give up!',
-      'If you give up now, you will only get half the time coins.',
+      'Don\'t Give Up!',
+      'If you give up now, you will only get half the time coins (based on elapsed time).',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -93,10 +93,10 @@ export default function PomodoroScreen() {
           <View style={S.row}>
             <Preset label="15m" onPress={() => startTimer(900)} />
             <Preset label="30m" onPress={() => startTimer(1800)} />
-            <Preset label="1h" onPress={() => startTimer(3600)} />
+            <Preset label="1hr" onPress={() => startTimer(3600)} />
           </View>
-          <View style={S.customInputContainerCentered}>
-            <TextInput style={S.input} keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
+          <View style={S.customInputContainer}>
+            <TextInput style={S.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
             <Pressable style={S.startBtn} onPress={handleCustomStart}><Text style={S.startBtnText}>Start</Text></Pressable>
           </View>
         </View>
@@ -123,16 +123,16 @@ function Preset({ label, onPress }) {
 const S = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'rgb(29, 114, 89)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative', marginBottom: 20 },
-  timerText: { fontSize: 84, fontWeight: '700', color: '#fff', position: 'absolute' },
-  quote: { fontSize: 32, color: '#fff', marginVertical: 30, textAlign: 'center', maxWidth: '90%' },
+  timerText: { fontSize: 70, fontWeight: '700', color: '#fff', position: 'absolute' },
+  quote: { fontSize: 22, color: '#fff', marginVertical: 30, textAlign: 'center', maxWidth: '90%' },
   row: { flexDirection: 'row', marginVertical: 12, flexWrap: 'wrap', justifyContent: 'center' },
-  presetBtn: { backgroundColor: '#FFA07A', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 14, margin: 6 },
+  presetBtn: { backgroundColor: 'rgb(72, 175, 248)', paddingVertical: 14, paddingHorizontal: 18, borderRadius: 14, margin: 6 },
   presetTxt: { color: '#fff', fontWeight: '700', fontSize: 18 },
   pauseBtn: { backgroundColor: '#FFD700', paddingVertical: 14, paddingHorizontal: 34, borderRadius: 22, marginRight: 30 },
   resumeBtn: { backgroundColor: '#32CD32', paddingVertical: 14, paddingHorizontal: 34, borderRadius: 22, marginRight: 30 },
   resetBtn: { backgroundColor: '#e74c3c', paddingVertical: 14, paddingHorizontal: 34, borderRadius: 22 },
-  customInputContainerCentered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  input: { borderColor: '#ccc', borderWidth: 1, borderRadius: 10, padding: 12, width: 120, marginRight: 12, backgroundColor: '#fff', fontSize: 16 },
+  customInputContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  input: { color: '#fff', borderColor: '#fff', borderWidth: 2, borderRadius: 10, padding: 9, width: 150, marginRight: 12, backgroundColor: 'rgb(29, 114, 89)', fontSize: 16 },
   startBtn: { backgroundColor: '#27ae60', paddingVertical: 12, paddingHorizontal: 18, borderRadius: 10 },
   startBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });
