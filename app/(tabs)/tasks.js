@@ -30,6 +30,7 @@ export default function TasksScreen() {
           dueDate: doc.data().dueDate?.toDate?.() || null,
         }));
         setTasks(fetchedTasks);
+        // console.log(JSON.stringify(doc.data()))
       } catch (error) {
         console.error('Error loading tasks:', error);
       } finally {
@@ -172,7 +173,7 @@ const renderRightActions = (progress, dragX, task) => {
           <Text style={styles.addBtnText}>+ New Task</Text>
         </Pressable>
 
-        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task / mark a task as incomplete</Text>
+        <Text style={styles.swipeToCompleteText}>Swipe left to complete a task</Text>
 
         <ScrollView style={styles.list}>
           {groupTasks().map(group => (
@@ -204,9 +205,11 @@ const renderRightActions = (progress, dragX, task) => {
            <View>          
           <Text style={[styles.groupHeader, {color: 'green'}]}>✓ Completed Tasks</Text>
             {tasks.filter(t => t.completed).length === 0 ? (
-              <Text style={styles.empty}>No completed tasks</Text>
+              <Text style={[styles.empty, {marginVertical: 10}]}>No completed tasks</Text>
             ) : (
-              tasks
+              <>
+              <Text style={[styles.swipeToCompleteText, {marginVertical: 10}]}>Swipe left to undo a completed task</Text>
+              {tasks
               .filter(t => t.completed)
               .sort((a, b) => b.createdAt - a.createdAt)
               .map(item => (
@@ -225,7 +228,8 @@ const renderRightActions = (progress, dragX, task) => {
                     </View>
                   </View>
                 </Swipeable>
-              ))
+              ))}
+              </>
             )}
           </View>
         </ScrollView>
