@@ -11,6 +11,16 @@ export default function RootLayout() {
         name="settings"
         options={{ headerShown: true, title: 'Settings' }}
       />
+
+      <Stack.Screen
+        name="calendar"
+        options={{ headerShown: true, title: 'Calendar' }}
+      />
+
+      <Stack.Screen
+        name="leaderboard"
+        options={{ headerShown: true, title: 'Leaderboard' }}
+      />
     </Stack>
   );
 }

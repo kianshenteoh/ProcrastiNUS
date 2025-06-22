@@ -1,11 +1,30 @@
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-
 import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { FontAwesome5, FontAwesome6, Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+
+function CenterTabButton(props) {
+  const focused =
+    props.accessibilityState?.selected ??
+    props.selected ??            // Expo Router may pass it this way
+    false;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={props.onPress}
+      style={styles.centerWrapper}
+    >
+      <View style={[styles.centerButton, focused && styles.centerFocused]}>
+        <FontAwesome5 name="clock" size={26} color="#fff" />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -19,7 +38,6 @@ export default function TabLayout() {
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
           ios: {
-            // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
           },
           default: {},
@@ -33,13 +51,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="calendar"
-        options={{
-          title: 'Calendar',
-          tabBarIcon: ({ color }) => <FontAwesome6 size={28} name="calendar-days" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="social"
         options={{
           title: 'Social',
@@ -47,10 +58,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="achievements"
+        name="timer"
         options={{
-          title: 'Achievements',
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="medal" color={color} />,
+          title: 'Timer',
+          tabBarIcon: () => null, 
+          tabBarButton: (props) => <CenterTabButton {...props} />,
+        }}
+      />
+      <Tabs.Screen
+        name="my-pet"
+        options={{
+          title: 'My Pet',
+          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="pets" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -63,3 +82,9 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centerWrapper: { top: -10, justifyContent: 'center', alignItems: 'center' },
+  centerButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgb(232, 77, 77)', justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5 },
+  centerFocused: { backgroundColor: '#cc0000' },
+});
