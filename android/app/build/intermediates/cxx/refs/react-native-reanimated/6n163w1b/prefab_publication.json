@@ -1,0 +1,42 @@
+{
+  "installationFolder": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\build\\intermediates\\prefab_package\\debug\\prefab",
+  "gradlePath": ":react-native-reanimated",
+  "packageInfo": {
+    "packageName": "react-native-reanimated",
+    "packageVersion": "3.17.5",
+    "packageSchemaVersion": 2,
+    "packageDependencies": [],
+    "modules": [
+      {
+        "moduleName": "reanimated",
+        "moduleHeaders": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\build\\prefab-headers\\reanimated",
+        "moduleExportLibraries": [],
+        "abis": [
+          {
+            "abiName": "x86_64",
+            "abiApi": 24,
+            "abiNdkMajor": 27,
+            "abiStl": "c++_shared",
+            "abiLibrary": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\build\\intermediates\\cxx\\Debug\\661m5m2i\\obj\\x86_64\\libreanimated.so",
+            "abiAndroidGradleBuildJsonFile": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\.cxx\\Debug\\661m5m2i\\x86_64\\android_gradle_build.json"
+          }
+        ]
+      },
+      {
+        "moduleName": "worklets",
+        "moduleHeaders": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\build\\prefab-headers\\worklets",
+        "moduleExportLibraries": [],
+        "abis": [
+          {
+            "abiName": "x86_64",
+            "abiApi": 24,
+            "abiNdkMajor": 27,
+            "abiStl": "c++_shared",
+            "abiLibrary": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\build\\intermediates\\cxx\\Debug\\661m5m2i\\obj\\x86_64\\libworklets.so",
+            "abiAndroidGradleBuildJsonFile": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-reanimated\\android\\.cxx\\Debug\\661m5m2i\\x86_64\\android_gradle_build.json"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.kianshenteoh.procrastinus.app-mergeDebugResources-56:/values-v29/values-v29.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-edge-to-edge\\android\\build\\intermediates\\packaged_res\\debug\\packageDebugResources\\values-v29\\values-v29.xml",
+                    "from": {
+                        "startLines": "2,8,14,20,26,32,38,44",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,476,877,1318,1739,2180,2637,3074",
+                        "endLines": "7,13,19,25,31,37,43,49",
+                        "endColumns": "12,12,12,12,12,12,12,12",
+                        "endOffsets": "471,872,1313,1734,2175,2632,3069,3490"
+                    },
+                    "to": {
+                        "startLines": "9,15,21,27,33,39,45,51",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "525,946,1347,1788,2209,2650,3107,3544",
+                        "endLines": "14,20,26,32,38,44,50,56",
+                        "endColumns": "12,12,12,12,12,12,12,12",
+                        "endOffsets": "941,1342,1783,2204,2645,3102,3539,3960"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\kians\\.gradle\\caches\\8.13\\transforms\\cb430efb3b96d95de96e855fce06cf16\\transformed\\core-splashscreen-1.2.0-alpha02\\res\\values-v29\\values-v29.xml",
+                    "from": {
+                        "startLines": "2,8",
+                        "startColumns": "4,4",
+                        "startOffsets": "55,442",
+                        "endLines": "7,8",
+                        "endColumns": "12,82",
+                        "endOffsets": "437,520"
+                    }
+                }
+            ]
+        }
+    ]
+}

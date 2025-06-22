@@ -1,0 +1,47 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.kianshenteoh.procrastinus.app-mergeDebugResources-56:/values-v27/values-v27.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\kians\\ProcrastiNUS\\node_modules\\react-native-edge-to-edge\\android\\build\\intermediates\\packaged_res\\debug\\packageDebugResources\\values-v27\\values-v27.xml",
+                    "from": {
+                        "startLines": "2,3,4,8,12,16,20,24,28,32",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,106,178,437,676,955,1214,1493,1788,2063",
+                        "endLines": "2,3,7,11,15,19,23,27,31,35",
+                        "endColumns": "50,71,12,12,12,12,12,12,12,12",
+                        "endOffsets": "101,173,432,671,950,1209,1488,1783,2058,2317"
+                    },
+                    "to": {
+                        "startLines": "2,3,12,16,20,24,28,32,36,40",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,106,716,975,1214,1493,1752,2031,2326,2601",
+                        "endLines": "2,3,15,19,23,27,31,35,39,43",
+                        "endColumns": "50,71,12,12,12,12,12,12,12,12",
+                        "endOffsets": "101,173,970,1209,1488,1747,2026,2321,2596,2855"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\kians\\.gradle\\caches\\8.13\\transforms\\cb430efb3b96d95de96e855fce06cf16\\transformed\\core-splashscreen-1.2.0-alpha02\\res\\values-v27\\values-v27.xml",
+                    "from": {
+                        "startLines": "2,3,4,7",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,136,229,405",
+                        "endLines": "2,3,6,9",
+                        "endColumns": "80,92,12,12",
+                        "endOffsets": "131,224,400,588"
+                    },
+                    "to": {
+                        "startLines": "4,5,6,9",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "178,259,352,528",
+                        "endLines": "4,5,8,11",
+                        "endColumns": "80,92,12,12",
+                        "endOffsets": "254,347,523,711"
+                    }
+                }
+            ]
+        }
+    ]
+}
