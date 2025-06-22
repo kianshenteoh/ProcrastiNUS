@@ -1,2 +1,7 @@
 *.so filter=lfs diff=lfs merge=lfs -text
 *.apk filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+*apk filter=lfs diff=lfs merge=lfs -text
+android/app/build/intermediates/cxx/Debug/4g2042e1/obj/arm64-v8a/libreactnative.so filter=lfs diff=lfs merge=lfs -text
+android/app/build/intermediates/cxx/Debug/4g2042e1/obj/x86_64/libreactnative.so filter=lfs diff=lfs merge=lfs -text
+android/app/build/outputs/apk/debug/app-debug.apk filter=lfs diff=lfs merge=lfs -text
