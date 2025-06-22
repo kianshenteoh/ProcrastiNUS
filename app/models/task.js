@@ -13,7 +13,7 @@ import uuid from 'react-native-uuid';
   * @property {boolean} completed
   */
 
- export function createTask(title, priority, dueDate) {
+ export default function createTask(title, priority, dueDate) {
     return {
         id: uuid.v4(),
         title,

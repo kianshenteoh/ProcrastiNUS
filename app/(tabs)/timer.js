@@ -14,6 +14,10 @@ export default function PomodoroScreen() {
   const [quote, setQuote] = useState('');
   const [customMinutes, setCustomMinutes] = useState('');
   const [initialTime, setInitialTime] = useState(0);
+  const [mode, setMode] = useState('timer');
+  const [elapsed, setElapsed] = useState(0);
+  const [resetTimer, setResetTimer] = useState(null);
+  const [resetCountdown, setResetCountdown] = useState(180);
   const intervalRef = useRef(null);
 
   const quotes = [
@@ -38,7 +42,16 @@ export default function PomodoroScreen() {
 
   useEffect(() => {
     if (!running) return;
+    if (mode === 'stopwatch' && resetTimer) {
+      clearTimeout(resetTimer);
+      setResetTimer(null);
+      clearInterval(resetCountdownIntervalRef.current);
+      setResetCountdown(180);
+    }
+    
+
     intervalRef.current = setInterval(() => {
+      if (mode === 'timer') {
       setSecondsLeft(prev => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
@@ -48,16 +61,24 @@ export default function PomodoroScreen() {
         }
         return prev - 1;
       });
+    } else {
+      setElapsed(prev => prev + 1);
+    }
     }, 1000);
     return () => clearInterval(intervalRef.current);
-  }, [running]);
+  }, [running, mode]);
 
   const startTimer = sec => {
     setSecondsLeft(sec);
     setInitialTime(sec);
-    setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+    getRandomQuote();
     setRunning(true);
     setCustomMinutes('');
+  };
+
+  const getRandomQuote = () => {
+    const randomIndex = Math.floor(Math.random() * quotes.length);
+    setQuote(quotes[randomIndex]);
   };
 
   const pause = () => setRunning(false);
@@ -86,16 +107,82 @@ export default function PomodoroScreen() {
   };
 
   const displayTime = () => {
-    if (secondsLeft === 0 && initialTime !== 0) return "Time's Up!";
-    const m = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
-    const s = String(secondsLeft % 60).padStart(2, '0');
+    const time = mode === 'timer' ? secondsLeft : elapsed;
+    if (time === 0 && mode === 'timer' && initialTime !== 0) return "Time's Up!";
+    const m = String(Math.floor(time / 60)).padStart(2, '0');
+    const s = String(time % 60).padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  const progress = initialTime ? (1 - secondsLeft / initialTime) * CIRCUMFERENCE : 0;
+  const resetCountdownIntervalRef = useRef(null);
+  const handleStopwatchStop = () => {
+  setRunning(false);
+  if (resetCountdownIntervalRef.current) {
+    clearInterval(resetCountdownIntervalRef.current);
+    resetCountdownIntervalRef.current = null;
+  }
+
+  setResetCountdown(180);
+  resetCountdownIntervalRef.current = setInterval(() => {
+    setResetCountdown(prev => {
+      if (prev <= 1) {
+        clearInterval(resetCountdownIntervalRef.current);
+        resetCountdownIntervalRef.current = null;
+        return 0;
+      }
+      return prev - 1;
+    });
+  }, 1000);
+
+  const timeoutId = setTimeout(() => {
+    setElapsed(0);
+    setResetCountdown(180);
+    setResetTimer(null);
+    if (resetCountdownIntervalRef.current) {
+      clearInterval(resetCountdownIntervalRef.current);
+      resetCountdownIntervalRef.current = null;
+    }
+  }, 180000); 
+
+  setResetTimer(timeoutId);
+};
+
+  const handleManualReset = () => {
+  setRunning(false);
+  clearInterval(intervalRef.current);
+
+  if (resetTimer) {
+    clearTimeout(resetTimer); 
+    setResetTimer(null);
+  }
+
+  if (resetCountdownIntervalRef.current) {
+    clearInterval(resetCountdownIntervalRef.current);
+    resetCountdownIntervalRef.current = null;
+  }
+  setElapsed(0);
+  setResetCountdown(180);
+};
+
+  const progress = mode === 'timer' && initialTime ? (1 - secondsLeft / initialTime) * CIRCUMFERENCE : 0;
 
   return (
     <View style={styles.container}>
+    
+    <Pressable
+        onPress = { () => {
+          setMode(prev => (prev === 'timer' ? 'stopwatch' : 'timer'));
+          setRunning(false);
+          setSecondsLeft(0);
+          setInitialTime(0);
+          setElapsed(0);
+        }}
+        style = {{backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 10}}>
+          <Text style = {{fontWeight: 'bold', color: 'rgb(29, 114, 89)'}}>
+            Switch to {mode === 'timer' ? 'Stopwatch' : 'Timer'}
+          </Text>
+        </Pressable>
+
 
     <View style={styles.studyRow}>
         <IconText icon="hourglass-half" text={`12.5h`} color="rgb(46, 192, 245)" header="  Week" />
@@ -110,9 +197,19 @@ export default function PomodoroScreen() {
         <Text style={styles.timerText}>{displayTime()}</Text>
       </View>
 
-      <Text style={styles.quote}>{initialTime === 0? "Start the timer and put down your phone!" : quote}</Text>
+      <Text style={styles.quote}>
+        {mode === 'stopwatch' && running
+          ? quote
+          : mode === 'stopwatch' && !running && resetTimer
+            ? `${Math.floor(resetCountdown / 60)} minutes and ${resetCountdown % 60} seconds until stopwatch resets`
+            : mode === 'stopwatch'
+              ? "Start the stopwatch and stay focused!"
+              : initialTime === 0
+                ? "Start the timer and put down your phone!"
+                : quote}
+      </Text>
 
-      {!running && secondsLeft === 0 && (
+      {mode === 'timer' && !running && secondsLeft === 0 && (
         <View>
           <View style={styles.row}>
             <Preset label="15m" onPress={() => startTimer(900)} />
@@ -123,6 +220,30 @@ export default function PomodoroScreen() {
             <TextInput style={styles.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
             <Pressable style={styles.startBtn} onPress={handleCustomStart}><Text style={styles.startBtnText}>Start</Text></Pressable>
           </View>
+        </View>
+      )}
+
+      {mode === 'stopwatch' && (
+        <View style = {{flexDirection: 'row', justifyContent: 'center', gap: 10}}>
+          {running ? (
+            <Pressable style = {styles.resetBtn} onPress = {handleStopwatchStop}>
+               <FontAwesome5 name="stop" size={24} color="#fff" />
+            </Pressable>
+          ): (
+            <>
+            <Pressable style = {styles.startBtn} onPress = {() => { 
+              getRandomQuote();
+              setRunning(true)}}>
+              <FontAwesome5 name="play" size={24} color="#fff" />
+            </Pressable>
+            <Pressable 
+              style = {[ styles.resetBtn, elapsed === 0 && {backgroundColor: '#ccc'},]}
+                onPress = {handleManualReset}
+                disabled = {elapsed === 0}>
+                  <FontAwesome5 name="redo" size={24} color="#fff" />
+              </Pressable>
+            </>
+          )}
         </View>
       )}
 

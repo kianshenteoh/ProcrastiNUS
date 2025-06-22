@@ -49,7 +49,7 @@ export default function TabLayout() {
           title: 'Tasks',
           tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="tasks" color={color} />,
         }}
-      />
+/>
       <Tabs.Screen
         name="social"
         options={{
