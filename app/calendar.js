@@ -1,6 +1,7 @@
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import DatePicker from 'react-native-date-picker';
 import { auth, db } from '../firebase';
 
 
@@ -34,6 +35,8 @@ export default function HorizontalCalendar() {
   const [semester, setSemester] = useState(null)
   const [allClassEvents, setAllClassEvents] = useState([]);
   const [allTaskEvents, setAllTaskEvents] = useState([]);
+  const [showPicker, setShowPicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   useEffect(() => {
     loadUserTasks();
@@ -46,14 +49,14 @@ export default function HorizontalCalendar() {
 
         const eventDate = new Date(event.date);
         const now = new Date();
-        const firstMonday = getFirstMonday(now.getFullYear());
-        const thisWeekStart = new Date(firstMonday);
-        thisWeekStart.setDate(firstMonday.getDate() + (currentWeek - 1) * 7);
+        const firstMonday = getFirstMonday(selectedDate.getFullYear());
+        const weekStartDate = new Date(firstMonday);
+        weekStartDate.setDate(firstMonday.getDate() + (currentWeek - 1) * 7);
 
-        const thisWeekEnd = new Date(thisWeekStart);
-        thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+        const thisWeekEnd = new Date(weekStartDate);
+        thisWeekEnd.setDate(weekStartDate.getDate() + 6);
 
-        return eventDate >= thisWeekStart && eventDate <= thisWeekEnd;
+        return eventDate >= weekStartDate && eventDate <= thisWeekEnd;
     });
 
     setEvents([...filteredClassEvents, ...filteredTaskEvents]);
@@ -74,6 +77,16 @@ export default function HorizontalCalendar() {
     return Math.floor(diffDays / 7) + 1;
   };
   const [currentWeek, setCurrentWeek] = useState(getCurrentAcademicWeek());
+
+  const getAcademicWeekFromDate = (date) => {
+    const firstMonday = getFirstMonday(date.getFullYear());
+    const diffDays = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
+    return Math.floor(diffDays / 7) + 1;
+  };
+
+  const firstMonday = getFirstMonday(selectedDate.getFullYear());
+  const weekStartDate = new Date(firstMonday);
+  weekStartDate.setDate(firstMonday.getDate() + (currentWeek - 1) * 7);
 
   const loadUserTasks = async () => {
     try {
@@ -211,7 +224,10 @@ export default function HorizontalCalendar() {
     </View>
   );
 
-  const renderDayRow = (day) => {
+  const renderDayRow = (day, index, weekStartDate) => {
+  const dayDate = new Date(weekStartDate);
+  dayDate.setDate(weekStartDate.getDate() + index);
+  const formattedDate = dayDate.toDateString().slice(0, 10);
   const dayEvents = events
     .filter(e => e.day === day)
     .sort((a, b) => a.startHour - b.startHour);
@@ -235,7 +251,10 @@ export default function HorizontalCalendar() {
   const rowHeight = Math.max(lanes.length, 1) * 70;
   return (
     <View style={[styles.dayRow, { height: rowHeight }]} key={day}>
-      <View style={styles.dayLabel}><Text style={styles.dayLabelText}>{day}</Text></View>
+      <View style={styles.dayLabel}>
+        <Text style={styles.dayLabelText}>{day}</Text>
+        <Text style={styles.dateText}>{formattedDate}</Text>
+        </View>
       <View style={styles.dayEventsContainer}>
         {lanes.map((lane, laneIndex) =>
           lane.map((event, i) => {
@@ -287,15 +306,31 @@ export default function HorizontalCalendar() {
 
       <View style={styles.weekRow}>
         <Button title="←" onPress={() => setCurrentWeek(w => Math.max(1, w - 1))} />
-            <Text style={styles.weekText}>Week {currentWeek}</Text>
-            <Button title="→" onPress={() => setCurrentWeek(w => w + 1)} />
-        </View>
+        <Text style={styles.weekText}>Week {currentWeek}</Text>
+        <Button title="→" onPress={() => setCurrentWeek(w => w + 1)} />
+        <Button title="Pick Date" onPress={() => setShowPicker(true)} />
+        {showPicker && (
+            <DatePicker
+            date={selectedDate}
+            onDateChange={setSelectedDate}
+            mode="date"
+            modal
+            open={showPicker}
+            onConfirm={(date) => {
+                setShowPicker(false);
+                setSelectedDate(date);
+                setCurrentWeek(getAcademicWeekFromDate(date));
+            }}
+            onCancel={() => setShowPicker(false)}
+            />
+        )}
+      </View>
 
       <ScrollView horizontal style={styles.container}>
   <View>
     {renderTimeLabels()}
     <ScrollView contentContainerStyle={styles.verticalScroll}>
-      {DAYS.map(renderDayRow)}
+      {DAYS.map((day, idx) => renderDayRow(day, idx, weekStartDate))}
     </ScrollView>
   </View>
 </ScrollView>
@@ -322,5 +357,6 @@ const styles = StyleSheet.create({
   eventSubText: { fontSize: 10, color: '#fff', opacity: 0.9, flexWrap: 'wrap'},
   weekRow: {flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10, marginBottom: 10},
   weekText: {fontSize: 16, fontWeight: '600', paddingHorizontal: 10},
-  verticalScroll: { maxHeight: '85%' }
+  verticalScroll: { maxHeight: '85%' },
+  weekInput: { width: 80, marginLeft: 10, borderWidth: 1, borderColor: '#ccc', padding: 6, borderRadius: 6, textAlign: 'center'}
 });
