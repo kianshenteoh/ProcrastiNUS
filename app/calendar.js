@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import DatePicker from 'react-native-date-picker';
 import { auth, db } from '../firebase';
-import { getAcademicYear } from './academicYears';
+import { academicYears, getAcademicYear } from './academicYears';
 
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8AM–8PM
@@ -11,7 +11,7 @@ const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 const HOUR_WIDTH = 80;
 const ROW_HEIGHT = 100;
 
-const colorPalette = [
+const colorPalette = [  
   '#f4a261', // orange
   '#f28482', // red
   '#b5c99a', // green
@@ -40,11 +40,17 @@ export default function HorizontalCalendar() {
   const [allTaskEvents, setAllTaskEvents] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('AY2024/2025');
+  const [weekLabel, setWeekLabel] = useState('');
+
 
   useEffect(() => {
-  loadUserTasks();
+    loadUserTasks();
+  }, []);
+
+  useEffect(() => {
   
-  const weekType = getAcademicWeekLabel(selectedDate);
+  const weekType = getAcademicWeekLabel(selectedDate, selectedAcademicYear);
   const isSemester1 = weekType.includes('Semester 1');
   const isSemester2 = weekType.includes('Semester 2');
   
@@ -77,63 +83,56 @@ export default function HorizontalCalendar() {
   });
 
   setEvents([...filteredClassEvents, ...filteredTaskEvents]);
-}, [selectedDate, allClassEvents, allTaskEvents, semester]);
+}, [selectedDate, allClassEvents, allTaskEvents, semester, selectedAcademicYear]);
 
-  const getFirstMonday = (year) => {
-    const date = new Date(year, 0, 1);
-    while (date.getDay() !== 1) {
-        date.setDate(date.getDate() + 1);
-    }
-    return date;
-  };
 
-  const getCurrentAcademicWeek = () => {
-    const now = new Date();
-    const firstMonday = getFirstMonday(now.getFullYear());
-    const diffDays = Math.floor((now - firstMonday) / (1000 * 60 * 60 * 24));
-    return Math.floor(diffDays / 7) + 1;
-  };
-  const [currentWeek, setCurrentWeek] = useState(getCurrentAcademicWeek());
+  const [currentWeek, setCurrentWeek] = useState(1);
 
   const getAcademicWeekFromDate = (date) => {
-    const firstMonday = getFirstMonday(date.getFullYear());
-    const diffDays = Math.floor((date - firstMonday) / (1000 * 60 * 60 * 24));
-    return Math.floor(diffDays / 7) + 1;
+    const ayKey = getAcademicYear(date);
+    const ay = academicYears[ayKey];
+    if (!ay) return 1;
+
+    if (date >= ay.sem1.start && date <= ay.sem1.end) {
+      const diffDays = Math.floor((date - ay.sem1.start) / (1000 * 60 * 60 * 24));
+      return Math.floor(diffDays / 7) + 1;
+    }
+
+    if (date >= ay.sem2.start && date <= ay.sem2.end) {
+      const diffDays = Math.floor((date - ay.sem2.start) / (1000 * 60 * 60 * 24));
+      return Math.floor(diffDays / 7) + 1;
+    }
+
+    return 1;
   };
 
-  const firstMonday = getFirstMonday(selectedDate.getFullYear());
-  const weekStartDate = new Date(firstMonday);
-  weekStartDate.setDate(firstMonday.getDate() + (currentWeek - 1) * 7);
-
-  const getAcademicWeekLabel = (date) => {
-    const ay = getAcademicYear(date);
+  const getAcademicWeekLabel = (date, academicYearKey) => {
+    const ay = academicYears[academicYearKey];
     if (!ay) return 'Unsupported Academic Year';
 
     const isBetween = (target, start, end) => target >= start && target <= end;
 
-    // Check Semester 1 periods first
+    // Check Recess and Reading weeks first
+    if (isBetween(date, ay.sem1.recessStart, ay.sem1.recessEnd)) return 'Recess Week';
+    if (isBetween(date, ay.sem1.readingStart, ay.sem1.readingEnd)) return 'Reading Week';
+    if (isBetween(date, ay.sem2.recessStart, ay.sem2.recessEnd)) return 'Recess Week';
+    if (isBetween(date, ay.sem2.readingStart, ay.sem2.readingEnd)) return 'Reading Week';
+
+    // Then check Semester 1 and 2
     if (isBetween(date, ay.sem1.start, ay.sem1.end)) {
       const diffDays = Math.floor((date - ay.sem1.start) / (1000 * 60 * 60 * 24));
       const week = Math.floor(diffDays / 7) + 1;
       return `Semester 1 Week ${week}`;
     }
 
-    // Check Semester 2 periods
     if (isBetween(date, ay.sem2.start, ay.sem2.end)) {
       const diffDays = Math.floor((date - ay.sem2.start) / (1000 * 60 * 60 * 24));
       const week = Math.floor(diffDays / 7) + 1;
       return `Semester 2 Week ${week}`;
     }
 
-    // Check other periods
-    if (isBetween(date, ay.sem1.recessStart, ay.sem1.recessEnd)) return 'Recess Week';
-    if (isBetween(date, ay.sem1.readingStart, ay.sem1.readingEnd)) return 'Reading Week';
-    if (isBetween(date, ay.sem2.recessStart, ay.sem2.recessEnd)) return 'Recess Week';
-    if (isBetween(date, ay.sem2.readingStart, ay.sem2.readingEnd)) return 'Reading Week';
-
     return 'Vacation';
   };
-  const [weekLabel, setWeekLabel] = useState(getAcademicWeekLabel(new Date()));
 
 
   const loadUserTasks = async () => {
@@ -253,17 +252,21 @@ export default function HorizontalCalendar() {
 
   const importNUSModsURL = async () => {
     const { modules, semester: semesterFromUrl } = parseNUSModsURL(nusmodsUrl);
-    setSemester(semesterFromUrl); // Store the semester
+    setSemester(semesterFromUrl); // Store the semester from URL (1 or 2)
     
-    // Get the current academic year
-    const ay = getAcademicYear(new Date());
+    // Get the academic year data based on selection
+    const ay = academicYears[selectedAcademicYear];
+    if (!ay) {
+      Alert.alert('Error', 'Selected academic year data not available');
+      return;
+    }
     
     // Set the initial date based on the semester from URL
     const initialDate = semesterFromUrl === 1 ? ay.sem1.start : ay.sem2.start;
     setSelectedDate(initialDate);
     
     // Update week label and current week
-    setWeekLabel(getAcademicWeekLabel(initialDate));
+    setWeekLabel(getAcademicWeekLabel(initialDate, selectedAcademicYear));
     setCurrentWeek(1); // Start at week 1 for the semester
 
     // Fetch and set class events
@@ -287,9 +290,17 @@ export default function HorizontalCalendar() {
   );
 
   const renderDayRow = (day, index, weekStartDate) => {
-  const dayDate = new Date(weekStartDate);
-  dayDate.setDate(weekStartDate.getDate() + ((index - 1) % 7));
-  const formattedDate = dayDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'});
+  const monday = new Date(selectedDate);
+  monday.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
+    
+  const dayDate = new Date(monday);
+  dayDate.setDate(monday.getDate() + index);
+    
+  const formattedDate = dayDate.toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric'
+  });
   const dayEvents = events
     .filter(e => e.day === day)
     .sort((a, b) => a.startHour - b.startHour);
@@ -369,25 +380,21 @@ export default function HorizontalCalendar() {
     <View style={styles.weekControls}>
       <View style={styles.navigationRow}>
         <Button title="←" onPress={() => {
-          setCurrentWeek(w => {
-            const newWeek = Math.max(1, w - 1);
-            const newDate = new Date(firstMonday);
-            newDate.setDate(firstMonday.getDate() + (newWeek - 1) * 7);
+            const newDate = new Date(selectedDate);
+            newDate.setDate(newDate.getDate() - 7);
             setSelectedDate(newDate);
-            setWeekLabel(getAcademicWeekLabel(newDate));
-            return newWeek;
-          });
-        }} />
+            const detectedYear = getAcademicYear(newDate);
+            setWeekLabel(getAcademicWeekLabel(newDate, detectedYear));
+            setCurrentWeek(getAcademicWeekFromDate(newDate));
+          }} />
         <Text style={styles.weekText}>{weekLabel}</Text>
         <Button title="→" onPress={() => {
-          setCurrentWeek(w => {
-            const newWeek = w + 1;
-            const newDate = new Date(firstMonday);
-            newDate.setDate(firstMonday.getDate() + (newWeek - 1) * 7);
-            setSelectedDate(newDate);
-            setWeekLabel(getAcademicWeekLabel(newDate));
-            return newWeek;
-          });
+          const newDate = new Date(selectedDate);
+          newDate.setDate(newDate.getDate() + 7);
+          setSelectedDate(newDate);
+          const detectedYear = getAcademicYear(newDate);
+          setWeekLabel(getAcademicWeekLabel(newDate, detectedYear));
+          setCurrentWeek(getAcademicWeekFromDate(newDate));
         }} />
       </View>
 
@@ -405,8 +412,11 @@ export default function HorizontalCalendar() {
           onConfirm={(date) => {
             setShowPicker(false);
             setSelectedDate(date);
+
+            const ayKey = getAcademicYear(date);     
+            setSelectedAcademicYear(ayKey);          
             setCurrentWeek(getAcademicWeekFromDate(date));
-            setWeekLabel(getAcademicWeekLabel(date));
+            setWeekLabel(getAcademicWeekLabel(date, ayKey));
           }}
           onCancel={() => setShowPicker(false)}
         />
@@ -417,7 +427,7 @@ export default function HorizontalCalendar() {
   <ScrollView horizontal>
     <View>
       {renderTimeLabels()}
-      {DAYS.map((day, idx) => renderDayRow(day, idx, weekStartDate))}
+      {DAYS.map((day, idx) => renderDayRow(day, idx))}
     </View>
   </ScrollView>
 </ScrollView>
@@ -449,5 +459,4 @@ const styles = StyleSheet.create({
   weekControls: { alignItems: 'center', marginBottom: 10 },
   navigationRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 300,  paddingHorizontal: 10},
   weekText: { fontSize: 16, fontWeight: '600', textAlign: 'center', flex: 1 },
-  datePickerRow: { marginTop: 8 }
 });

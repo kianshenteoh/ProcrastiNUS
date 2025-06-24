@@ -84,9 +84,9 @@ export const academicYears = {
 export const getAcademicYear = (date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
-  if (month >= 7) {
-    return academicYears[`AY${year}/${year + 1}`];
-  } else {
-    return academicYears[`AY${year - 1}/${year}`];
-  }
+  const key = month >= 7
+    ? `AY${year}/${year + 1}`
+    : `AY${year - 1}/${year}`;
+
+  return academicYears[key] ? key : Object.keys(academicYears).sort().pop();
 };
