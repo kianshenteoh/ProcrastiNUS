@@ -7,7 +7,7 @@ export default function PetAndBadges() {
   const router = useRouter();
   const [wallet, setWallet] = useState({ taskCoins: 120, studyPoints: 18 });
   const [hours, setHours] = useState({ week: 12, total: 220 });
-  const [pet, setPet] = useState({ name: 'Chompy', level: 4, xp: 40, xpToNext: 200, hunger: 55, mood: 82 });
+  const [pet, setPet] = useState({ name: 'Danny', level: 4, xp: 40, xpToNext: 200, hunger: 55, mood: 82 });
   const [feedModal, setFeedModal] = useState(false);
   const [inventory, setInventory] = useState([]);
 
@@ -56,33 +56,33 @@ export default function PetAndBadges() {
   const hungerPct = pet.hunger / 100;
 
   return (
-    <ScrollView contentContainerStyle={s.wrapper}>
-      <View style={s.headerRow}>
-        <View style={s.wallet}>
+    <ScrollView contentContainerStyle={styles.wrapper}>
+      <View style={styles.headerRow}>
+        <View style={styles.wallet}>
           <IconText icon="coins" text={wallet.taskCoins} color="#ffd700" />
           <IconText icon="stopwatch" text={wallet.studyPoints} color="#60a5fa" />
         </View>
-        <Pressable style={s.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
+        <Pressable style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
           <MaterialIcons name="leaderboard" size={22} color="#fff" />
         </Pressable>
       </View>
 
-      <View style={s.petBox}>
-        <Image source={require('@/assets/images/Pet-Dog-Golden.png')} style={s.img} />
-        <Text style={s.petName}>{pet.name}</Text>
+      <View style={styles.petBox}>
+        <Image source={require('@/assets/images/Pet-Dog-Golden.png')} style={styles.img} />
+        <Text style={styles.petName}>{pet.name}</Text>
       </View>
 
-      <Text style={s.level}>Lvl {pet.level}</Text>
+      <Text style={styles.level}>Lvl {pet.level}</Text>
 
       <Bar label="XP" val={xpPct} color="#60a5fa" />
       <Bar label="Hunger" val={hungerPct} color="#ffd700" />
 
-      <Pressable style={s.shopBtn} onPress={() => setFeedModal(true)}>
+      <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
         <FontAwesome5 name="store" size={16} color="#fff" />
-        <Text style={s.shopTxt}>Shop</Text>
+        <Text style={styles.shopTxt}>Shop</Text>
       </Pressable>
 
-      <Text style={s.invTitle}>My Inventory</Text>
+      <Text style={styles.invTitle}>My Inventory</Text>
       {inventory.length ? (
         <FlatList
           data={inventory}
@@ -91,45 +91,45 @@ export default function PetAndBadges() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 5 }}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => useFood(item)} style={s.invCard}>
+            <TouchableOpacity onPress={() => useFood(item)} style={styles.invCard}>
               <FontAwesome5 name="hamburger" size={18} color="#f97316" />
-              <Text style={s.invLabel}>{item.label}</Text>
+              <Text style={styles.invLabel}>{item.label}</Text>
             </TouchableOpacity>
           )}
         />
       ) : (
-        <Text style={s.invEmpty}>No food yet – visit the shop!</Text>
+        <Text style={styles.invEmpty}>No food yet – visit the shop!</Text>
       )}
 
-      <Text style={s.badgesTitle}>Badges</Text>
-      <View style={s.badgeGrid}>
+      <Text style={styles.badgesTitle}>Badges</Text>
+      <View style={styles.badgeGrid}>
         {badges.map(b => (
-          <View key={b.id} style={[s.badgeCard, { backgroundColor: b.color + '55' }]}>
-            <View style={[s.badgeIconWrap, { backgroundColor: b.color }]}> <FontAwesome5 name={b.icon} size={24} color="#fff" /> </View>
-            <Text style={s.badgeLabel}>{b.name}</Text>
+          <View key={b.id} style={[styles.badgeCard, { backgroundColor: b.color + '55' }]}>
+            <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}> <FontAwesome5 name={b.icon} size={24} color="#fff" /> </View>
+            <Text style={styles.badgeLabel}>{b.name}</Text>
           </View>
         ))}
       </View>
 
       <Modal visible={feedModal} animationType="fade" transparent>
-        <View style={s.overlay}>
-          <View style={s.modalCard}>
-            <Text style={s.modalTitle}>Shop for treats</Text>
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Shop for treats</Text>
             {foods.map(f => (
               <TouchableOpacity
                 key={f.id}
-                style={[s.foodRow, !canAfford(f) && { opacity: 0.4 }]}
+                style={[styles.foodRow, !canAfford(f) && { opacity: 0.4 }]}
                 disabled={!canAfford(f)}
                 onPress={() => buyFood(f)}>
-                <Text style={s.foodLabel}>{f.label}</Text>
+                <Text style={styles.foodLabel}>{f.label}</Text>
                 <View style={{ flexDirection: 'row' }}>
                   {f.cost.taskCoins && <IconText icon="coins" color="#ffd700" text={f.cost.taskCoins} small />}
                   {f.cost.studyPoints && <IconText icon="stopwatch" color="#60a5fa" text={f.cost.studyPoints} small />}
                 </View>
               </TouchableOpacity>
             ))}
-            <Pressable style={s.closeBtn} onPress={() => setFeedModal(false)}>
-              <Text style={s.closeTxt}>Close</Text>
+            <Pressable style={styles.closeBtn} onPress={() => setFeedModal(false)}>
+              <Text style={styles.closeTxt}>Close</Text>
             </Pressable>
           </View>
         </View>
@@ -150,15 +150,15 @@ function IconText({ icon, color, text, small }) {
 function Bar({ label, val, color }) {
   return (
     <View style={{ width: '80%', marginVertical: 6 }}>
-      <Text style={s.barLbl}>{label}</Text>
-      <View style={s.barBg}>
-        <View style={[s.barFill, { width: `${val * 100}%`, backgroundColor: color }]} />
+      <Text style={styles.barLbl}>{label}</Text>
+      <View style={styles.barBg}>
+        <View style={[styles.barFill, { width: `${val * 100}%`, backgroundColor: color }]} />
       </View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
+const styles = StyleSheet.create({
   wrapper: { alignItems: 'center', backgroundColor: '#fffbe6', paddingVertical: 40 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '90%' },
   wallet: { flexDirection: 'row' },
