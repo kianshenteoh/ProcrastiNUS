@@ -60,10 +60,9 @@ export default function PetAndBadges() {
       <View style={styles.headerRow}>
         <View style={styles.wallet}>
           <IconText icon="coins" text={wallet.taskCoins} color="#ffd700" />
-          <IconText icon="stopwatch" text={wallet.studyPoints} color="#60a5fa" />
         </View>
-        <Pressable style={styles.leaderboardBtn} onPress={() => router.push('/leaderboard')}>
-          <MaterialIcons name="leaderboard" size={22} color="#fff" />
+        <Pressable style={styles.leaderboardBtn} onPress={() => router.push('/pet-settings')}>
+          <MaterialIcons name="settings" size={22} color="#fff" />
         </Pressable>
       </View>
 
