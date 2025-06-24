@@ -1,9 +1,9 @@
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import DatePicker from 'react-native-date-picker';
 import { auth, db } from '../firebase';
 import { academicYears, getAcademicYear } from './academicYears';
+
 
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8AM–8PM
@@ -42,10 +42,19 @@ export default function HorizontalCalendar() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedAcademicYear, setSelectedAcademicYear] = useState('AY2024/2025');
   const [weekLabel, setWeekLabel] = useState('');
+  const [importSemester, setImportSemester] = useState(1);
+  const currentAcademicYear = getAcademicYear(new Date());
+  const [activeSemester, setActiveSemester] = useState(null);
+  
 
 
   useEffect(() => {
     loadUserTasks();
+
+    const initialAy = getAcademicYear(selectedDate);
+    setSelectedAcademicYear(initialAy);
+    setWeekLabel(getAcademicWeekLabel(selectedDate, initialAy));
+    setCurrentWeek(getAcademicWeekFromDate(selectedDate));
   }, []);
 
   useEffect(() => {
@@ -203,9 +212,10 @@ export default function HorizontalCalendar() {
     return ranges.join(', ');
   };
 
-  const fetchModuleLessons = async (code, classSelections, semester) => {
+  const fetchModuleLessons = async (code, classSelections, semester, academicYearKey) => {
     try {
-      const res = await fetch(`https://api.nusmods.com/v2/2024-2025/modules/${code}.json`);
+      const nusmodsYear = academicYearKey.replace('AY', '').replace('/', '-');
+      const res = await fetch(`https://api.nusmods.com/v2/${nusmodsYear}/modules/${code}.json`);
       if (!res.ok) {
         console.error('Module not found:', code);
         return [];
@@ -251,36 +261,110 @@ export default function HorizontalCalendar() {
   };
 
   const importNUSModsURL = async () => {
-    const { modules, semester: semesterFromUrl } = parseNUSModsURL(nusmodsUrl);
-    setSemester(semesterFromUrl); // Store the semester from URL (1 or 2)
-    
-    // Get the academic year data based on selection
-    const ay = academicYears[selectedAcademicYear];
+    const { modules } = parseNUSModsURL(nusmodsUrl);
+    setSemester(activeSemester);
+    setSelectedAcademicYear(currentAcademicYear);
+
+    const ay = academicYears[currentAcademicYear];
     if (!ay) {
-      Alert.alert('Error', 'Selected academic year data not available');
+      Alert.alert('Error', 'Current academic year not found');
       return;
     }
-    
-    // Set the initial date based on the semester from URL
-    const initialDate = semesterFromUrl === 1 ? ay.sem1.start : ay.sem2.start;
-    setSelectedDate(initialDate);
-    
-    // Update week label and current week
-    setWeekLabel(getAcademicWeekLabel(initialDate, selectedAcademicYear));
-    setCurrentWeek(1); // Start at week 1 for the semester
 
-    // Fetch and set class events
+    const initialDate = activeSemester === 1 ? ay.sem1.start : ay.sem2.start;
+    setSelectedDate(initialDate);
+    setWeekLabel(`Semester ${activeSemester}`);
+    setCurrentWeek(1);
+
     const lessonsByModule = await Promise.all(
       modules.map(({ code, classSelections }) =>
-        fetchModuleLessons(code, classSelections, semesterFromUrl)
+        fetchModuleLessons(code, classSelections, activeSemester, currentAcademicYear)
       )
     );
     setAllClassEvents(lessonsByModule.flat());
   };
 
+
+  const renderDayRow = (day, index, weekStartDate) => {
+    const monday = new Date(selectedDate);
+    monday.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
+      
+    const dayDate = new Date(monday);
+    dayDate.setDate(monday.getDate() + index);
+      
+    const formattedDate = dayDate.toLocaleDateString(undefined, { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric'
+    });
+    const dayEvents = events
+      .filter(e => e.day === day)
+      .sort((a, b) => a.startHour - b.startHour);
+
+    const lanes = [];
+    for (const event of dayEvents) {
+      let placed = false;
+      for (const lane of lanes) {
+        const last = lane[lane.length - 1];
+        if (last.endHour <= event.startHour) {
+          lane.push(event);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        lanes.push([event]);
+      }
+    }
+
+    const rowHeight = Math.max(lanes.length, 1) * 70;
+    return (
+      <View style={[styles.dayRow, { height: rowHeight }]} key={day}>
+        <View style={styles.dayLabel}>
+          <Text style={styles.dayLabelText}>{day}</Text>
+          <Text style={styles.dateText}>{formattedDate}</Text>
+          </View>
+        <View style={styles.dayEventsContainer}>
+          {lanes.map((lane, laneIndex) =>
+            lane.map((event, i) => {
+              const left = (event.startHour - 8) * HOUR_WIDTH;
+              const width = (event.endHour - event.startHour) * HOUR_WIDTH;
+              const laneGap = 4; // space between blocks
+              const blockHeight = 60;
+              const topOffset = laneIndex * (blockHeight + laneGap);
+              return (
+                <View
+                  key={`${day}-${laneIndex}-${i}`}
+                  style={[
+                    styles.eventBlock,
+                    {
+                      left,
+                      width,
+                      top: topOffset,
+                      backgroundColor: event.color,
+                    },
+                  ]}>
+                  <Text style={styles.eventText}>{event.title}</Text>
+                  {event.location && (
+                    <Text style={styles.eventSubText}>{event.location}</Text>
+                  )}
+                  {event.weeks && (
+                    <Text style={styles.eventSubText}>Weeks: {formatWeeks(event.weeks)}</Text>
+                  )}
+                </View>
+              );
+            })
+          )}
+        </View>
+      </View>
+    );
+  };
+
   const renderTimeLabels = () => (
     <View style={styles.timeRow}>
-      <View style={styles.dayHeaderCell}><Text style={styles.dayHeaderText}>Day</Text></View>
+      <View style={styles.dayHeaderCell}>
+        <Text style={styles.dayHeaderText}>Day</Text>
+      </View>
       {HOURS.map(hour => (
         <View key={hour} style={styles.timeSlot}>
           <Text style={styles.timeText}>{hour}:00</Text>
@@ -289,83 +373,28 @@ export default function HorizontalCalendar() {
     </View>
   );
 
-  const renderDayRow = (day, index, weekStartDate) => {
-  const monday = new Date(selectedDate);
-  monday.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
-    
-  const dayDate = new Date(monday);
-  dayDate.setDate(monday.getDate() + index);
-    
-  const formattedDate = dayDate.toLocaleDateString(undefined, { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric'
-  });
-  const dayEvents = events
-    .filter(e => e.day === day)
-    .sort((a, b) => a.startHour - b.startHour);
+  const handleSemesterChange = (sem) => {
+    setActiveSemester(sem);
+    setSemester(sem);
+    const ay = academicYears[currentAcademicYear];
+    const initialDate = sem === 1 ? ay.sem1.start : ay.sem2.start;
+    setSelectedDate(initialDate);
+    setWeekLabel(`Semester ${sem}`);
+    setCurrentWeek(1);
+  };
 
-  const lanes = [];
-  for (const event of dayEvents) {
-    let placed = false;
-    for (const lane of lanes) {
-      const last = lane[lane.length - 1];
-      if (last.endHour <= event.startHour) {
-        lane.push(event);
-        placed = true;
-        break;
-      }
-    }
-    if (!placed) {
-      lanes.push([event]);
-    }
-  }
 
-  const rowHeight = Math.max(lanes.length, 1) * 70;
+
   return (
-    <View style={[styles.dayRow, { height: rowHeight }]} key={day}>
-      <View style={styles.dayLabel}>
-        <Text style={styles.dayLabelText}>{day}</Text>
-        <Text style={styles.dateText}>{formattedDate}</Text>
-        </View>
-      <View style={styles.dayEventsContainer}>
-        {lanes.map((lane, laneIndex) =>
-          lane.map((event, i) => {
-            const left = (event.startHour - 8) * HOUR_WIDTH;
-            const width = (event.endHour - event.startHour) * HOUR_WIDTH;
-            const laneGap = 4; // space between blocks
-            const blockHeight = 60;
-            const topOffset = laneIndex * (blockHeight + laneGap);
-            return (
-              <View
-                key={`${day}-${laneIndex}-${i}`}
-                style={[
-                  styles.eventBlock,
-                  {
-                    left,
-                    width,
-                    top: topOffset,
-                    backgroundColor: event.color,
-                  },
-                ]}>
-                <Text style={styles.eventText}>{event.title}</Text>
-                {event.location && (
-                  <Text style={styles.eventSubText}>{event.location}</Text>
-                )}
-                {event.weeks && (
-                  <Text style={styles.eventSubText}>Weeks: {formatWeeks(event.weeks)}</Text>
-                )}
-              </View>
-            );
-          })
-        )}
+    <View style={{ flex: 1 }}>
+    <View style={styles.semesterToggle}>
+      <Text style={styles.semesterToggleTitle}>Select Semester</Text>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button title="Semester 1" onPress={() => handleSemesterChange(1)} color={activeSemester === 1 ? '#007AFF' : '#ccc'} />
+        <Button title="Semester 2" onPress={() => handleSemesterChange(2)} color={activeSemester === 2 ? '#007AFF' : '#ccc'} />
       </View>
     </View>
-  );
-};
-
-
-  return (
+   
     <View style={{ flex: 1 }}>
       <View style={styles.inputRow}>
         <TextInput
@@ -377,62 +406,38 @@ export default function HorizontalCalendar() {
         <Button title="Import" onPress={importNUSModsURL} />
       </View>
 
-    <View style={styles.weekControls}>
-      <View style={styles.navigationRow}>
-        <Button title="←" onPress={() => {
+      <View style={styles.weekControls}>
+        <View style={styles.navigationRow}>
+          <Button title="←" onPress={() => {
             const newDate = new Date(selectedDate);
             newDate.setDate(newDate.getDate() - 7);
-            setSelectedDate(newDate);
-            const detectedYear = getAcademicYear(newDate);
-            setWeekLabel(getAcademicWeekLabel(newDate, detectedYear));
-            setCurrentWeek(getAcademicWeekFromDate(newDate));
-          }} />
-        <Text style={styles.weekText}>{weekLabel}</Text>
-        <Button title="→" onPress={() => {
-          const newDate = new Date(selectedDate);
-          newDate.setDate(newDate.getDate() + 7);
-          setSelectedDate(newDate);
-          const detectedYear = getAcademicYear(newDate);
-          setWeekLabel(getAcademicWeekLabel(newDate, detectedYear));
-          setCurrentWeek(getAcademicWeekFromDate(newDate));
-        }} />
+            const range = academicYears[currentAcademicYear][`sem${activeSemester}`];
+            if (newDate >= range.start) {
+              setSelectedDate(newDate);
+            }}} />
+          <Text style={styles.weekText}>{weekLabel}</Text>
+          <Button title="→" onPress={() => {
+            const newDate = new Date(selectedDate);
+            newDate.setDate(newDate.getDate() + 7);
+            const range = academicYears[currentAcademicYear][`sem${activeSemester}`];
+            if (newDate <= range.end) {
+              setSelectedDate(newDate);
+            }}} />
+        </View>
       </View>
-
-      <View style={styles.datePickerRow}>
-        <Button title="Pick Date" onPress={() => setShowPicker(true)} />
-      </View>
-
-      {showPicker && (
-        <DatePicker
-          date={selectedDate}
-          onDateChange={setSelectedDate}
-          mode="date"
-          modal
-          open={showPicker}
-          onConfirm={(date) => {
-            setShowPicker(false);
-            setSelectedDate(date);
-
-            const ayKey = getAcademicYear(date);     
-            setSelectedAcademicYear(ayKey);          
-            setCurrentWeek(getAcademicWeekFromDate(date));
-            setWeekLabel(getAcademicWeekLabel(date, ayKey));
-          }}
-          onCancel={() => setShowPicker(false)}
-        />
-      )}
-    </View>
 
       <ScrollView style={styles.container}>
-  <ScrollView horizontal>
-    <View>
-      {renderTimeLabels()}
-      {DAYS.map((day, idx) => renderDayRow(day, idx))}
+        <ScrollView horizontal>
+          <View>
+            {renderTimeLabels()}
+            {DAYS.map((day, idx) => renderDayRow(day, idx))}
+          </View>
+        </ScrollView>
+      </ScrollView>
     </View>
-  </ScrollView>
-</ScrollView>
     </View>
   );
+
 }
 
 const styles = StyleSheet.create({
@@ -458,5 +463,8 @@ const styles = StyleSheet.create({
   weekInput: { width: 80, marginLeft: 10, borderWidth: 1, borderColor: '#ccc', padding: 6, borderRadius: 6, textAlign: 'center'},
   weekControls: { alignItems: 'center', marginBottom: 10 },
   navigationRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: 300,  paddingHorizontal: 10},
-  weekText: { fontSize: 16, fontWeight: '600', textAlign: 'center', flex: 1 },
+  weekText: { fontSize: 16, fontWeight: '600', textAlign: 'center', flex: 1 }, semesterSelectContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20,},
+  semesterSelectTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, },
+  semesterToggle: { paddingHorizontal: 10, paddingVertical: 10, backgroundColor: '#fff', alignItems: 'center', },
+  semesterToggleTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 6,},
 });
