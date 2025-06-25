@@ -31,7 +31,7 @@ export default function PetAndBadgesBackend() {
           name: 'Danny',
           hunger: 100,
           totalXp: 1000,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now()
         };
         await setDoc(petRef, newPet);
         setPet({ ...newPet, level: 1, xp: 0, xpToNext: 1000 });
