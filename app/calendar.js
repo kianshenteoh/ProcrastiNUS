@@ -1,9 +1,11 @@
+import { FontAwesome5 } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../firebase';
 import { academicYears } from './academicYears';
+
 
 
 
@@ -58,10 +60,12 @@ export default function HorizontalCalendar() {
   const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [activeSemester, setActiveSemester] = useState(1);
   const route = useRoute();
+  const [showSemesterMenu, setShowSemesterMenu] = useState(false);
 
   useEffect(() => {
     if (route.params?.refresh) {
       loadUserTasks();
+      loadUserModules();
     }
   }, [route.params?.refresh]);
   
@@ -177,11 +181,13 @@ export default function HorizontalCalendar() {
     try {
       const uid = auth.currentUser?.uid;
       if (!uid) return;
-      const q = query(collection(db, 'users', uid, 'tasks'), orderBy('createdAt', 'desc'));
-      const snapshot = await getDocs(q);
+
+      const snapshot = await getDocs(collection(db, 'users', uid, 'tasks'));
+
       const userEvents = snapshot.docs.map(doc => {
         const task = doc.data();
-        if (!task.dueDate || task.completed) return null; 
+        if (!task.dueDate || task.completed) return null;
+
         const date = task.dueDate.toDate();
         const dayIndex = (date.getDay() + 6) % 7;
         const dayName = DAYS[dayIndex];
@@ -192,15 +198,33 @@ export default function HorizontalCalendar() {
           day: dayName,
           startHour: date.getHours(),
           endHour: date.getHours() + 1,
-          date: date,
+          date,
           color: '#84dcc6',
-          semester: null
         };
       }).filter(Boolean);
-    
-    setAllTaskEvents(userEvents);
+
+      setAllTaskEvents(userEvents);
     } catch (err) {
-      console.error('Failed to load tasks:', err);
+      console.error('Error loading tasks:', err);
+    }
+  };
+
+  const loadUserModules = async () => {
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const sem1Snap = await getDocs(collection(db, 'users', uid, 'modules', 'sem1', 'classes'));
+      const sem2Snap = await getDocs(collection(db, 'users', uid, 'modules', 'sem2', 'classes'));
+
+      const allModules = [
+        ...sem1Snap.docs.map(doc => doc.data()),
+        ...sem2Snap.docs.map(doc => doc.data()),
+      ];
+
+      setAllClassEvents(allModules);
+    } catch (err) {
+      console.error('Failed to load saved modules:', err);
     }
   };
 
@@ -320,6 +344,23 @@ export default function HorizontalCalendar() {
 
     const flatLessons = lessonsByModule.flat();
     setAllClassEvents(flatLessons);
+    try {
+      const uid = auth.currentUser?.uid;
+      if (!uid) return;
+
+      const semesterKey = `sem${targetSemester}`;
+      const semesterRef = collection(db, 'users', uid, 'modules', semesterKey, 'classes');
+
+      const existing = await getDocs(semesterRef);
+      for (const docSnap of existing.docs) {
+        await deleteDoc(doc(db, 'users', uid, 'modules', semesterKey, 'classes', docSnap.id));
+      }
+      for (const lesson of flatLessons) {
+        await addDoc(semesterRef, lesson);
+      }
+    } catch (err) {
+      console.error('Error saving modules to Firestore:', err);
+    }
   };
 
 
@@ -421,17 +462,26 @@ export default function HorizontalCalendar() {
     setCurrentWeek(1);
   };
 
+  const handlePrevWeek = () => {
+    const semKey = `sem${activeSemester}`;
+    const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
+    if (!range) return;
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 7);
+    if (newDate >= new Date(range.start)) setSelectedDate(newDate);
+  };
 
+  const handleNextWeek = () => {
+    const semKey = `sem${activeSemester}`;
+    const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
+    if (!range) return;
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 7);
+    if (newDate <= new Date(range.end)) setSelectedDate(newDate);
+  };
 
   return (
     <View style={{ flex: 1 }}>
-    <View style={styles.semesterToggle}>
-      <Text style={styles.semesterToggleTitle}>Select Semester</Text>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Button title="Semester 1" onPress={() => handleSemesterChange(1)} color={activeSemester === 1 ? '#007AFF' : '#ccc'} />
-        <Button title="Semester 2" onPress={() => handleSemesterChange(2)} color={activeSemester === 2 ? '#007AFF' : '#ccc'} />
-      </View>
-    </View>
    
     <View style={{ flex: 1 }}>
       <View style={styles.inputRow}>
@@ -444,46 +494,32 @@ export default function HorizontalCalendar() {
         <Button title="Import" onPress={importNUSModsURL} />
       </View>
 
-      <View style={styles.weekControls}>
-        <View style={styles.navigationRow}>
-          <Button
-            title="←"
-            onPress={() => {
-              if (![1, 2].includes(activeSemester)) return;
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10,}}>
+  
+  <Pressable
+    onPress={() => setShowSemesterMenu(true)}
+      style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 6, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#fff', marginRight: 10, width: 100 }}>
+      <Text style={{ fontSize: 14, textAlign: 'center' }}>
+        {activeSemester === 1 ? 'Semester 1' : 'Semester 2'}
+      </Text>
+    </Pressable>
 
-              const semKey = `sem${activeSemester}`;
-              const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
-              if (!range || !range.start || !range.end) return;
+    
+    <TouchableOpacity onPress={handlePrevWeek} style={{ marginRight: 6 }}>
+      <FontAwesome5 name="chevron-left" size={24} color="#3479DB" />
+    </TouchableOpacity>
 
-              const newDate = new Date(selectedDate);
-              newDate.setDate(newDate.getDate() - 7);
+    <View style={{ width: 120, alignItems: 'center' }}>
+      <Text style={{ fontSize: 16, fontWeight: '600' }}>{weekLabel}</Text>
+    </View>
 
-              if (newDate >= new Date(range.start)) {
-                setSelectedDate(newDate);
-              }
-            }}
-          />
+    <TouchableOpacity onPress={handleNextWeek} style={{ marginLeft: 6 }}>
+      <FontAwesome5 name="chevron-right" size={24} color="#3479DB" />
+    </TouchableOpacity>
 
-          <Text style={styles.weekText}>{weekLabel}</Text>
-          <Button
-            title="→"
-            onPress={() => {
-              if (![1, 2].includes(activeSemester)) return;
+    <View style={{ width: 110, marginLeft: 10 }} />
+  </View>
 
-              const semKey = `sem${activeSemester}`;
-              const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
-              if (!range || !range.start || !range.end) return;
-
-              const newDate = new Date(selectedDate);
-              newDate.setDate(newDate.getDate() + 7);
-
-              if (newDate <= new Date(range.end)) {
-                setSelectedDate(newDate);
-              }
-            }}
-          />
-        </View>
-      </View>
 
       <ScrollView style={styles.container}>
         <ScrollView horizontal>
@@ -494,7 +530,45 @@ export default function HorizontalCalendar() {
         </ScrollView>
       </ScrollView>
     </View>
+
+    <Modal
+      transparent
+      visible={showSemesterMenu}
+      animationType="fade"
+      onRequestClose={() => setShowSemesterMenu(false)}
+    >
+      <Pressable
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.3)',
+        }}
+        onPress={() => setShowSemesterMenu(false)}
+      >
+        <View style={{ backgroundColor: 'white', borderRadius: 8, padding: 10, width: 180 }}>
+          {[1, 2].map((sem) => (
+            <Pressable
+              key={sem}
+              onPress={() => {
+                handleSemesterChange(sem);
+                setShowSemesterMenu(false);
+              }}
+              style={{
+                paddingVertical: 10,
+                borderBottomWidth: sem === 1 ? 1 : 0,
+                borderColor: '#eee',
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>{`Semester ${sem}`}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Pressable>
+    </Modal>
+
     </View>
+    
   );
 
 }
