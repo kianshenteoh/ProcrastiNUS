@@ -34,7 +34,6 @@ export default function TasksScreen() {
           dueDate: doc.data().dueDate?.toDate?.() || null,
         }));
         setTasks(fetchedTasks);
-        // console.log(JSON.stringify(doc.data()))
       } catch (error) {
         console.error('Error loading tasks:', error);
       } finally {
