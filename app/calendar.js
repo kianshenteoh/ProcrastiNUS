@@ -50,6 +50,7 @@ export default function HorizontalCalendar() {
 
   useEffect(() => {
     loadUserTasks();
+    setActiveSemester(1);
 
     const initialAy = getAcademicYear(selectedDate);
     setSelectedAcademicYear(initialAy);
@@ -408,21 +409,42 @@ export default function HorizontalCalendar() {
 
       <View style={styles.weekControls}>
         <View style={styles.navigationRow}>
-          <Button title="←" onPress={() => {
-            const newDate = new Date(selectedDate);
-            newDate.setDate(newDate.getDate() - 7);
-            const range = academicYears[currentAcademicYear][`sem${activeSemester}`];
-            if (newDate >= range.start) {
-              setSelectedDate(newDate);
-            }}} />
+          <Button
+            title="←"
+            onPress={() => {
+              if (!selectedAcademicYear || ![1, 2].includes(activeSemester)) return;
+
+              const semKey = `sem${activeSemester}`;
+              const range = academicYears[selectedAcademicYear]?.[semKey];
+              if (!range || !range.start || !range.end) return;
+
+              const newDate = new Date(selectedDate);
+              newDate.setDate(newDate.getDate() - 7);
+
+              if (newDate >= new Date(range.start)) {
+                setSelectedDate(newDate);
+              }
+            }}
+          />
+
           <Text style={styles.weekText}>{weekLabel}</Text>
-          <Button title="→" onPress={() => {
-            const newDate = new Date(selectedDate);
-            newDate.setDate(newDate.getDate() + 7);
-            const range = academicYears[currentAcademicYear][`sem${activeSemester}`];
-            if (newDate <= range.end) {
-              setSelectedDate(newDate);
-            }}} />
+          <Button
+            title="→"
+            onPress={() => {
+              if (!selectedAcademicYear || ![1, 2].includes(activeSemester)) return;
+
+              const semKey = `sem${activeSemester}`;
+              const range = academicYears[selectedAcademicYear]?.[semKey];
+              if (!range || !range.start || !range.end) return;
+
+              const newDate = new Date(selectedDate);
+              newDate.setDate(newDate.getDate() + 7);
+
+              if (newDate <= new Date(range.end)) {
+                setSelectedDate(newDate);
+              }
+            }}
+          />
         </View>
       </View>
 
