@@ -23,10 +23,11 @@ export default function TasksScreen() {
   useEffect(() => {
     const loadTasks = async () => {
       try {
-        const uid = auth.currentUser?.uid;
-        if (!uid) return;
+        const rawEmail = auth.currentUser?.email;
+        if (!rawEmail) return;
+        const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
-        const q = query(collection(db, 'users', uid, 'tasks'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'users', userId, 'tasks'), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         const fetchedTasks = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -54,8 +55,9 @@ export default function TasksScreen() {
   const saveTask = async () => {
     if (!title.trim()) return;
 
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
     const task = {
       title: title.trim(),
@@ -67,11 +69,11 @@ export default function TasksScreen() {
 
     try {
       if (editId) {
-        const ref = doc(db, 'users', uid, 'tasks', editId);
+        const ref = doc(db, 'users', userId, 'tasks', editId);
         await updateDoc(ref, task);
         setTasks(t => t.map(x => (x.id === editId ? { ...x, ...task } : x)));
       } else {
-        const ref = await addDoc(collection(db, 'users', uid, 'tasks'), task);
+        const ref = await addDoc(collection(db, 'users', userId, 'tasks'), task);
         setTasks(t => [{ id: ref.id, ...task }, ...t]);
       }
     } catch (error) {
@@ -92,11 +94,12 @@ export default function TasksScreen() {
   };
 
   const deleteTask = async id => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
     try {
-      const ref = doc(db, 'users', uid, 'tasks', id);
+      const ref = doc(db, 'users', userId, 'tasks', id);
       await deleteDoc(ref);
       setTasks(t => t.filter(x => x.id !== id));
       if (id === editId) resetForm();
@@ -106,11 +109,12 @@ export default function TasksScreen() {
   };
 
   const completeTask = async id => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
     try {
-      const ref = doc(db, 'users', uid, 'tasks', id);
+      const ref = doc(db, 'users', userId, 'tasks', id);
       await updateDoc(ref, { completed: true });
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
     } catch (error) {
@@ -156,11 +160,12 @@ const renderRightActions = (progress, dragX, task) => {
 };
 
   const uncompleteTask = async id => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
     try {
-      const ref = doc(db, 'users', uid, 'tasks', id);
+      const ref = doc(db, 'users', userId, 'tasks', id);
       await updateDoc(ref, { completed: false });
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: false } : task));
     } catch (error) {
