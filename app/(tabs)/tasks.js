@@ -238,7 +238,7 @@ const renderRightActions = (progress, dragX, task) => {
           </View>
         </ScrollView>
 
-        <Pressable onPress={() => nav.navigate('calendar')} style={styles.calendarBtn}>
+        <Pressable onPress={() => nav.navigate('calendar', { refresh: Date.now() })} style={styles.calendarBtn}>
           <FontAwesome6 name="calendar-days" size={30} color="#fff" />
         </Pressable>
 

@@ -1,3 +1,4 @@
+import { useRoute } from '@react-navigation/native';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,7 +8,7 @@ import { academicYears, getAcademicYear } from './academicYears';
 
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8AM–8PM
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOUR_WIDTH = 80;
 const ROW_HEIGHT = 100;
 
@@ -39,39 +40,42 @@ export default function HorizontalCalendar() {
   const [allClassEvents, setAllClassEvents] = useState([]);
   const [allTaskEvents, setAllTaskEvents] = useState([]);
   const [showPicker, setShowPicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState('AY2024/2025');
   const [weekLabel, setWeekLabel] = useState('');
   const [importSemester, setImportSemester] = useState(1);
-  const currentAcademicYear = getAcademicYear(new Date());
-  const [activeSemester, setActiveSemester] = useState(null);
-  
-
+  const ay = academicYears[getAcademicYear(new Date())];
+  const defaultDate = ay?.sem1?.start ?? new Date();
+  const [selectedDate, setSelectedDate] = useState(defaultDate);
+  const currentAcademicYear = getAcademicYear(defaultDate);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState(currentAcademicYear);
+  const [activeSemester, setActiveSemester] = useState(1);
+  const route = useRoute();
 
   useEffect(() => {
-    loadUserTasks();
-    setActiveSemester(1);
-
-    const initialAy = getAcademicYear(selectedDate);
-    setSelectedAcademicYear(initialAy);
-    setWeekLabel(getAcademicWeekLabel(selectedDate, initialAy));
-    setCurrentWeek(getAcademicWeekFromDate(selectedDate));
+    if (route.params?.refresh) {
+      loadUserTasks();
+    }
+  }, [route.params?.refresh]);
+  
+  useEffect(() => {
+    setSemester(1);
+    setWeekLabel(getAcademicWeekLabel(defaultDate, currentAcademicYear));
+    setCurrentWeek(getAcademicWeekFromDate(defaultDate));
   }, []);
 
   useEffect(() => {
   
   const weekType = getAcademicWeekLabel(selectedDate, selectedAcademicYear);
-  const isSemester1 = weekType.includes('Semester 1');
-  const isSemester2 = weekType.includes('Semester 2');
+  setWeekLabel(weekType);
+  const ay = academicYears[selectedAcademicYear];
+  const isSemester1 = selectedDate >= ay.sem1.start && selectedDate <= ay.sem1.end;
+  const isSemester2 = selectedDate >= ay.sem2.start && selectedDate <= ay.sem2.end;
   
   // Filter class events based on current semester
   const filteredClassEvents = allClassEvents.filter(event => {
     if (!isSemester1 && !isSemester2) return false;
     
     // Check if the event belongs to the current semester
-    const eventSemester = event.weeks ? 
-      (event.weeks.some(w => w <= 13) ? 1 : 2) : 
-      (semester || 1); // Fallback to URL semester or default
+    const eventSemester = event.semester ?? (semester || 1);
     
     if ((isSemester1 && eventSemester !== 1) || 
         (isSemester2 && eventSemester !== 2)) {
@@ -87,14 +91,23 @@ export default function HorizontalCalendar() {
 
   // Filter task events for current week
   const filteredTaskEvents = allTaskEvents.filter(event => {
-    if (!event.date) return true;
+    if (!event.date) return false;
     const eventDate = new Date(event.date);
-    return eventDate.toDateString() === selectedDate.toDateString();
+
+    // Find Monday of the selected week
+    const monday = new Date(selectedDate);
+    monday.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    return eventDate >= monday && eventDate <= sunday;
   });
 
   setEvents([...filteredClassEvents, ...filteredTaskEvents]);
 }, [selectedDate, allClassEvents, allTaskEvents, semester, selectedAcademicYear]);
-
 
   const [currentWeek, setCurrentWeek] = useState(1);
 
@@ -116,6 +129,7 @@ export default function HorizontalCalendar() {
     return 1;
   };
 
+
   const getAcademicWeekLabel = (date, academicYearKey) => {
     const ay = academicYears[academicYearKey];
     if (!ay) return 'Unsupported Academic Year';
@@ -132,18 +146,17 @@ export default function HorizontalCalendar() {
     if (isBetween(date, ay.sem1.start, ay.sem1.end)) {
       const diffDays = Math.floor((date - ay.sem1.start) / (1000 * 60 * 60 * 24));
       const week = Math.floor(diffDays / 7) + 1;
-      return `Semester 1 Week ${week}`;
+      return `Week ${week}`;
     }
 
     if (isBetween(date, ay.sem2.start, ay.sem2.end)) {
       const diffDays = Math.floor((date - ay.sem2.start) / (1000 * 60 * 60 * 24));
       const week = Math.floor(diffDays / 7) + 1;
-      return `Semester 2 Week ${week}`;
+      return `Week ${week}`;
     }
 
     return 'Vacation';
   };
-
 
   const loadUserTasks = async () => {
     try {
@@ -153,20 +166,21 @@ export default function HorizontalCalendar() {
       const snapshot = await getDocs(q);
       const userEvents = snapshot.docs.map(doc => {
         const task = doc.data();
-        if (!task.dueDate) return null;
+        if (!task.dueDate || task.completed) return null; 
         const date = task.dueDate.toDate();
-        const dayName = DAYS[date.getDay()];
+        const dayIndex = (date.getDay() + 6) % 7;
+        const dayName = DAYS[dayIndex];
         if (!dayName) return null;
 
-    return {
-        title: `📝 ${task.title}`,
-        day: dayName,
-        startHour: date.getHours(),
-        endHour: date.getHours() + 1,
-        date: date, // ✅ this is critical
-        color: '#84dcc6'
-    };
-    }).filter(Boolean);
+        return {
+          title: `📝 ${task.title}`,
+          day: dayName,
+          startHour: date.getHours(),
+          endHour: date.getHours() + 1,
+          date: date,
+          color: '#84dcc6'
+        };
+      }).filter(Boolean);
     
     setAllTaskEvents(userEvents);
     } catch (err) {
@@ -252,6 +266,7 @@ export default function HorizontalCalendar() {
             weeks: lesson.weeks,
             lessonType: lesson.lessonType,
             color: lessonColor,
+            semester,
           };
         })
         .filter(Boolean);
@@ -262,28 +277,36 @@ export default function HorizontalCalendar() {
   };
 
   const importNUSModsURL = async () => {
-    const { modules } = parseNUSModsURL(nusmodsUrl);
-    setSemester(activeSemester);
-    setSelectedAcademicYear(currentAcademicYear);
+    const { modules, semester: semFromUrl } = parseNUSModsURL(nusmodsUrl);
 
-    const ay = academicYears[currentAcademicYear];
+    const academicYearKey = 'AY2024/2025'; // ← customize year here
+    const ay = academicYears[academicYearKey];
     if (!ay) {
-      Alert.alert('Error', 'Current academic year not found');
+      Alert.alert('Error', 'Academic year not found');
       return;
     }
 
-    const initialDate = activeSemester === 1 ? ay.sem1.start : ay.sem2.start;
+    const targetSemester = semFromUrl || 1;
+    const initialDate = targetSemester === 1 ? ay.sem1.start : ay.sem2.start;
+
+    // Set all state BEFORE fetching, and use local vars for fetch
+    setSemester(targetSemester);
+    setActiveSemester(targetSemester);
+    setSelectedAcademicYear(academicYearKey);
     setSelectedDate(initialDate);
-    setWeekLabel(`Semester ${activeSemester}`);
-    setCurrentWeek(1);
+    setWeekLabel(getAcademicWeekLabel(initialDate, academicYearKey));
+    setCurrentWeek(getAcademicWeekFromDate(initialDate));
 
     const lessonsByModule = await Promise.all(
       modules.map(({ code, classSelections }) =>
-        fetchModuleLessons(code, classSelections, activeSemester, currentAcademicYear)
+        fetchModuleLessons(code, classSelections, targetSemester, academicYearKey)
       )
     );
-    setAllClassEvents(lessonsByModule.flat());
+
+    const flatLessons = lessonsByModule.flat();
+    setAllClassEvents(flatLessons);
   };
+
 
 
   const renderDayRow = (day, index, weekStartDate) => {
