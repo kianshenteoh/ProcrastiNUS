@@ -32,7 +32,7 @@ export default function LeaderboardScreen() {
         scrollEnabled={false} // did this to avoid warning
         contentContainerStyle={{paddingBottom:40}}
         renderItem={({item,index})=> (
-          <View style={[styles.card,index<3&&{borderColor:'#facc15',borderWidth:2}]}> 
+          <View style={[styles.card,index<3 &&{borderColor:'#facc15',borderWidth:2}]}> 
             <View style={styles.rank}><Text style={styles.rankTxt}>{index+1}</Text></View>
             <Image source={item.pet} style={styles.avatar} />
             <View style={styles.infoCol}>

@@ -2,7 +2,6 @@ import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-
 export default function ProfileScreen() {
   const nav = useNavigation();
 

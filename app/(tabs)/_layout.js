@@ -9,7 +9,7 @@ import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 function CenterTabButton(props) {
   const focused =
     props.accessibilityState?.selected ??
-    props.selected ??            // Expo Router may pass it this way
+    props.selected ??
     false;
 
   return (
