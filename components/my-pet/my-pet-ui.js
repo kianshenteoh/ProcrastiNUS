@@ -3,15 +3,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood }) {
+export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
 
   const foods = [
-    { id: 'basic', label: 'Biscuit', cost: 5, xp: 10, hunger: 20 },
-    { id: 'snack', label: 'Snack', cost: 3, xp: 15, hunger: 15 },
-    { id: 'premium', label: 'Big Mac', cost: 10, xp: 30, hunger: 40 },
-  ];
+    { id: 'biscuit', label: 'Biscuit', cost: 5, hunger: 20, icon: 'cookie-bite' },
+    { id: 'snack', label: 'Snack', cost: 3, hunger: 15, icon: 'bone' },
+    { id: 'premium', label: 'Big Mac', cost: 10, hunger: 40, icon: 'hamburger' },
+  ]; 
 
   const badges = [
     { id: 'early', name: 'Early Bird', icon: 'sun', color: '#ffbf00' },
@@ -26,6 +26,12 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood 
 
   const xpPct = pet.xp / pet.xpToNext;
   const hungerPct = pet.hunger / 100;
+  const hungerColor =
+    pet.hunger >= HUNGER_THRESHOLD * 2
+      ? '#10b981' // green
+      : pet.hunger >= HUNGER_THRESHOLD
+      ? '#facc15' // yellow
+      : '#ef4444'; // red
 
   return (
     <ScrollView contentContainerStyle={styles.wrapper}>
@@ -46,7 +52,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood 
       <Text style={styles.level}>Lvl {pet.level}</Text>
 
       <Bar label="XP" val={xpPct} color="#60a5fa" displayText={`XP (${pet.xp}/${pet.xpToNext})`} />
-      <Bar label="Hunger" val={hungerPct} color="#ffd700" displayText={`Hunger (${pet.hunger}%)`} />
+      <Bar label="Hunger" val={hungerPct} color={hungerColor} displayText={`Hunger (${pet.hunger}%)`} />
 
       <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
         <FontAwesome5 name="store" size={16} color="#fff" />
@@ -63,7 +69,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood 
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 5 }}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => useFood(item)} style={styles.invCard}>
-              <FontAwesome5 name="hamburger" size={18} color="#f97316" />
+              <FontAwesome5 name={item.icon || 'hamburger'} size={18} color="#f97316" />
               <Text style={styles.invLabel}>{item.label}</Text>
             </TouchableOpacity>
           )}
