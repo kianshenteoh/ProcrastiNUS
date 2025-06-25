@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react';
 import PetAndBadges from './my-pet-ui';
 
 export default function PetAndBadgesBackend() {
+  const HUNGER_THRESHOLD = 30; // Hunger threshold for XP gain
+  const HUNGER_DROP_RATE = 2; // Hunger drops by 2% per hour
+  const XP_GAIN_RATE = 20; // XP gained per hour when hunger is above threshold
+
   const [pet, setPet] = useState(null);
-  const [wallet, setWallet] = useState({ coins: 0 });
+  const [wallet, setWallet] = useState({ coins: 100000 });
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
 
@@ -26,14 +30,14 @@ export default function PetAndBadgesBackend() {
         const newPet = {
           name: 'Danny',
           hunger: 100,
-          totalXp: 0,
+          totalXp: 1000,
           lastUpdated: Date.now(),
         };
         await setDoc(petRef, newPet);
         setPet({ ...newPet, level: 1, xp: 0, xpToNext: 1000 });
       } else {
         const petData = petSnap.data();
-        const { updatedPet } = computePetStats(petData);
+        const { updatedPet } = computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE);
         await updateDoc(petRef, { ...updatedPet });
         setPet({
           ...updatedPet,
@@ -45,12 +49,12 @@ export default function PetAndBadgesBackend() {
 
       if (!walletSnap.exists()) {
         await setDoc(walletRef, { coins: 10000 });
-        setWallet({ coins: 100 });
+        setWallet({ coins: 10000 });
       } else {
         setWallet(walletSnap.data());
       }
 
-      if (!inventorySnap.exists()) {
+      if (!inventorySnap.exists()) { 
         await setDoc(inventoryRef, { items: [] });
         setInventory([]);
       } else {
@@ -62,6 +66,23 @@ export default function PetAndBadgesBackend() {
 
     fetchOrCreatePet();
   }, [uid]);
+
+  useEffect(() => {
+  if (!pet) return;
+
+  const interval = setInterval(() => {
+    const { updatedPet } = computePetStats(pet, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE);
+    setPet(prev => ({
+      ...prev,
+      ...updatedPet,
+      level: Math.floor(updatedPet.totalXp / 1000),
+      xp: updatedPet.totalXp % 1000,
+    }));
+    updateDoc(petRef, updatedPet); 
+  }, 10000); 
+
+  return () => clearInterval(interval);
+}, [pet]);
 
   const buyFood = async (food) => {
     if (wallet.coins < food.cost) return;
@@ -76,7 +97,6 @@ export default function PetAndBadgesBackend() {
   const useFood = async (food) => {
     const updatedPet = {
       ...pet,
-      xp: Math.min(pet.xp + food.xp, pet.xpToNext),
       hunger: Math.min(pet.hunger + food.hunger, 100),
     };
     const newInventory = [...inventory];
@@ -86,7 +106,6 @@ export default function PetAndBadgesBackend() {
     }
     await updateDoc(petRef, {
       hunger: updatedPet.hunger,
-      totalXp: pet.totalXp - pet.xp + updatedPet.xp,
     });
     await updateDoc(inventoryRef, { items: newInventory });
     setPet(updatedPet);
@@ -95,16 +114,17 @@ export default function PetAndBadgesBackend() {
 
   if (loading || !pet) return null;
 
-  return <PetAndBadges pet={pet} wallet={wallet} inventory={inventory} setPet={setPet} setWallet={setWallet} buyFood={buyFood} useFood={useFood} />;
+  return <PetAndBadges pet={pet} wallet={wallet} inventory={inventory} setPet={setPet} setWallet={setWallet} buyFood={buyFood} useFood={useFood} HUNGER_THRESHOLD={HUNGER_THRESHOLD} />;
 }
 
-function computePetStats(petData) {
+function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE) {
   const now = Date.now();
-  const elapsedMs = now - (petData.lastUpdated || now);
-  const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
+  const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
+  const elapsedMs = now - lastUpdated;
+  const hours = Math.floor(elapsedMs / (60 * 60 * 1000));
 
-  let hunger = Math.max(petData.hunger - hours * 2, 0);
-  let xpGain = hunger > 30 ? 20 * hours : 0;
+  let hunger = Math.max(petData.hunger - hours * HUNGER_DROP_RATE, 0);
+  let xpGain = hunger >= HUNGER_THRESHOLD ? XP_GAIN_RATE * hours : 0;
   let totalXp = (petData.totalXp || 0) + xpGain;
 
   return {

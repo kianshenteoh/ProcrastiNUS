@@ -172,7 +172,12 @@ const renderRightActions = (progress, dragX, task) => {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
 
-        <Text style={[styles.headerTitle]}>My Tasks</Text>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 0 }}>
+        <Text style={styles.headerTitle}>My Tasks</Text>
+        <Pressable onPress={() => nav.navigate('daily-quests')} style={styles.dailyBtn}>
+          <FontAwesome6 name="list-check" size={24} color="#3479DB" />
+        </Pressable>
+      </View>
 
         <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Text style={styles.addBtnText}>+ New Task</Text>
@@ -296,6 +301,7 @@ const styles = StyleSheet.create({
   cardActions: { justifyContent: 'center' },
   action: { marginLeft: 12, color: '#3479DB', fontWeight: '600' },
   delete: { color: '#C00' },
+  dailyBtn: { padding: 18, borderRadius: 6 },
   priorityRow: { flexDirection: 'row', marginBottom: 16 },
   priorityBtn: { flex: 1, padding: 8, marginHorizontal: 4, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, alignItems: 'center' },
   priorityBtnSelected: { backgroundColor: '#3479DB', borderColor: '#3479DB' },
