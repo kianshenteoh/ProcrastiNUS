@@ -3,14 +3,15 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { auth, db } from '../firebase';
-import { academicYears, getAcademicYear } from './academicYears';
+import { academicYears } from './academicYears';
 
 
 
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); // 8AM–8PM
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOUR_WIDTH = 80;
 const ROW_HEIGHT = 100;
+const DEFAULT_ACADEMIC_YEAR = 'AY2024/2025';
 
 const colorPalette = [  
   '#f4a261', // orange
@@ -34,19 +35,27 @@ const lessonTypeAbbreviations = {
 };
 
 export default function HorizontalCalendar() {
+  const ay = academicYears[DEFAULT_ACADEMIC_YEAR];  //redirects to current date during semester period
+  const today = new Date();
+
+  let defaultDate = ay?.sem1?.start ?? today;
+  let semester = 1;
+  if (ay) {
+    if (today >= ay.sem1.start && today <= ay.sem1.end) {
+      defaultDate = today;
+      semester = 1;
+    } else if (today >= ay.sem2.start && today <= ay.sem2.end) {
+      defaultDate = today;
+      semester = 2;
+    }
+  }
+
   const [events, setEvents] = useState([]);
   const [nusmodsUrl, setNusmodsUrl] = useState('');
-  const [semester, setSemester] = useState(null)
   const [allClassEvents, setAllClassEvents] = useState([]);
   const [allTaskEvents, setAllTaskEvents] = useState([]);
-  const [showPicker, setShowPicker] = useState(false);
   const [weekLabel, setWeekLabel] = useState('');
-  const [importSemester, setImportSemester] = useState(1);
-  const ay = academicYears[getAcademicYear(new Date())];
-  const defaultDate = ay?.sem1?.start ?? new Date();
   const [selectedDate, setSelectedDate] = useState(defaultDate);
-  const currentAcademicYear = getAcademicYear(defaultDate);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState(currentAcademicYear);
   const [activeSemester, setActiveSemester] = useState(1);
   const route = useRoute();
 
@@ -57,16 +66,15 @@ export default function HorizontalCalendar() {
   }, [route.params?.refresh]);
   
   useEffect(() => {
-    setSemester(1);
-    setWeekLabel(getAcademicWeekLabel(defaultDate, currentAcademicYear));
+    setWeekLabel(getAcademicWeekLabel(defaultDate, DEFAULT_ACADEMIC_YEAR));
     setCurrentWeek(getAcademicWeekFromDate(defaultDate));
   }, []);
 
   useEffect(() => {
   
-  const weekType = getAcademicWeekLabel(selectedDate, selectedAcademicYear);
+  const weekType = getAcademicWeekLabel(selectedDate, DEFAULT_ACADEMIC_YEAR);
   setWeekLabel(weekType);
-  const ay = academicYears[selectedAcademicYear];
+  const ay = academicYears[DEFAULT_ACADEMIC_YEAR];
   const isSemester1 = selectedDate >= ay.sem1.start && selectedDate <= ay.sem1.end;
   const isSemester2 = selectedDate >= ay.sem2.start && selectedDate <= ay.sem2.end;
   
@@ -75,7 +83,7 @@ export default function HorizontalCalendar() {
     if (!isSemester1 && !isSemester2) return false;
     
     // Check if the event belongs to the current semester
-    const eventSemester = event.semester ?? (semester || 1);
+    const eventSemester = event.semester ?? activeSemester;
     
     if ((isSemester1 && eventSemester !== 1) || 
         (isSemester2 && eventSemester !== 2)) {
@@ -107,13 +115,12 @@ export default function HorizontalCalendar() {
   });
 
   setEvents([...filteredClassEvents, ...filteredTaskEvents]);
-}, [selectedDate, allClassEvents, allTaskEvents, semester, selectedAcademicYear]);
+}, [selectedDate, allClassEvents, allTaskEvents, activeSemester]);
 
   const [currentWeek, setCurrentWeek] = useState(1);
 
   const getAcademicWeekFromDate = (date) => {
-    const ayKey = getAcademicYear(date);
-    const ay = academicYears[ayKey];
+    const ay = academicYears[DEFAULT_ACADEMIC_YEAR]; 
     if (!ay) return 1;
 
     if (date >= ay.sem1.start && date <= ay.sem1.end) {
@@ -136,22 +143,30 @@ export default function HorizontalCalendar() {
 
     const isBetween = (target, start, end) => target >= start && target <= end;
 
-    // Check Recess and Reading weeks first
     if (isBetween(date, ay.sem1.recessStart, ay.sem1.recessEnd)) return 'Recess Week';
     if (isBetween(date, ay.sem1.readingStart, ay.sem1.readingEnd)) return 'Reading Week';
     if (isBetween(date, ay.sem2.recessStart, ay.sem2.recessEnd)) return 'Recess Week';
     if (isBetween(date, ay.sem2.readingStart, ay.sem2.readingEnd)) return 'Reading Week';
 
-    // Then check Semester 1 and 2
     if (isBetween(date, ay.sem1.start, ay.sem1.end)) {
       const diffDays = Math.floor((date - ay.sem1.start) / (1000 * 60 * 60 * 24));
-      const week = Math.floor(diffDays / 7) + 1;
+      let week = Math.floor(diffDays / 7) + 1;
+
+      if (date > ay.sem1.recessEnd) {
+        week -= 1;
+      }
+
       return `Week ${week}`;
     }
 
     if (isBetween(date, ay.sem2.start, ay.sem2.end)) {
       const diffDays = Math.floor((date - ay.sem2.start) / (1000 * 60 * 60 * 24));
-      const week = Math.floor(diffDays / 7) + 1;
+      let week = Math.floor(diffDays / 7) + 1;
+
+      if (date > ay.sem2.recessEnd) {
+        week -= 1;
+      }
+
       return `Week ${week}`;
     }
 
@@ -178,7 +193,8 @@ export default function HorizontalCalendar() {
           startHour: date.getHours(),
           endHour: date.getHours() + 1,
           date: date,
-          color: '#84dcc6'
+          color: '#84dcc6',
+          semester: null
         };
       }).filter(Boolean);
     
@@ -279,7 +295,7 @@ export default function HorizontalCalendar() {
   const importNUSModsURL = async () => {
     const { modules, semester: semFromUrl } = parseNUSModsURL(nusmodsUrl);
 
-    const academicYearKey = 'AY2024/2025'; // ← customize year here
+    const academicYearKey = DEFAULT_ACADEMIC_YEAR;
     const ay = academicYears[academicYearKey];
     if (!ay) {
       Alert.alert('Error', 'Academic year not found');
@@ -289,12 +305,11 @@ export default function HorizontalCalendar() {
     const targetSemester = semFromUrl || 1;
     const initialDate = targetSemester === 1 ? ay.sem1.start : ay.sem2.start;
 
-    // Set all state BEFORE fetching, and use local vars for fetch
-    setSemester(targetSemester);
+    
+
     setActiveSemester(targetSemester);
-    setSelectedAcademicYear(academicYearKey);
     setSelectedDate(initialDate);
-    setWeekLabel(getAcademicWeekLabel(initialDate, academicYearKey));
+    setWeekLabel(getAcademicWeekLabel(initialDate, DEFAULT_ACADEMIC_YEAR));
     setCurrentWeek(getAcademicWeekFromDate(initialDate));
 
     const lessonsByModule = await Promise.all(
@@ -399,8 +414,7 @@ export default function HorizontalCalendar() {
 
   const handleSemesterChange = (sem) => {
     setActiveSemester(sem);
-    setSemester(sem);
-    const ay = academicYears[currentAcademicYear];
+    const ay = academicYears[DEFAULT_ACADEMIC_YEAR];
     const initialDate = sem === 1 ? ay.sem1.start : ay.sem2.start;
     setSelectedDate(initialDate);
     setWeekLabel(`Semester ${sem}`);
@@ -435,10 +449,10 @@ export default function HorizontalCalendar() {
           <Button
             title="←"
             onPress={() => {
-              if (!selectedAcademicYear || ![1, 2].includes(activeSemester)) return;
+              if (![1, 2].includes(activeSemester)) return;
 
               const semKey = `sem${activeSemester}`;
-              const range = academicYears[selectedAcademicYear]?.[semKey];
+              const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
               if (!range || !range.start || !range.end) return;
 
               const newDate = new Date(selectedDate);
@@ -454,10 +468,10 @@ export default function HorizontalCalendar() {
           <Button
             title="→"
             onPress={() => {
-              if (!selectedAcademicYear || ![1, 2].includes(activeSemester)) return;
+              if (![1, 2].includes(activeSemester)) return;
 
               const semKey = `sem${activeSemester}`;
-              const range = academicYears[selectedAcademicYear]?.[semKey];
+              const range = academicYears[DEFAULT_ACADEMIC_YEAR]?.[semKey];
               if (!range || !range.start || !range.end) return;
 
               const newDate = new Date(selectedDate);
