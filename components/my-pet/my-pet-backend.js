@@ -13,13 +13,15 @@ export default function PetAndBadgesBackend() {
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
 
-  const uid = auth.currentUser?.uid;
-  const petRef = doc(db, 'users', uid, 'pet', 'data');
-  const walletRef = doc(db, 'users', uid, 'wallet', 'data');
-  const inventoryRef = doc(db, 'users', uid, 'inventory', 'data');
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const petRef = doc(db, 'users', userId, 'pet', 'data');
+  const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+  const inventoryRef = doc(db, 'users', userId, 'inventory', 'data');
 
   useEffect(() => {
-    if (!uid) return;
+    if (!userId) return;
 
     async function fetchOrCreatePet() {
       const petSnap = await getDoc(petRef);
@@ -65,7 +67,7 @@ export default function PetAndBadgesBackend() {
     }
 
     fetchOrCreatePet();
-  }, [uid]);
+  }, [userId]);
 
   useEffect(() => {
   if (!pet) return;

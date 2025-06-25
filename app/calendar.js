@@ -1,6 +1,6 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useRoute } from '@react-navigation/native';
-import { addDoc, collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { auth, db } from '../firebase';
@@ -179,10 +179,11 @@ export default function HorizontalCalendar() {
 
   const loadUserTasks = async () => {
     try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
-      const snapshot = await getDocs(collection(db, 'users', uid, 'tasks'));
+      const snapshot = await getDocs(collection(db, 'users', userId, 'tasks'));
 
       const userEvents = snapshot.docs.map(doc => {
         const task = doc.data();
@@ -211,11 +212,12 @@ export default function HorizontalCalendar() {
 
   const loadUserModules = async () => {
     try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
-      const sem1Snap = await getDocs(collection(db, 'users', uid, 'modules', 'sem1', 'classes'));
-      const sem2Snap = await getDocs(collection(db, 'users', uid, 'modules', 'sem2', 'classes'));
+      const sem1Snap = await getDocs(collection(db, 'users', userId, 'modules', 'sem1', 'classes'));
+      const sem2Snap = await getDocs(collection(db, 'users', userId, 'modules', 'sem2', 'classes'));
 
       const allModules = [
         ...sem1Snap.docs.map(doc => doc.data()),
@@ -345,18 +347,21 @@ export default function HorizontalCalendar() {
     const flatLessons = lessonsByModule.flat();
     setAllClassEvents(flatLessons);
     try {
-      const uid = auth.currentUser?.uid;
-      if (!uid) return;
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
       const semesterKey = `sem${targetSemester}`;
-      const semesterRef = collection(db, 'users', uid, 'modules', semesterKey, 'classes');
+      const semesterRef = collection(db, 'users', userId, 'modules', semesterKey, 'classes');
 
       const existing = await getDocs(semesterRef);
       for (const docSnap of existing.docs) {
-        await deleteDoc(doc(db, 'users', uid, 'modules', semesterKey, 'classes', docSnap.id));
+        await deleteDoc(docSnap.ref);
       }
       for (const lesson of flatLessons) {
-        await addDoc(semesterRef, lesson);
+        const rawId = lesson.title || 'Untitled';
+        const docId = rawId.trim().replace(/[.#$/[\]/\\]/g, '-');
+        await setDoc(doc(semesterRef, docId), lesson);
       }
     } catch (err) {
       console.error('Error saving modules to Firestore:', err);
