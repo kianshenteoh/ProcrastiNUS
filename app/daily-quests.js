@@ -1,16 +1,37 @@
+import { auth, db } from '@/firebase';
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
 
 export default function DailyQuestsScreen() {
   const nav = useNavigation();
   const [claimed, setClaimed] = useState({});
+  const [dailyStats, setDailyStats] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+      const ref = doc(db, 'users', userId, 'dailyStats', 'data');
+      const snap = await getDoc(ref);
+      const data = snap.exists() ? snap.data() : { created: 0, completed: 0, hasOverdue: false };
+      setDailyStats(data);
+    };
+
+    fetchStats();
+  }, []);
+    
+  if (!dailyStats) {
+    return <Text style={{ padding: 20 }}>Loading quests...</Text>;
+  }
 
   const dailyQuests = [
-    { id: 'complete2', title: 'Complete 2 Tasks', progress: { current: 1, target: 2 }, reward: 50 },
-    { id: 'create2', title: 'Create 2 Tasks', progress: { current: 2, target: 2 }, reward: 30 },
-    { id: 'noOverdue', title: 'No Overdue Tasks', progress: { current: 1, target: 1 }, reward: 40 }
+    { id: 'complete2', title: 'Complete 2 Tasks', progress: { current: dailyStats.completed, target: 2 }, reward: 50 },
+    { id: 'create2', title: 'Create 2 Tasks', progress: { current: dailyStats.created, target: 2 }, reward: 30 },
   ];
 
   const getProgressPct = (current, target) => Math.min(current / target, 1);

@@ -1,6 +1,6 @@
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, increment, orderBy, query, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
@@ -44,6 +44,24 @@ export default function TasksScreen() {
       loadTasks();
   }, []);
 
+  const trackTaskEvent = async eventType => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+
+    const statsSnap = await getDoc(statsRef);
+    if (!statsSnap.exists()) {
+      await setDoc(statsRef, { created: 0, completed: 0, hasOverdue: false });
+    }
+
+    const updateObj = {};
+    if (eventType === 'created') updateObj.created = increment(1);
+    if (eventType === 'completed') updateObj.completed = increment(1);
+
+    await updateDoc(statsRef, updateObj);
+  }
+
   const resetForm = () => {
     setTitle('');
     setPriority('Medium');
@@ -75,6 +93,7 @@ export default function TasksScreen() {
       } else {
         const ref = await addDoc(collection(db, 'users', userId, 'tasks'), task);
         setTasks(t => [{ id: ref.id, ...task }, ...t]);
+        trackTaskEvent('created');
       }
     } catch (error) {
       console.error('Error saving task:', error);
@@ -117,6 +136,7 @@ export default function TasksScreen() {
       const ref = doc(db, 'users', userId, 'tasks', id);
       await updateDoc(ref, { completed: true });
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
+      trackTaskEvent('completed');
     } catch (error) {
       console.error('Error marking task as complete:', error);
     }
