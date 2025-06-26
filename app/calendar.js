@@ -6,9 +6,6 @@ import { Alert, Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInpu
 import { auth, db } from '../firebase';
 import { academicYears } from './academicYears';
 
-
-
-
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOUR_WIDTH = 80;

@@ -131,7 +131,7 @@ function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RA
   const now = Date.now();
   const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
   const elapsedMs = now - lastUpdated;
-  const hours = Math.floor(elapsedMs / (60 * 60 * 1000));
+  const hours = Math.floor(elapsedMs / (60 * 60 * 1000000000));
 
   let hunger = Math.max(petData.hunger - hours * HUNGER_DROP_RATE, 0);
   let xpGain = hunger >= HUNGER_THRESHOLD ? XP_GAIN_RATE * hours : 0;
