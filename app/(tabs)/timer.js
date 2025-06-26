@@ -170,18 +170,24 @@ export default function PomodoroScreen() {
     <View style={styles.container}>
     
     <Pressable
-        onPress = { () => {
-          setMode(prev => (prev === 'timer' ? 'stopwatch' : 'timer'));
-          setRunning(false);
-          setSecondsLeft(0);
-          setInitialTime(0);
-          setElapsed(0);
-        }}
-        style = {{backgroundColor: '#fff', padding: 10, borderRadius: 10, marginBottom: 10}}>
-          <Text style = {{fontWeight: 'bold', color: 'rgb(29, 114, 89)'}}>
-            Switch to {mode === 'timer' ? 'Stopwatch' : 'Timer'}
-          </Text>
-        </Pressable>
+  onPress={() => {
+    setRunning(false); // pause current mode before switching
+    setMode(prev => (prev === 'timer' ? 'stopwatch' : 'timer'));
+  }}
+  disabled={running}
+  style={{
+    backgroundColor: running ? '#ccc' : '#fff',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    opacity: running ? 0.6 : 1,
+  }}
+>
+  <Text style={{ fontWeight: 'bold', color: 'rgb(29, 114, 89)' }}>
+    Switch to {mode === 'timer' ? 'Stopwatch' : 'Timer'}
+  </Text>
+</Pressable>
+
 
 
     <View style={styles.studyRow}>
@@ -247,7 +253,7 @@ export default function PomodoroScreen() {
         </View>
       )}
 
-      {secondsLeft > 0 && (
+      {mode === 'timer' && secondsLeft > 0 && (
         <View style={styles.row}>
           {running ? (
             <Pressable style={styles.pauseBtn} onPress={pause}><FontAwesome5 name="pause" size={24} color="#fff" /></Pressable>
