@@ -12,7 +12,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
 
   const handleRegister = async () => {
-    try {
+    try { 
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
       const userId = email.trim().replace(/[.#$/[\]]/g, '_');
