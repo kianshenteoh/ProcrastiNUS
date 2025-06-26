@@ -1,9 +1,10 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -12,7 +13,10 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = userCredential.user;
+      const userId = email.trim().replace(/[.#$/[\]]/g, '_');
+      await setDoc(doc(db, 'users', userId, 'friends', 'list'), {}),
       router.replace('./LoginScreen');
     } catch (err) {
       alert(err.message);
