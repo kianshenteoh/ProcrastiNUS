@@ -65,7 +65,7 @@ export default function SocialScreen() {
     }
     loadFriends();
     // console.log(friendsPets);
-  }, []);
+  }, [friendsPets]);
 
 
   const [groups, setGroups] = useState([
@@ -215,7 +215,8 @@ export default function SocialScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
-              <Pressable style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
+              <Pressable onPress={() => router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } })} 
+                style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
             </View>
           )}
         />
