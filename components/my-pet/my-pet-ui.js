@@ -2,11 +2,14 @@ import petImages from '@/assets/pet-images';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD}) {
+export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, setPet}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
+  const [nameModal, setNameModal] = useState(pet.name === 'Danny');
+  const [newName, setNewName] = useState('');
+
 
   const foods = [
     { id: 'biscuit', label: 'Biscuit', cost: 5, hunger: 20, icon: 'cookie-bite' },
@@ -111,6 +114,36 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
           </View>
         </View>
       </Modal>
+
+      <Modal visible={nameModal} animationType="slide" transparent>
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Name Your Pet</Text>
+            <Text style={{ marginBottom: 12, textAlign: 'center', color: '#4b5563' }}>
+              What would you like to name your new companion?
+            </Text>
+            <View style={styles.inputBox}>
+              <TextInput
+                placeholder="e.g. Mochi"
+                style={styles.input}
+                value={newName}
+                onChangeText={setNewName}
+              />
+            </View>
+            <Pressable
+              style={[styles.shopBtn, { marginTop: 16 }]}
+              onPress={() => {
+                if (!newName.trim()) return;
+                setPet(prev => ({ ...prev, name: newName.trim() }));
+                setNameModal(false);
+              }}
+            >
+              <Text style={styles.shopTxt}>Save</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
@@ -158,6 +191,9 @@ const styles = StyleSheet.create({
   invCard: { width: 90, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
   invLabel: { fontSize: 12, marginTop: 4, color: '#374151', fontWeight: '600' },
   invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 4 },
+
+  inputBox: {backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,},
+  input: {fontSize: 16,color: '#111827'},
 
   studyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   studyLbl: { fontSize: 12, color: '#374151', marginHorizontal: 8 },

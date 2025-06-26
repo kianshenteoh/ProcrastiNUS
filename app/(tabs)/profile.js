@@ -1,13 +1,13 @@
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
   const nav = useNavigation();
 
   const user = {
     name: 'Teoh Kian Shen',
-    avatar: 'https://i.pinimg.com/736x/63/1b/32/631b328b52a0d901b1f3b3bf10c058f2.jpg',
+    avatar: 'https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200',
     level: 7,
     xp: 3800,
     xpToNext: 5000,
@@ -45,29 +45,12 @@ export default function ProfileScreen() {
         <Text style={styles.displayName}>{user.name}</Text>
       </View>
 
-      <View style={styles.levelCard}>
-        <Text style={styles.levelText}>Level {user.level}</Text>
-        <View style={styles.xpBarBg}>
-          <View style={[styles.xpBarFill, { width: `${xpPercent * 100}%` }]} />
-        </View>
-        <Text style={styles.xpLabel}>{user.xp} / {user.xpToNext} XP</Text>
-      </View>
-
       <View style={styles.statsRow}>
         <Stat label="Study hrs" value={user.studyHours} icon="clock" />
         <Stat label="Tasks" value={user.tasksCompleted} icon="tasks" />
         <Stat label="Rank" value={`#${user.rank}`} icon="trophy" />
       </View>
 
-      <Text style={styles.sectionTitle}>Badges</Text>
-      <FlatList
-        data={user.badges}
-        numColumns={2}
-        keyExtractor={item => item.id}
-        renderItem={showBadge}
-        columnWrapperStyle={styles.badgeRow}
-        scrollEnabled={false}
-      />
 
       <View style={styles.actionColumn}>
         <QuickBtn label="Edit Profile" icon="user-edit" onPress={() => nav.navigate('editProfile')} />

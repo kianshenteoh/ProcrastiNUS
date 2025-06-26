@@ -34,7 +34,7 @@ export default function PetAndBadgesBackend() {
           name: 'Danny',
           hunger: 100,
           totalXp: 1000,
-          lastUpdated: Date.now(),
+          lastUpdated: Date.now(), 
           image: Math.floor(Math.random() * 200 - 1) + 1 // there are 200 pet images
         };
         await setDoc(petRef, newPet);
@@ -49,7 +49,7 @@ export default function PetAndBadgesBackend() {
           xp: updatedPet.totalXp % 1000,
           xpToNext: 1000,
         });
-      }
+      } 
 
       if (!walletSnap.exists()) {
         await setDoc(walletRef, { coins: 10000 });
@@ -146,5 +146,5 @@ function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RA
     }, 
     xpGained: xpGain,
   }; 
-}
+} 
  
