@@ -33,7 +33,8 @@ export default function PetAndBadgesBackend() {
           name: 'Danny',
           hunger: 100,
           totalXp: 1000,
-          lastUpdated: Date.now()
+          lastUpdated: Date.now(),
+          image: Math.floor(Math.random() * 200 - 1) + 1 // there are 200 pet images
         };
         await setDoc(petRef, newPet);
         setPet({ ...newPet, level: 1, xp: 0, xpToNext: 1000 });

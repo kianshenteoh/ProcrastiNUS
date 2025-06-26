@@ -1,3 +1,4 @@
+import petImages from '@/assets/pet-images';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -45,7 +46,8 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       </View>
 
       <View style={styles.petBox}>
-        <Image source={require('@/assets/images/Pet-Dog-Golden.png')} style={styles.img} />
+        { console.log(petImages, pet.image) }
+        <Image source={petImages[pet.image]} style={styles.img} />
         <Text style={styles.petName}>{pet.name}</Text>
       </View>
 
