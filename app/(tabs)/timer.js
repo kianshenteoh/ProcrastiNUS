@@ -1,7 +1,9 @@
 import { FontAwesome5 } from '@expo/vector-icons';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { auth, db } from '../../firebase';
 
 const { width } = Dimensions.get('window');
 const RADIUS = 120;
@@ -57,6 +59,11 @@ export default function PomodoroScreen() {
           clearInterval(intervalRef.current);
           setRunning(false);
           Vibration.vibrate(800);
+
+          const fullMinutes = Math.floor(initialTime / 60);
+          if (fullMinutes > 0) {
+            awardCoins(fullMinutes * 2); 
+          }
           return 0;
         }
         return prev - 1;
@@ -92,6 +99,12 @@ export default function PomodoroScreen() {
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Give Up', style: 'destructive', onPress: () => {
+            const timeSpent = initialTime - secondsLeft;
+            const minutes = Math.floor(timeSpent / 60);
+            if (minutes > 0) {
+              awardCoins(minutes);
+            }
+
             setRunning(false);
             setSecondsLeft(0);
             setInitialTime(0);
@@ -144,7 +157,25 @@ export default function PomodoroScreen() {
     }
   }, 180000); 
 
+  const minutes = Math.floor(elapsed / 60);
+  if (minutes > 0) {
+    awardCoins(minutes); 
+  }
   setResetTimer(timeoutId);
+};
+
+const awardCoins = async (amount) => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+  const snap = await getDoc(walletRef);
+
+  const currentCoins = snap.exists() ? snap.data().coins || 0 : 0;
+  const newCoins = currentCoins + amount;
+
+  await updateDoc(walletRef, { coins: newCoins });
 };
 
   const handleManualReset = () => {

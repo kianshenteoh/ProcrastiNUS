@@ -55,8 +55,14 @@ export default function PetAndBadgesBackend() {
         await setDoc(walletRef, { coins: 10000 });
         setWallet({ coins: 10000 });
       } else {
-        setWallet(walletSnap.data());
+        const walletData = walletSnap.data();
+        if (walletData?.coins === undefined || walletData.coins === null) {
+          await updateDoc(walletRef, { coins: 0 });
+          setWallet({ coins: 0 });
+      } else {
+        setWallet(walletData);
       }
+    }
 
       if (!inventorySnap.exists()) { 
         await setDoc(inventoryRef, { items: [] });

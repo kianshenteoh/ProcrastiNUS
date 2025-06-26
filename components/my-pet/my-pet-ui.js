@@ -119,7 +119,9 @@ function IconText({ icon, color, text, small }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginHorizontal: 6 }}>
       <FontAwesome5 name={icon} size={small ? 14 : 18} color={color} style={{ marginRight: 4 }} />
-      <Text style={{ color, fontWeight: '700' }}>{String(text)}</Text>
+      <Text style={{ color, fontWeight: '700' }}>
+        {typeof text === 'string' || typeof text === 'number' ? String(text) : ''}
+      </Text>
     </View>
   );
 }
