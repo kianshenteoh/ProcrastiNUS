@@ -21,7 +21,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickLogin = () => handleLogin({ email: 'a@gmail.com', password: '123456' });
+  const handleQuickLogin = () => handleLogin({ email: '9@gmail.com', password: '123456' });
 
   return (
     <View style={styles.wrapper}>
@@ -82,4 +82,13 @@ const styles = StyleSheet.create({
   registerLink:{fontSize:14,color:'#2563eb',marginLeft:4,fontWeight:'700'},
   quickBtn:{alignSelf:'center',marginTop:24,paddingHorizontal:24,paddingVertical:10,borderRadius:14,backgroundColor:'#f43f5e'},
   quickTxt:{color:'#fff',fontWeight:'700',fontSize:14},
+
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20 },
+  shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6 },
+
+  invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
+  invCard: { width: 90, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
+  invLabel: { fontSize: 12, marginTop: 4, color: '#374151', fontWeight: '600' },
+  invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 4 },
+
 });

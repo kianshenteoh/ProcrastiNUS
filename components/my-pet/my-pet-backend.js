@@ -26,11 +26,11 @@ export default function PetAndBadgesBackend() {
     async function fetchOrCreatePet() {
       const petSnap = await getDoc(petRef);
       const walletSnap = await getDoc(walletRef);
-      const inventorySnap = await getDoc(inventoryRef);
-
+      const inventorySnap = await getDoc(inventoryRef); 
+ 
       if (!petSnap.exists()) {
         const newPet = {
-          ownerID: userId,
+          ownerId: userId,  
           name: 'Danny',
           hunger: 100,
           totalXp: 1000,
@@ -69,7 +69,7 @@ export default function PetAndBadgesBackend() {
     }
 
     fetchOrCreatePet();
-  }, [userId]);
+  }, [userId]);  
 
   useEffect(() => {
   if (!pet) return;
@@ -83,7 +83,7 @@ export default function PetAndBadgesBackend() {
       xp: updatedPet.totalXp % 1000,
     }));
     updateDoc(petRef, updatedPet); 
-  }, 10000); 
+  }, 1000); 
 
   return () => clearInterval(interval);
 }, [pet]);
@@ -96,7 +96,7 @@ export default function PetAndBadgesBackend() {
     await updateDoc(inventoryRef, { items: newInventory });
     setWallet(newWallet);
     setInventory(newInventory);
-};
+  };
 
   const useFood = async (food) => {
     const updatedPet = {
@@ -137,7 +137,8 @@ function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RA
       hunger,
       totalXp,
       lastUpdated: now,
-    },
+    }, 
     xpGained: xpGain,
-  };
+  }; 
 }
+ 

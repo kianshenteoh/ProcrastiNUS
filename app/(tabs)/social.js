@@ -48,10 +48,9 @@ export default function SocialScreen() {
 
       return {
         id: fid,
-        ...petSnap.data()  // { name, level, hunger, image }
+        ...petSnap.data()  // { name, level, hunger, image, ownerId }
       };
     }));
-
 
     return petData.filter(Boolean);
   }
@@ -215,7 +214,7 @@ export default function SocialScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
-              <Pressable onPress={() => router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } })} 
+              <Pressable onPress={() => {router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } }); console.log('View Pet', item.ownerId);}} 
                 style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
             </View>
           )}
@@ -224,9 +223,9 @@ export default function SocialScreen() {
         <Text style={styles.studyGroupTitle}>My Study Groups</Text>
         {groups.map((group) => (
           <View key={group.id} style={styles.groupCard}>
-            <Text style={styles.groupName}>{group.name}</Text>
+            <Text style={styles.groupName}>{group.name}</Text> 
             {group.members.map((m, idx) => (
-              <View key={idx} style={styles.memberRow}>
+              <View key={idx} style={styles.memberRow}> 
                 <FontAwesome5 name="user" size={14} color="#0ea5e9" style={{ marginRight: 6 }} />
                 <Text style={styles.memberName}>{m.name}</Text>
                 <Text style={styles.memberHours}>{m.hoursWeek}this week</Text>
