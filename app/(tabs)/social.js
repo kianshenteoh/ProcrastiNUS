@@ -228,7 +228,7 @@ export default function SocialScreen() {
               <View key={idx} style={styles.memberRow}> 
                 <FontAwesome5 name="user" size={14} color="#0ea5e9" style={{ marginRight: 6 }} />
                 <Text style={styles.memberName}>{m.name}</Text>
-                <Text style={styles.memberHours}>{m.hoursWeek}this week</Text>
+                <Text style={styles.memberHours}>{m.hoursWeek} hours this week</Text>
               </View>
             ))}
           </View>

@@ -10,7 +10,6 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
   const [nameModal, setNameModal] = useState(pet.name === 'Danny');
   const [newName, setNewName] = useState('');
 
-
   const foods = [
     { id: 'biscuit', label: 'Biscuit', cost: 5, hunger: 20, icon: 'cookie-bite' },
     { id: 'snack', label: 'Snack', cost: 3, hunger: 15, icon: 'bone' },
@@ -45,7 +44,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         </View>
         <Pressable style={styles.leaderboardBtn} onPress={() => router.push('/pet-settings')}>
           <MaterialIcons name="settings" size={22} color="#fff" />
-        </Pressable>
+        </Pressable> 
       </View>
 
       <View style={styles.petBox}>
@@ -184,8 +183,8 @@ const styles = StyleSheet.create({
   barBg: { height: 10, borderRadius: 5, backgroundColor: '#e5e7eb', overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
 
-  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20 },
-  shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6 },
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20, justfifyContent: 'center' },
+  shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
   invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
   invCard: { width: 90, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
@@ -212,3 +211,4 @@ const styles = StyleSheet.create({
   closeBtn: { alignSelf: 'center', marginTop: 14 },
   closeTxt: { color: '#3b82f6', fontWeight: '700', fontSize: 16 },
 });
+ 
