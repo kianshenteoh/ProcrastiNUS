@@ -1,14 +1,18 @@
+import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 
 export default function SocialScreen() {
   const router = useRouter();
   const [wallet, setWallet] = useState({ coins: 0 });
+  const [modalVisible, setModalVisible] = useState(false);
+  const [friendEmail, setFriendEmail] = useState('');
+
   useEffect(() => {
     const fetchWallet = async () => {
       const rawEmail = auth.currentUser?.email;
@@ -23,26 +27,135 @@ export default function SocialScreen() {
     fetchWallet();
   }, []);
 
-  const [friends, setFriends] = useState([
-    { id: '1', name: 'Bella', pet: require('@/assets/images/Pet-Cat-Red.png'), level: 9, hunger: 80 },
-    { id: '2', name: 'Carlos', pet: require('@/assets/images/Pet-Parrot-CottonCandyBlue.png'), level: 7, hunger: 60 },
-  ]);
+  const [friendsPets, setFriendsPets] = useState([]);
+
+  const fetchFriendsPets = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return [];
+
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const friendsDocRef = doc(db, 'users', userId, 'friends', 'list');
+    const friendsSnap = await getDoc(friendsDocRef);
+
+    if (!friendsSnap.exists()) return [];
+
+    const friendIds = Object.keys(friendsSnap.data()); // an array of friend IDs
+
+    const petData = await Promise.all(friendIds.map(async (fid) => {
+      const petRef = doc(db, 'users', fid, 'pet', 'data');
+      const petSnap = await getDoc(petRef);
+      if (!petSnap.exists()) return null;
+
+      return {
+        id: fid,
+        ...petSnap.data()  // { name, level, hunger, image }
+      };
+    }));
+
+
+    return petData.filter(Boolean);
+  }
+
+
+  useEffect(() =>{
+    const loadFriends = async () => {
+      const data = await fetchFriendsPets();
+      setFriendsPets(data);
+      // console.log('pets data', data);
+    }
+    loadFriends();
+    // console.log(friendsPets);
+  }, []);
+
 
   const [groups, setGroups] = useState([
     {
       id: 'g1',
       name: 'Focus Ninjas',
       members: [
-        { name: 'Aiden', hoursWeek: 14 },
-        { name: 'Bella', hoursWeek: 12 },
-        { name: 'Carlos', hoursWeek: 10 },
+        { name: 'Dan', hoursWeek: 14 },
+        { name: 'Ton', hoursWeek: 12 },
+        { name: 'TKS', hoursWeek: 10 },
       ],
     },
   ]);
 
+  const handleAddFriend = async () => {
+    if (!friendEmail) return alert("Please enter a friend's email");
+
+    const currentEmail = auth.currentUser?.email;
+    if (!currentEmail) return alert('You are not logged in');
+
+    const currentId = currentEmail.replace(/[.#$/[\]]/g, '_');
+    const friendId = friendEmail.trim().replace(/[.#$/[\]]/g, '_');
+
+    if (friendId === currentId) {
+      alert('You cannot add yourself as a friend');
+      return;
+    }
+
+    // check if friend user exists by looking for their pet data
+    const friendPetRef = doc(db, 'users', friendId, 'pet', 'data');
+    const friendPetSnap = await getDoc(friendPetRef);
+
+    if (!friendPetSnap.exists()) {
+      alert('User not found');
+      return;
+    }
+
+    const myFriendsRef = doc(db, 'users', currentId, 'friends', 'list');
+    const theirFriendsRef = doc(db, 'users', friendId, 'friends', 'list');
+
+    try {
+      await Promise.all([
+        setDoc(myFriendsRef, { [friendId]: true }, { merge: true }),
+        setDoc(theirFriendsRef, { [currentId]: true }, { merge: true }),
+      ]);
+
+      alert('Friend added!');
+      setModalVisible(false);
+      setFriendEmail('');
+    } catch (error) {
+      console.error('Error adding friend:', error);
+      alert('Failed to add friend. Try again later.');
+    }
+  };
+
+
   return (
     <MenuProvider>
       <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 40 }}>
+        <Modal
+          visible={modalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Add Friend</Text>
+
+              <TextInput
+                placeholder="Enter friend's email"
+                value={friendEmail}
+                onChangeText={setFriendEmail}
+                style={styles.input}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+
+              <View style={styles.modalButtons}>
+                <Pressable onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+
+                <Pressable onPress={handleAddFriend} style={styles.addBtn}>
+                  <Text style={styles.addText}>Add</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.headerRow}>
             <View style={styles.wallet}>
@@ -59,7 +172,7 @@ export default function SocialScreen() {
                   <MaterialIcons name="add" size={22} color="#fff" />
                 </MenuTrigger>
                 <MenuOptions customStyles={styles.menuOptionsStyles}>
-                  <MenuOption onSelect={() => alert('Add Friend')}>
+                  <MenuOption onSelect={() => setModalVisible(true)}>
                     <View style={styles.menuItem}>
                       <MaterialIcons name="person-add" size={18} color="#3b82f6" />
                       <Text style={styles.menuText}>Add Friend</Text>
@@ -91,16 +204,16 @@ export default function SocialScreen() {
         </View>
 
         <FlatList
-          data={friends}
+          data={friendsPets}
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 20 }}
           renderItem={({ item }) => (
             <View style={styles.friendCard}>
-              <Image source={item.pet} style={styles.petImage} />
+              <Image source={petImages[item.image]} style={styles.petImage} />
               <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.level}>Lvl {item.level}</Text>
+              <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
               <Pressable style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
             </View>
@@ -115,7 +228,7 @@ export default function SocialScreen() {
               <View key={idx} style={styles.memberRow}>
                 <FontAwesome5 name="user" size={14} color="#0ea5e9" style={{ marginRight: 6 }} />
                 <Text style={styles.memberName}>{m.name}</Text>
-                <Text style={styles.memberHours}>{m.hoursWeek}h this week</Text>
+                <Text style={styles.memberHours}>{m.hoursWeek}this week</Text>
               </View>
             ))}
           </View>
@@ -159,4 +272,13 @@ const styles = StyleSheet.create({
   memberHours: { fontSize: 12, color: '#6b7280' },
   wallet: { flexDirection: 'row' },
   leaderboardBtn: { padding: 8, borderRadius: 16, backgroundColor: '#eab308' },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 12 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  cancelBtn: { paddingVertical: 8, paddingHorizontal: 12, marginRight: 8, backgroundColor: '#e5e7eb', borderRadius: 6 },
+  addBtn: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 6 },
+  cancelText: { color: '#374151', fontWeight: '600' },
+  addText: { color: '#fff', fontWeight: '600' },
 });

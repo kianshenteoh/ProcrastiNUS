@@ -46,7 +46,6 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       </View>
 
       <View style={styles.petBox}>
-        { console.log(petImages, pet.image) }
         <Image source={petImages[pet.image]} style={styles.img} />
         <Text style={styles.petName}>{pet.name}</Text>
       </View>
