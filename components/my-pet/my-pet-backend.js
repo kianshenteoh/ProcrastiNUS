@@ -30,6 +30,7 @@ export default function PetAndBadgesBackend() {
 
       if (!petSnap.exists()) {
         const newPet = {
+          ownerID: userId,
           name: 'Danny',
           hunger: 100,
           totalXp: 1000,

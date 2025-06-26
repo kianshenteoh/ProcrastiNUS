@@ -26,6 +26,11 @@ export default function RootLayout() {
         name="daily-quests"
         options={{ headerShown: true, title: 'Daily Quests' }}
       />
+
+      <Stack.Screen
+        name="view-pet"
+        options={{ headerShown: true, title: 'View Pet' }}
+      />
     </Stack>
   );
 }
