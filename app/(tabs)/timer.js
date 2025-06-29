@@ -94,7 +94,7 @@ export default function PomodoroScreen() {
   const giveUp = () => {
     Alert.alert(
       'Don\'t Give Up!',
-      'If you give up now, you will only get half the time coins (based on elapsed time).',
+      'If you give up now, you will only get half the coins (based on elapsed time).',
       [
         { text: 'Cancel', style: 'cancel' },
         {

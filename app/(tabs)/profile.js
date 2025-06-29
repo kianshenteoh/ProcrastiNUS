@@ -6,7 +6,7 @@ export default function ProfileScreen() {
   const nav = useNavigation();
 
   const user = {
-    name: 'Teoh Kian Shen',
+    name: 'Dan Leong',
     avatar: 'https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200',
     level: 7,
     xp: 3800,

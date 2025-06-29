@@ -4,14 +4,14 @@ import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-nativ
 
 export default function LeaderboardScreen() {
   const [players] = useState([
-    { id:'1', name:'Aiden',   pet:require('@/assets/images/Pet-Dog-Golden.png'), level:8, totalBadges:8, badgeIcons:['fire','tasks','sun'],  hoursTotal:220, hoursWeek:14 },
-    { id:'2', name:'Bella',   pet:require('@/assets/images/Pet-Cat-Red.png'), level:9, totalBadges:4, badgeIcons:['trophy','tasks','fire'],hoursTotal:240, hoursWeek:12 },
-    { id:'3', name:'Carlos',  pet:require('@/assets/images/Pet-Parrot-CottonCandyBlue.png'), level:6, totalBadges:9, badgeIcons:['sun','bolt','moon'],hoursTotal:150, hoursWeek:11 },
-    { id:'4', name:'Dana',    pet:require('@/assets/images/Pet-Axolotl-CottonCandyPink.png'), level:7, totalBadges:12, badgeIcons:['moon','tasks','trophy'],hoursTotal:180, hoursWeek:10 },
-    { id:'5', name:'Evan',    pet:require('@/assets/images/Pet-BearCub-RoseGold.png'), level:5, totalBadges:7, badgeIcons:['bolt','sun','fire'], hoursTotal:130, hoursWeek:9 },
+    { id:'1', name:'Abby',   pet:require('@/assets/images/Pet-Dog-Golden.png'), level:8, totalBadges:8, badgeIcons:['fire','tasks','sun'],  hoursTotal:220, hoursWeek:14 },
+    { id:'2', name:'Joseph',   pet:require('@/assets/images/Pet-Cat-Red.png'), level:9, totalBadges:4, badgeIcons:['trophy','tasks','fire'],hoursTotal:240, hoursWeek:12 },
+    { id:'3', name:'Ming Yuan',  pet:require('@/assets/images/Pet-Parrot-CottonCandyBlue.png'), level:6, totalBadges:9, badgeIcons:['sun','bolt','moon'],hoursTotal:150, hoursWeek:11 },
+    { id:'4', name:'Andrew Yang',    pet:require('@/assets/images/Pet-Axolotl-CottonCandyPink.png'), level:7, totalBadges:12, badgeIcons:['moon','tasks','trophy'],hoursTotal:180, hoursWeek:10 },
+    { id:'5', name:'Jovan',    pet:require('@/assets/images/Pet-BearCub-RoseGold.png'), level:5, totalBadges:7, badgeIcons:['bolt','sun','fire'], hoursTotal:130, hoursWeek:9 },
     { id:'6', name:'Fiona',   pet:require('@/assets/images/Pet-Raccoon-Golden.png'), level:4, totalBadges:4, badgeIcons:['tasks','moon','sun'],hoursTotal:110, hoursWeek:8 },
-    { id:'7', name:'George',  pet:require('@/assets/images/Pet-Sheep-Shade.png'), level:6, totalBadges:6, badgeIcons:['trophy','fire','bolt'],hoursTotal:160, hoursWeek:7 },
-    { id:'8', name:'Hana',    pet:require('@/assets/images/Pet-PandaCub-Turquoise.png'), level:3, totalBadges:11, badgeIcons:['sun','tasks','moon'],hoursTotal:90,  hoursWeek:6 },
+    { id:'7', name:'Xiao Ming',  pet:require('@/assets/images/Pet-Sheep-Shade.png'), level:6, totalBadges:6, badgeIcons:['trophy','fire','bolt'],hoursTotal:160, hoursWeek:7 },
+    { id:'8', name:'Lina',    pet:require('@/assets/images/Pet-PandaCub-Turquoise.png'), level:3, totalBadges:11, badgeIcons:['sun','tasks','moon'],hoursTotal:90,  hoursWeek:6 },
   ].sort((a,b)=>b.hoursWeek-a.hoursWeek));
 
   const badgeColors = {
