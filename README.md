@@ -2,7 +2,7 @@
 
 # **Introducing ProcrastiNUS**
 
-Project Poster: Link
+Project Poster: [Link](https://drive.google.com/file/d/1WnCz7iVv1cahiWv1JT4rR6cGVSdKrbe4/view?usp=sharing)
 
 Project Video: [Link](https://drive.google.com/file/d/1DWbNFiW_EzcqOQZ_da02bEMJw3HeQqq1/view?usp=sharing)
 
