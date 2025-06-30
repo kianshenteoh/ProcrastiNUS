@@ -33,3 +33,6 @@ Scan the below QR Code to download the APK file for ProcrastiNUS!
 Alternatively, download Expo Go on your mobile phone and open the following link in the app to access ProcrastiNUS!
 
 https://expo.dev/preview/update?message=%20expo%20publishing&updateRuntimeVersion=1.0.0&createdAt=2025-06-29T15%3A46%3A06.531Z&slug=exp&projectId=f610f733-68e4-40ec-b9e7-2004b8bce9f8&group=cdb3f45e-6fd1-4545-870f-cec852810c63  
+
+## Project Poster
+![ProcrastiNUS](https://github.com/user-attachments/assets/97f15c63-4ade-4197-bea8-8efb9b5dd467)
