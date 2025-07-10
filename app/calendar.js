@@ -6,11 +6,12 @@ import { Alert, Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInpu
 import { auth, db } from '../firebase';
 import { academicYears } from './academicYears';
 
+
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const HOUR_WIDTH = 80;
 const ROW_HEIGHT = 100;
-const DEFAULT_ACADEMIC_YEAR = 'AY2024/2025';
+const DEFAULT_ACADEMIC_YEAR = 'AY2025/2026';
 
 const colorPalette = [  
   '#f4a261', // orange
@@ -33,6 +34,29 @@ const lessonTypeAbbreviations = {
   Workshop: 'WS',
 };
 
+
+const loadUserModules = async () => {
+    setLoadingModules(true);
+    try {
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+      const sem1Snap = await getDocs(collection(db, 'users', userId, 'modules', 'sem1', 'classes'));
+      const sem2Snap = await getDocs(collection(db, 'users', userId, 'modules', 'sem2', 'classes'));
+
+      const allModules = [
+        ...sem1Snap.docs.map(doc => doc.data()),
+        ...sem2Snap.docs.map(doc => doc.data()),
+      ];
+
+      setAllClassEvents(allModules);
+    } catch (err) {
+      console.error('Failed to load saved modules:', err);
+    } finally {
+      setLoadingModules(false);
+    }
+  };
 export default function HorizontalCalendar() {
   const ay = academicYears[DEFAULT_ACADEMIC_YEAR];  //redirects to current date during semester period
   const today = new Date();
@@ -58,6 +82,7 @@ export default function HorizontalCalendar() {
   const [activeSemester, setActiveSemester] = useState(1);
   const route = useRoute();
   const [showSemesterMenu, setShowSemesterMenu] = useState(false);
+  const [loadingModules, setLoadingModules] = useState(false);
 
   useEffect(() => {
     if (route.params?.refresh) {
@@ -208,6 +233,7 @@ export default function HorizontalCalendar() {
   };
 
   const loadUserModules = async () => {
+    setLoadingModules(true);
     try {
       const rawEmail = auth.currentUser?.email;
       if (!rawEmail) return;
@@ -224,6 +250,8 @@ export default function HorizontalCalendar() {
       setAllClassEvents(allModules);
     } catch (err) {
       console.error('Failed to load saved modules:', err);
+    } finally {
+      setLoadingModules(false);
     }
   };
 
@@ -241,8 +269,7 @@ export default function HorizontalCalendar() {
       }
       return { modules, semester };
     } catch {
-      Alert.alert('Invalid URL');
-      return { modules: [], semester: 1 };
+      return null;
     }
   };
 
@@ -316,7 +343,12 @@ export default function HorizontalCalendar() {
   };
 
   const importNUSModsURL = async () => {
-    const { modules, semester: semFromUrl } = parseNUSModsURL(nusmodsUrl);
+    const parsed = parseNUSModsURL(nusmodsUrl);
+    if (!parsed || !parsed.modules || parsed.modules.length === 0) {
+      Alert.alert('Invalid URL', 'Import valid NUSMODS URL!');
+      return;
+    }
+    const { modules, semester: semFromUrl } = parsed;
 
     const academicYearKey = DEFAULT_ACADEMIC_YEAR;
     const ay = academicYears[academicYearKey];
@@ -335,14 +367,31 @@ export default function HorizontalCalendar() {
     setWeekLabel(getAcademicWeekLabel(initialDate, DEFAULT_ACADEMIC_YEAR));
     setCurrentWeek(getAcademicWeekFromDate(initialDate));
 
+    if (modules.length === 0) {
+      Alert.alert('No modules found in the URL');
+      return;
+    }
+
     const lessonsByModule = await Promise.all(
       modules.map(({ code, classSelections }) =>
         fetchModuleLessons(code, classSelections, targetSemester, academicYearKey)
       )
     );
 
+
     const flatLessons = lessonsByModule.flat();
-    setAllClassEvents(flatLessons);
+
+    if (flatLessons.length === 0) {
+      Alert.alert(
+        'No valid lessons found for these modules.',
+        'Ensure the NUSMODS URL is the original version (not shortened!)'
+      );
+      return;
+    }
+    setAllClassEvents(prevEvents => [
+      ...prevEvents.filter(e => e.semester !== targetSemester),
+      ...flatLessons
+    ]);
     try {
       const rawEmail = auth.currentUser?.email;
       if (!rawEmail) return;
@@ -455,13 +504,17 @@ export default function HorizontalCalendar() {
     </View>
   );
 
-  const handleSemesterChange = (sem) => {
+  const handleSemesterChange = async (sem) => {
     setActiveSemester(sem);
     const ay = academicYears[DEFAULT_ACADEMIC_YEAR];
     const initialDate = sem === 1 ? ay.sem1.start : ay.sem2.start;
     setSelectedDate(initialDate);
     setWeekLabel(`Semester ${sem}`);
     setCurrentWeek(1);
+
+    if (!allClassEvents.some(e => e.semester === sem)) {
+      await loadUserModules();
+    }
   };
 
   const handlePrevWeek = () => {
@@ -484,6 +537,19 @@ export default function HorizontalCalendar() {
 
   return (
     <View style={{ flex: 1 }}>
+
+      {loadingModules && (
+        <View style={{ 
+          position: 'absolute', 
+          top: 0, left: 0, right: 0, bottom: 0, 
+          backgroundColor: 'rgba(255,255,255,0.8)', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          zIndex: 100 
+        }}>
+          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>Loading calendar...</Text>
+        </View>
+      )}
    
     <View style={{ flex: 1 }}>
       <View style={styles.inputRow}>

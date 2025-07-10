@@ -59,10 +59,9 @@ export default function LoginScreen() {
           <Link href="/RegisterScreen"><Text style={styles.registerLink}>Register</Text></Link>
         </View>
 
-        {/* Developer login */}
-        {/* <Pressable style={styles.quickBtn} onPress={handleQuickLogin}>
+        <Pressable style={styles.quickBtn} onPress={handleQuickLogin}>
           <Text style={styles.quickTxt}>Quick Login (Developer)</Text>
-        </Pressable> */}
+        </Pressable>
       
       </View>
     </View> 

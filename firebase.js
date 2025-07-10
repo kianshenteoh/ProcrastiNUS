@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyBXciVIdPwVzPYEFHO2HSaPUgCsERnDT80",
@@ -31,6 +32,14 @@ try {
   }
 }
 
-const db = getFirestore(app);
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache()
+  });
+} catch (e) {
+  db = getFirestore(app);
+}
 
 export { auth, db };
+

@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kianshenteoh.procrastinus",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -46,6 +50,12 @@
         "projectId": "f610f733-68e4-40ec-b9e7-2004b8bce9f8"
       }
     },
-    "owner": "kianshenteoh"
+    "owner": "kianshenteoh",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f610f733-68e4-40ec-b9e7-2004b8bce9f8"
+    }
   }
 }
