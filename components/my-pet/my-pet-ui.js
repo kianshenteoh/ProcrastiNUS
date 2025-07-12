@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, setPet}) {
+export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
   const [nameModal, setNameModal] = useState(pet.name === 'Danny');
@@ -133,7 +133,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
               style={[styles.shopBtn, { marginTop: 16 }]}
               onPress={() => {
                 if (!newName.trim()) return;
-                setPet(prev => ({ ...prev, name: newName.trim() }));
+                renamePet(newName.trim());
                 setNameModal(false);
               }}
             >

@@ -64,7 +64,7 @@ export default function SocialScreen() {
     }
     loadFriends();
     // console.log(friendsPets);
-  }, [friendsPets]);
+  }, []);
 
 
   const [groups, setGroups] = useState([

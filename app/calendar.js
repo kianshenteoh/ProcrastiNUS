@@ -3,8 +3,8 @@ import { useRoute } from '@react-navigation/native';
 import { collection, deleteDoc, doc, getDocs, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Alert, Button, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { academicYears } from '../academicYears';
 import { auth, db } from '../firebase';
-import { academicYears } from './academicYears';
 
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 8); 

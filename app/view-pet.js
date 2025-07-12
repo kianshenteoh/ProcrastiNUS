@@ -12,6 +12,7 @@ export default function ViewPetScreen() {
   const [wallet, setWallet] = useState({ coins: 0 });
   const [inventory, setInventory] = useState([]);
   const [feedModal, setFeedModal] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const walletRef = useRef(null);
   const inventoryRef = useRef(null);
@@ -24,8 +25,10 @@ export default function ViewPetScreen() {
   ];
 
   const loadData = async () => {
+    setLoading(true);
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail || !friendId) return;
+
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
     walletRef.current = doc(db, 'users', userId, 'wallet', 'data');
@@ -38,9 +41,20 @@ export default function ViewPetScreen() {
       getDoc(inventoryRef.current),
     ]);
 
-    if (petSnap.exists()) setPet(petSnap.data());
+    if (petSnap.exists()) {
+      const data = petSnap.data();
+      setPet({
+        image: typeof data.image === 'number' ? data.image : 0,
+        name: typeof data.name === 'string' ? data.name : 'Unnamed Pet',
+        level: typeof data.level === 'number' ? data.level : 1,
+        hunger: typeof data.hunger === 'number' ? data.hunger : 0,
+      });
+    }
+
     if (walletSnap.exists()) setWallet(walletSnap.data());
     if (invSnap.exists()) setInventory(invSnap.data().items || []);
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -80,7 +94,13 @@ export default function ViewPetScreen() {
     };
 
 
-  if (!pet) return <View style={styles.wrapper}><Text>Loading...</Text></View>;
+  if (loading || !pet) {
+    return (
+      <View style={styles.wrapper}>
+        <Text>Loading your friend's pet...</Text>
+      </View>
+    )
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.wrapper}>
@@ -88,12 +108,11 @@ export default function ViewPetScreen() {
         <View style={styles.wallet}><IconText icon="coins" text={wallet.coins} color="#ffd700" /></View>
         <Text style={styles.sectionTitle}>Feed Friend's Pet</Text>
       </View>
-
       <View style={styles.petCard}>
-        <Image source={petImages[pet.image]} style={styles.petImage} />
-        <Text style={styles.petName}>{pet.name}</Text>
-        <Text style={styles.level}>Lvl {pet.level}</Text>
-        <Text style={styles.hunger}>Hunger: {pet.hunger}%</Text>
+        <Image source={petImages[typeof pet?.image === 'number' ? pet.image : 0]} style={styles.petImage}/>
+        <Text style={styles.petName}>{typeof pet?.name === 'string' ? pet.name : 'Unnamed Pet'}</Text>
+        <Text style={styles.level}>Lvl {typeof pet?.level === 'number' ? pet.level : 1}</Text>
+        <Text style={styles.hunger}>Hunger: {typeof pet?.hunger === 'number' ? pet.hunger : 0}%</Text>
       </View>
 
       <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>

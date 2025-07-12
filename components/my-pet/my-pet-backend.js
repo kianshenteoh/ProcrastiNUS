@@ -165,6 +165,13 @@ export default function PetAndBadgesBackend() {
     setInventory(newInventory);
   };
 
+  const renamePet = async (newName) => {
+    if (!petRef) return;
+    const updatedPet = { ...pet, name: newName.trim() };
+    await updateDoc(petRef, { name: newName.trim() });
+    setPet(updatedPet);
+  };
+
   return (
     <PetAndBadges
       pet={pet}
@@ -174,6 +181,7 @@ export default function PetAndBadgesBackend() {
       setWallet={setWallet}
       buyFood={buyFood}
       useFood={useFood}
+      renamePet={renamePet}
       HUNGER_THRESHOLD={HUNGER_THRESHOLD}
     />
   );
