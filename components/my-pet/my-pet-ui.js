@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet}) {
+export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet, simulateTimePassed}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
   const [nameModal, setNameModal] = useState(pet.name === 'Danny');
@@ -62,6 +62,13 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         <Text style={styles.shopTxt}>Shop</Text>
       </Pressable>
 
+      {__DEV__ && (
+  <Pressable
+    style={{ padding: 10, backgroundColor: 'red', marginTop: 20 }}
+    onPress={() => simulateTimePassed(5)}>
+    <Text style={{ color: 'white' }}>Simulate 5 hours</Text>
+  </Pressable>
+)}
       <Text style={styles.invTitle}>My Inventory</Text>
       {inventory.length ? (
         <FlatList

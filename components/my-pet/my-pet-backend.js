@@ -161,21 +161,74 @@ export default function PetAndBadgesBackend() {
 
   // Use food
   const useFood = async (food) => {
-    if (!petRef || !inventoryRef) return;
-    const updatedPet = {
-      ...pet,
-      hunger: Math.min(pet.hunger + food.hunger, 100),
-    };
+    if (!petRef || !inventoryRef || !pet) return;
+
+    // 1. Recompute decay up to now
+    const { updatedPet } = computePetStats(
+      pet,
+      HUNGER_THRESHOLD,
+      XP_GAIN_RATE,
+      HUNGER_DROP_RATE,
+      true   // tells computePetStats to advance lastUpdated
+    );
+
+    // 2. Apply feeding bonus
+    const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
+    const newLastUpdated = Date.now();  // checkpoint now
+
+    // 3. Remove one food from inventory
     const newInventory = [...inventory];
     const index = newInventory.findIndex(f => f.id === food.id);
     if (index > -1) {
       newInventory.splice(index, 1);
     }
 
-    await updateDoc(petRef, { hunger: updatedPet.hunger });
+    // 4. Write to Firestore
+    await updateDoc(petRef, {
+      hunger: fedHunger,
+      totalXp: updatedPet.totalXp,
+      lastUpdated: newLastUpdated,
+    });
     await updateDoc(inventoryRef, { items: newInventory });
-    setPet(updatedPet);
+
+    // 5. Update local state
+    setPet({
+      ...updatedPet,
+      hunger: fedHunger,
+      lastUpdated: newLastUpdated,
+      level: Math.floor(updatedPet.totalXp / 1000),
+      xp: updatedPet.totalXp % 1000,
+    });
     setInventory(newInventory);
+  };
+
+
+  //Remove for final deployment
+  const simulateTimePassed = async (hours) => {
+    if (!petRef || !pet) return;
+
+    let newHunger = Math.max(pet.hunger - (hours * HUNGER_DROP_RATE), 0);
+    let xpGain = newHunger >= HUNGER_THRESHOLD ? XP_GAIN_RATE * hours : 0;
+    let newTotalXp = (pet.totalXp || 0) + xpGain;
+
+    let newLastUpdated = Date.now() - (hours * 3600000);
+
+    const updatedPet = {
+      ...pet,
+      hunger: newHunger,
+      totalXp: newTotalXp,
+      lastUpdated: newLastUpdated,
+    };
+
+    await updateDoc(petRef, updatedPet);
+    setPet({
+      ...updatedPet,
+      level: Math.floor(newTotalXp / 1000),
+      xp: newTotalXp % 1000,
+      xpToNext: 1000,
+    });
+
+    console.log(`Simulated ${hours} hour(s) passing.`);
   };
 
   const renamePet = async (newName) => {
@@ -196,6 +249,7 @@ export default function PetAndBadgesBackend() {
       useFood={useFood}
       renamePet={renamePet}
       HUNGER_THRESHOLD={HUNGER_THRESHOLD}
+      simulateTimePassed={simulateTimePassed}
     />
   );
 }
