@@ -60,7 +60,6 @@ export default function PetAndBadgesBackend() {
             XP_GAIN_RATE,
             HUNGER_DROP_RATE
           );
-          await updateDoc(petRef, { ...updatedPet });
           setPet({
             ...updatedPet,
             level: Math.floor(updatedPet.totalXp / 1000),
@@ -100,24 +99,38 @@ export default function PetAndBadgesBackend() {
     fetchOrCreatePet();
   }, [userId, petRef, walletRef, inventoryRef]);
 
-  // XP/Hunger timer
   useEffect(() => {
     if (!pet || !userId || !petRef) return;
 
+    let lastSaveTime = Date.now();
     const interval = setInterval(() => {
       const { updatedPet } = computePetStats(
         pet,
         HUNGER_THRESHOLD,
         XP_GAIN_RATE,
-        HUNGER_DROP_RATE
+        HUNGER_DROP_RATE,
+        false
       );
+
       setPet(prev => ({
         ...prev,
         ...updatedPet,
         level: Math.floor(updatedPet.totalXp / 1000),
         xp: updatedPet.totalXp % 1000,
       }));
-      updateDoc(petRef, updatedPet);
+
+      // Only save to Firestore once per hour
+      if (Date.now() - lastSaveTime > 60 * 60 * 1000) {
+        const { updatedPet: savePet } = computePetStats(
+          pet,
+          HUNGER_THRESHOLD,
+          XP_GAIN_RATE,
+          HUNGER_DROP_RATE,
+          true
+        );
+        updateDoc(petRef, savePet);
+        lastSaveTime = Date.now();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -187,11 +200,11 @@ export default function PetAndBadgesBackend() {
   );
 }
 
-function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE) {
+function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
   const now = Date.now();
   const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
   const elapsedMs = now - lastUpdated;
-  const hours = Math.floor(elapsedMs / (60 * 60 * 1000000000));
+  const hours = Math.floor(elapsedMs / (60 * 60 * 1000));  
 
   let hunger = Math.max(petData.hunger - hours * HUNGER_DROP_RATE, 0);
   let xpGain = hunger >= HUNGER_THRESHOLD ? XP_GAIN_RATE * hours : 0;
@@ -202,7 +215,7 @@ function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RA
       ...petData,
       hunger,
       totalXp,
-      lastUpdated: now,
+      lastUpdated: commitSave ? now : petData.lastUpdated,
     },
     xpGained: xpGain,
   };
