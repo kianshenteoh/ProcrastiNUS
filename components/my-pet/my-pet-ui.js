@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet, simulateTimePassed}) {
+export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet, simulateTimePassed, isFeeding}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
   const [nameModal, setNameModal] = useState(pet.name === 'Danny');
@@ -78,7 +78,10 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 5 }}
           renderItem={({ item }) => (
-            <TouchableOpacity onPress={() => useFood(item)} style={styles.invCard}>
+            <TouchableOpacity
+              onPress={() => isFeeding ? null : useFood(item)}
+              disabled={isFeeding}
+              style={[styles.invCard, isFeeding && { opacity: 0.5 }]}>
               <FontAwesome5 name={item.icon || 'hamburger'} size={18} color="#f97316" />
               <Text style={styles.invLabel}>{item.label}</Text>
             </TouchableOpacity>
