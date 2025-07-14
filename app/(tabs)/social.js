@@ -6,6 +6,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
+import { computePetStats } from '../../components/my-pet/my-pet-backend';
 
 export default function SocialScreen() {
   const router = useRouter();
@@ -39,16 +40,24 @@ export default function SocialScreen() {
 
     if (!friendsSnap.exists()) return [];
 
-    const friendIds = Object.keys(friendsSnap.data()); // an array of friend IDs
+    const friendIds = Object.keys(friendsSnap.data());
 
     const petData = await Promise.all(friendIds.map(async (fid) => {
       const petRef = doc(db, 'users', fid, 'pet', 'data');
       const petSnap = await getDoc(petRef);
       if (!petSnap.exists()) return null;
 
+      const rawPet = petSnap.data();
+      const { updatedPet } = computePetStats(
+        rawPet,
+        30,   // HUNGER_THRESHOLD
+        20,   // XP_GAIN_RATE
+        2     // HUNGER_DROP_RATE
+      );
+
       return {
         id: fid,
-        ...petSnap.data()  // { name, level, hunger, image, ownerId }
+        ...updatedPet
       };
     }));
 
@@ -60,10 +69,8 @@ export default function SocialScreen() {
     const loadFriends = async () => {
       const data = await fetchFriendsPets();
       setFriendsPets(data);
-      // console.log('pets data', data);
     }
     loadFriends();
-    // console.log(friendsPets);
   }, []);
 
 
@@ -214,7 +221,7 @@ export default function SocialScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
-              <Pressable onPress={() => {router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } }); console.log('View Pet', item.ownerId);}} 
+              <Pressable onPress={() => {router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } });}} 
                 style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
             </View>
           )}

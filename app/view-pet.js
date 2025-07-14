@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { computePetStats } from '../components/my-pet/my-pet-backend';
 
 export default function ViewPetScreen() {
   const { friendId } = useLocalSearchParams();
@@ -43,11 +44,18 @@ export default function ViewPetScreen() {
 
     if (petSnap.exists()) {
       const data = petSnap.data();
+      const { updatedPet } = computePetStats(
+        data,
+        30,   // HUNGER_THRESHOLD
+        20,   // XP_GAIN_RATE
+        2     // HUNGER_DROP_RATE
+      );
+
       setPet({
-        image: typeof data.image === 'number' ? data.image : 0,
-        name: typeof data.name === 'string' ? data.name : 'Unnamed Pet',
-        level: typeof data.level === 'number' ? data.level : 1,
-        hunger: typeof data.hunger === 'number' ? data.hunger : 0,
+        ...updatedPet,
+        level: Math.floor(updatedPet.totalXp / 1000),
+        xp: updatedPet.totalXp % 1000,
+        xpToNext: 1000,
       });
     }
 

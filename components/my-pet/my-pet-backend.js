@@ -98,6 +98,7 @@ export default function PetAndBadgesBackend() {
 
     fetchOrCreatePet();
   }, [userId, petRef, walletRef, inventoryRef]);
+  
 
   useEffect(() => {
     if (!pet || !userId || !petRef) return;
@@ -162,28 +163,23 @@ export default function PetAndBadgesBackend() {
   // Use food
   const useFood = async (food) => {
     if (!petRef || !inventoryRef || !pet) return;
-
-    // 1. Recompute decay up to now
     const { updatedPet } = computePetStats(
       pet,
       HUNGER_THRESHOLD,
       XP_GAIN_RATE,
       HUNGER_DROP_RATE,
-      true   // tells computePetStats to advance lastUpdated
+      true
     );
 
-    // 2. Apply feeding bonus
     const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
-    const newLastUpdated = Date.now();  // checkpoint now
+    const newLastUpdated = Date.now();  
 
-    // 3. Remove one food from inventory
     const newInventory = [...inventory];
     const index = newInventory.findIndex(f => f.id === food.id);
     if (index > -1) {
       newInventory.splice(index, 1);
     }
 
-    // 4. Write to Firestore
     await updateDoc(petRef, {
       hunger: fedHunger,
       totalXp: updatedPet.totalXp,
@@ -191,7 +187,6 @@ export default function PetAndBadgesBackend() {
     });
     await updateDoc(inventoryRef, { items: newInventory });
 
-    // 5. Update local state
     setPet({
       ...updatedPet,
       hunger: fedHunger,
@@ -254,7 +249,7 @@ export default function PetAndBadgesBackend() {
   );
 }
 
-function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
+export function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
   const now = Date.now();
   const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
   const elapsedMs = now - lastUpdated;
