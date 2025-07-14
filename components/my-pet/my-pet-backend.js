@@ -1,6 +1,6 @@
 import { auth, db } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import LoginScreen from '../../app/LoginScreen';
 import PetAndBadges from './my-pet-ui';
 
@@ -14,6 +14,10 @@ export default function PetAndBadgesBackend() {
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
   const [userId, setUserId] = useState(null);
+  
+  // Use ref to track the latest pet state for the interval
+  const petRef = useRef(null);
+  const isUpdatingRef = useRef(false);
 
   const rawEmail = auth.currentUser?.email;
 
@@ -26,17 +30,22 @@ export default function PetAndBadgesBackend() {
     }
   }, [rawEmail]);
 
+  // Update ref whenever pet state changes
+  useEffect(() => {
+    petRef.current = pet;
+  }, [pet]);
+
   // Firestore refs (safe)
-  const petRef = userId ? doc(db, 'users', userId, 'pet', 'data') : null;
+  const petDocRef = userId ? doc(db, 'users', userId, 'pet', 'data') : null;
   const walletRef = userId ? doc(db, 'users', userId, 'wallet', 'data') : null;
   const inventoryRef = userId ? doc(db, 'users', userId, 'inventory', 'data') : null;
 
   useEffect(() => {
-    if (!userId || !petRef || !walletRef || !inventoryRef) return;
+    if (!userId || !petDocRef || !walletRef || !inventoryRef) return;
 
     async function fetchOrCreatePet() {
       try {
-        const petSnap = await getDoc(petRef);
+        const petSnap = await getDoc(petDocRef);
         const walletSnap = await getDoc(walletRef);
         const inventorySnap = await getDoc(inventoryRef);
 
@@ -50,7 +59,7 @@ export default function PetAndBadgesBackend() {
             lastUpdated: Date.now(),
             image: Math.floor(Math.random() * 200),
           };
-          await setDoc(petRef, newPet);
+          await setDoc(petDocRef, newPet);
           setPet({ ...newPet, level: 1, xp: 0, xpToNext: 1000 });
         } else {
           const petData = petSnap.data();
@@ -97,44 +106,54 @@ export default function PetAndBadgesBackend() {
     }
 
     fetchOrCreatePet();
-  }, [userId, petRef, walletRef, inventoryRef]);
+  }, [userId, petDocRef, walletRef, inventoryRef]);
 
   useEffect(() => {
-    if (!pet || !userId || !petRef) return;
+    if (!petDocRef || !userId) return;
 
     let lastSaveTime = Date.now();
     const interval = setInterval(() => {
+      // Skip if we're currently updating from user actions
+      if (isUpdatingRef.current || !petRef.current) return;
+
+      const currentPet = petRef.current;
       const { updatedPet } = computePetStats(
-        pet,
+        currentPet,
         HUNGER_THRESHOLD,
         XP_GAIN_RATE,
         HUNGER_DROP_RATE,
         false
       );
 
-      setPet(prev => ({
-        ...prev,
-        ...updatedPet,
-        level: Math.floor(updatedPet.totalXp / 1000),
-        xp: updatedPet.totalXp % 1000,
-      }));
+      // Only update if there's an actual change
+      if (
+        updatedPet.hunger !== currentPet.hunger ||
+        updatedPet.totalXp !== currentPet.totalXp
+      ) {
+        setPet(prev => ({
+          ...prev,
+          ...updatedPet,
+          level: Math.floor(updatedPet.totalXp / 1000),
+          xp: updatedPet.totalXp % 1000,
+        }));
+      }
 
       // Only save to Firestore once per hour
       if (Date.now() - lastSaveTime > 60 * 60 * 1000) {
         const { updatedPet: savePet } = computePetStats(
-          pet,
+          currentPet,
           HUNGER_THRESHOLD,
           XP_GAIN_RATE,
           HUNGER_DROP_RATE,
           true
         );
-        updateDoc(petRef, savePet);
+        updateDoc(petDocRef, savePet);
         lastSaveTime = Date.now();
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [pet, userId, petRef]);
+  }, [userId, petDocRef]);
 
   // Guards before rendering
   if (!rawEmail) {
@@ -144,6 +163,21 @@ export default function PetAndBadgesBackend() {
   if (loading || !pet) {
     return null;
   }
+
+  // Helper function to update pet state safely
+  const updatePetState = async (updateFn) => {
+    if (!petDocRef || !pet) return;
+    
+    isUpdatingRef.current = true;
+    try {
+      await updateFn();
+    } finally {
+      // Small delay to ensure state has settled
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 100);
+    }
+  };
 
   // Buy food
   const buyFood = async (food) => {
@@ -161,101 +195,104 @@ export default function PetAndBadgesBackend() {
 
   // Use food
   const useFood = async (food) => {
-    if (!petRef || !inventoryRef || !pet) return;
+    await updatePetState(async () => {
+      if (!petDocRef || !inventoryRef || !pet) return;
 
-    // 1. Recompute decay up to now
-    const { updatedPet } = computePetStats(
-      pet,
-      HUNGER_THRESHOLD,
-      XP_GAIN_RATE,
-      HUNGER_DROP_RATE,
-      true   // tells computePetStats to advance lastUpdated
-    );
+      // 1. Recompute decay up to now
+      const { updatedPet } = computePetStats(
+        pet,
+        HUNGER_THRESHOLD,
+        XP_GAIN_RATE,
+        HUNGER_DROP_RATE,
+        true
+      );
 
-    // 2. Apply feeding bonus
-    const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
-    const newLastUpdated = Date.now();  // checkpoint now
+      // 2. Apply feeding bonus
+      const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
+      const newLastUpdated = Date.now();
 
-    // 3. Remove one food from inventory
-    const newInventory = [...inventory];
-    const index = newInventory.findIndex(f => f.id === food.id);
-    if (index > -1) {
-      newInventory.splice(index, 1);
-    }
+      // 3. Remove one food from inventory
+      const newInventory = [...inventory];
+      const index = newInventory.findIndex(f => f.id === food.id);
+      if (index > -1) {
+        newInventory.splice(index, 1);
+      }
 
-    // 4. Write to Firestore
-    await updateDoc(petRef, {
-      hunger: fedHunger,
-      totalXp: updatedPet.totalXp,
-      lastUpdated: newLastUpdated,
+      // 4. Write to Firestore
+      await updateDoc(petDocRef, {
+        hunger: fedHunger,
+        totalXp: updatedPet.totalXp,
+        lastUpdated: newLastUpdated,
+      });
+      await updateDoc(inventoryRef, { items: newInventory });
+
+      // 5. Update local state
+      setPet({
+        ...updatedPet,
+        hunger: fedHunger,
+        lastUpdated: newLastUpdated,
+        level: Math.floor(updatedPet.totalXp / 1000),
+        xp: updatedPet.totalXp % 1000,
+      });
+      setInventory(newInventory);
     });
-    await updateDoc(inventoryRef, { items: newInventory });
-
-    // 5. Update local state
-    setPet({
-      ...updatedPet,
-      hunger: fedHunger,
-      lastUpdated: newLastUpdated,
-      level: Math.floor(updatedPet.totalXp / 1000),
-      xp: updatedPet.totalXp % 1000,
-    });
-    setInventory(newInventory);
   };
-
 
   //Remove for final deployment
   const simulateTimePassed = async (hours) => {
-    if (!petRef || !pet) return;
+    await updatePetState(async () => {
+      if (!petDocRef || !pet) return;
 
-    // 1. First, get current stats (apply any pending decay)
-    const { updatedPet: currentPet } = computePetStats(
-      pet,
-      HUNGER_THRESHOLD,
-      XP_GAIN_RATE,
-      HUNGER_DROP_RATE,
-      false
-    );
+      // 1. First, get current stats (apply any pending decay)
+      const { updatedPet: currentPet } = computePetStats(
+        pet,
+        HUNGER_THRESHOLD,
+        XP_GAIN_RATE,
+        HUNGER_DROP_RATE,
+        false
+      );
 
-    // 2. Calculate the timestamp for 'hours' ago
-    const simulatedLastUpdated = Date.now() - (hours * 3600000); // hours ago
+      // 2. Calculate the timestamp for 'hours' ago
+      const simulatedLastUpdated = Date.now() - (hours * 3600000);
 
-    // 3. Create a pet object as if it was last updated 'hours' ago
-    const petAtSimulatedTime = {
-      ...currentPet,
-      lastUpdated: simulatedLastUpdated
-    };
+      // 3. Create a pet object as if it was last updated 'hours' ago
+      const petAtSimulatedTime = {
+        ...currentPet,
+        lastUpdated: simulatedLastUpdated
+      };
 
-    // 4. Apply the time passage from that simulated time to now
-    const { updatedPet: finalPet } = computePetStats(
-      petAtSimulatedTime,
-      HUNGER_THRESHOLD,
-      XP_GAIN_RATE,
-      HUNGER_DROP_RATE,
-      true // commit the save with current timestamp
-    );
+      // 4. Apply the time passage from that simulated time to now
+      const { updatedPet: finalPet } = computePetStats(
+        petAtSimulatedTime,
+        HUNGER_THRESHOLD,
+        XP_GAIN_RATE,
+        HUNGER_DROP_RATE,
+        true
+      );
 
-    // 5. Update database
-    await updateDoc(petRef, {
-      hunger: finalPet.hunger,
-      totalXp: finalPet.totalXp,
-      lastUpdated: finalPet.lastUpdated
+      // 5. Update database
+      await updateDoc(petDocRef, {
+        hunger: finalPet.hunger,
+        totalXp: finalPet.totalXp,
+        lastUpdated: finalPet.lastUpdated
+      });
+
+      // 6. Update local state
+      setPet({
+        ...finalPet,
+        level: Math.floor(finalPet.totalXp / 1000),
+        xp: finalPet.totalXp % 1000,
+        xpToNext: 1000,
+      });
+
+      console.log(`Simulated ${hours} hour(s) passing.`);
     });
-
-    // 6. Update local state
-    setPet({
-      ...finalPet,
-      level: Math.floor(finalPet.totalXp / 1000),
-      xp: finalPet.totalXp % 1000,
-      xpToNext: 1000,
-    });
-
-    console.log(`Simulated ${hours} hour(s) passing.`);
   };
 
   const renamePet = async (newName) => {
-    if (!petRef) return;
+    if (!petDocRef) return;
     const updatedPet = { ...pet, name: newName.trim() };
-    await updateDoc(petRef, { name: newName.trim() });
+    await updateDoc(petDocRef, { name: newName.trim() });
     setPet(updatedPet);
   };
 
