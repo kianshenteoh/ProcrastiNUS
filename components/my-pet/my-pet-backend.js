@@ -98,7 +98,6 @@ export default function PetAndBadgesBackend() {
 
     fetchOrCreatePet();
   }, [userId, petRef, walletRef, inventoryRef]);
-  
 
   useEffect(() => {
     if (!pet || !userId || !petRef) return;
@@ -163,23 +162,28 @@ export default function PetAndBadgesBackend() {
   // Use food
   const useFood = async (food) => {
     if (!petRef || !inventoryRef || !pet) return;
+
+    // 1. Recompute decay up to now
     const { updatedPet } = computePetStats(
       pet,
       HUNGER_THRESHOLD,
       XP_GAIN_RATE,
       HUNGER_DROP_RATE,
-      true
+      true   // tells computePetStats to advance lastUpdated
     );
 
+    // 2. Apply feeding bonus
     const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
-    const newLastUpdated = Date.now();  
+    const newLastUpdated = Date.now();  // checkpoint now
 
+    // 3. Remove one food from inventory
     const newInventory = [...inventory];
     const index = newInventory.findIndex(f => f.id === food.id);
     if (index > -1) {
       newInventory.splice(index, 1);
     }
 
+    // 4. Write to Firestore
     await updateDoc(petRef, {
       hunger: fedHunger,
       totalXp: updatedPet.totalXp,
@@ -187,6 +191,7 @@ export default function PetAndBadgesBackend() {
     });
     await updateDoc(inventoryRef, { items: newInventory });
 
+    // 5. Update local state
     setPet({
       ...updatedPet,
       hunger: fedHunger,
@@ -202,24 +207,45 @@ export default function PetAndBadgesBackend() {
   const simulateTimePassed = async (hours) => {
     if (!petRef || !pet) return;
 
-    let newHunger = Math.max(pet.hunger - (hours * HUNGER_DROP_RATE), 0);
-    let xpGain = newHunger >= HUNGER_THRESHOLD ? XP_GAIN_RATE * hours : 0;
-    let newTotalXp = (pet.totalXp || 0) + xpGain;
+    // 1. First, get current stats (apply any pending decay)
+    const { updatedPet: currentPet } = computePetStats(
+      pet,
+      HUNGER_THRESHOLD,
+      XP_GAIN_RATE,
+      HUNGER_DROP_RATE,
+      false
+    );
 
-    let newLastUpdated = Date.now() - (hours * 3600000);
+    // 2. Calculate the timestamp for 'hours' ago
+    const simulatedLastUpdated = Date.now() - (hours * 3600000); // hours ago
 
-    const updatedPet = {
-      ...pet,
-      hunger: newHunger,
-      totalXp: newTotalXp,
-      lastUpdated: newLastUpdated,
+    // 3. Create a pet object as if it was last updated 'hours' ago
+    const petAtSimulatedTime = {
+      ...currentPet,
+      lastUpdated: simulatedLastUpdated
     };
 
-    await updateDoc(petRef, updatedPet);
+    // 4. Apply the time passage from that simulated time to now
+    const { updatedPet: finalPet } = computePetStats(
+      petAtSimulatedTime,
+      HUNGER_THRESHOLD,
+      XP_GAIN_RATE,
+      HUNGER_DROP_RATE,
+      true // commit the save with current timestamp
+    );
+
+    // 5. Update database
+    await updateDoc(petRef, {
+      hunger: finalPet.hunger,
+      totalXp: finalPet.totalXp,
+      lastUpdated: finalPet.lastUpdated
+    });
+
+    // 6. Update local state
     setPet({
-      ...updatedPet,
-      level: Math.floor(newTotalXp / 1000),
-      xp: newTotalXp % 1000,
+      ...finalPet,
+      level: Math.floor(finalPet.totalXp / 1000),
+      xp: finalPet.totalXp % 1000,
       xpToNext: 1000,
     });
 
@@ -249,7 +275,7 @@ export default function PetAndBadgesBackend() {
   );
 }
 
-export function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
+function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
   const now = Date.now();
   const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
   const elapsedMs = now - lastUpdated;

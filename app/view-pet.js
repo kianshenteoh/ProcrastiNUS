@@ -2,7 +2,7 @@ import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { computePetStats } from '../components/my-pet/my-pet-backend';
@@ -66,8 +66,63 @@ export default function ViewPetScreen() {
   };
 
   useEffect(() => {
-    if (friendId) loadData();
+    if (!friendId) return;
+
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+    walletRef.current = doc(db, 'users', userId, 'wallet', 'data');
+    inventoryRef.current = doc(db, 'users', userId, 'inventory', 'data');
+    petRef.current = doc(db, 'users', friendId, 'pet', 'data');
+
+    setLoading(true);
+
+    const unsubscribe = onSnapshot(petRef.current, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const { updatedPet } = computePetStats(
+          data,
+          30,  // HUNGER_THRESHOLD
+          20,  // XP_GAIN_RATE
+          2    // HUNGER_DROP_RATE
+        );
+
+        setPet({
+          ...updatedPet,
+          level: Math.floor(updatedPet.totalXp / 1000),
+          xp: updatedPet.totalXp % 1000,
+          xpToNext: 1000,
+        });
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [friendId]);
+
+  useEffect(() => {
+    if (!walletRef.current || !inventoryRef.current) return;
+
+    async function loadWalletAndInventory() {
+      try {
+        const [walletSnap, invSnap] = await Promise.all([
+          getDoc(walletRef.current),
+          getDoc(inventoryRef.current),
+        ]);
+
+        if (walletSnap.exists()) setWallet(walletSnap.data());
+        if (invSnap.exists()) setInventory(invSnap.data().items || []);
+      } catch (err) {
+        console.error('Error loading wallet or inventory:', err);
+      }
+    }
+
+    loadWalletAndInventory();
+  }, [walletRef.current, inventoryRef.current]);
+
+
 
     const buyFood = async (food) => {
     if (wallet.coins < food.cost) return;
