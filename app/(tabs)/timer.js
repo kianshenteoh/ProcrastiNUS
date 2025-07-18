@@ -102,7 +102,7 @@ export default function PomodoroScreen() {
             const timeSpent = initialTime - secondsLeft;
             const minutes = Math.floor(timeSpent / 60);
             if (minutes > 0) {
-              awardCoins(minutes);
+              awardCoins(minutes / 2);
             }
 
             setRunning(false);

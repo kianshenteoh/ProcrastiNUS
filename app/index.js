@@ -16,10 +16,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    marginBottom: 16,
+    marginBottom: 16, 
   },
   link: {
     color: 'blue',
     fontSize: 18,
   },
-});
+});  

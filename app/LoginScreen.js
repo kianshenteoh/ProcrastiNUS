@@ -21,7 +21,7 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickLogin = () => handleLogin({ email: '9@gmail.com', password: '123456' });
+  const handleQuickLogin = () => handleLogin({ email: '10@gmail.com', password: '123456' });
 
   return (
     <View style={styles.wrapper}>
