@@ -29,6 +29,9 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
   const alertFullness = () => {
     Alert.alert('Your pet is already full!', 'But I will be hungry again soon. Visit me later!', [{ text: 'OK', style: 'cancel' }]);
   }
+  const alertFullInventory = () => {
+    Alert.alert('Inventory Full', 'You cannot carry more food. Please use some before buying more.', [{ text: 'OK', style: 'cancel' }]);
+  }
 
   const xpPct = pet.xp / pet.xpToNext;
   const hungerPct = pet.hunger / 100;
@@ -113,7 +116,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
                 key={f.id}
                 style={[styles.foodRow, !canAfford(f) && { opacity: 0.4 }]}
                 disabled={!canAfford(f)}
-                onPress={() => buyFood(f)}>
+                onPress={() => inventory.length >= 10 ? alertFullInventory() : buyFood(f)}>
                 <Text style={styles.foodLabel}>{f.label}</Text>
                 <View style={{ flexDirection: 'row' }}>
                   <IconText icon="coins" color="#ffd700" text={f.cost} small />
