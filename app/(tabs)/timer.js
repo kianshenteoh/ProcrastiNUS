@@ -201,7 +201,7 @@ const awardCoins = async (amount) => {
   const snap = await getDoc(walletRef);
 
   const currentCoins = snap.exists() ? snap.data().coins || 0 : 0;
-  const newCoins = currentCoins + amount;
+  const newCoins = currentCoins + Math.floor(amount);
 
   await updateDoc(walletRef, { coins: newCoins });
 };
