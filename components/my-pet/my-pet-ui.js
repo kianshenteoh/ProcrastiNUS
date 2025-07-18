@@ -146,7 +146,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
               />
             </View>
             <Pressable
-              style={[styles.shopBtn, { marginTop: 16 }]}
+              style={[styles.shopBtn, { marginTop: 16, justifyContent: 'center' }]}
               onPress={() => {
                 if (!newName.trim()) return;
                 renamePet(newName.trim());
