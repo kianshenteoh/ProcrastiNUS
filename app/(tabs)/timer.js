@@ -1,5 +1,6 @@
 import { FontAwesome5 } from '@expo/vector-icons';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { startOfWeek } from 'date-fns';
+import { addDoc, collection, doc, getDoc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -20,6 +21,8 @@ export default function PomodoroScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [resetTimer, setResetTimer] = useState(null);
   const [resetCountdown, setResetCountdown] = useState(180);
+  const [weeklyHours, setWeeklyHours] = useState(0);
+  const [totalHours, setTotalHours] = useState(0);
   const intervalRef = useRef(null);
 
   const quotes = [
@@ -63,6 +66,8 @@ export default function PomodoroScreen() {
           const fullMinutes = Math.floor(initialTime / 60);
           if (fullMinutes > 0) {
             awardCoins(fullMinutes * 2); 
+            recordStudySession(fullMinutes);
+            refreshStudyHours();
           }
           return 0;
         }
@@ -74,6 +79,22 @@ export default function PomodoroScreen() {
     }, 1000);
     return () => clearInterval(intervalRef.current);
   }, [running, mode]);
+
+  useEffect(() => {
+    const fetchWeeklyHours = async () => {
+      const hours = await getWeeklyHours();
+      setWeeklyHours(hours);
+      console.log('Weekly hours:', hours);
+    };
+
+    const fetchTotalHours = async () => {
+      const hours = await getTotalHours();
+      setTotalHours(hours);
+    }
+
+    fetchWeeklyHours();
+    fetchTotalHours();
+  }, [])
 
   const startTimer = sec => {
     setSecondsLeft(sec);
@@ -98,16 +119,21 @@ export default function PomodoroScreen() {
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Give Up', style: 'destructive', onPress: () => {
+          text: 'Give Up', style: 'destructive', onPress: async () => {
             const timeSpent = initialTime - secondsLeft;
+            console.log('Time spent:', timeSpent, 'seconds');
             const minutes = Math.floor(timeSpent / 60);
             if (minutes > 0) {
               awardCoins(minutes / 2);
+              recordStudySession(minutes);
+              console.log('minutes awarded:', minutes);
             }
 
             setRunning(false);
             setSecondsLeft(0);
             setInitialTime(0);
+
+            refreshStudyHours();
           }
         },
       ]
@@ -160,6 +186,8 @@ export default function PomodoroScreen() {
   const minutes = Math.floor(elapsed / 60);
   if (minutes > 0) {
     awardCoins(minutes); 
+    recordStudySession(minutes);
+    refreshStudyHours();
   }
   setResetTimer(timeoutId);
 };
@@ -178,7 +206,73 @@ const awardCoins = async (amount) => {
   await updateDoc(walletRef, { coins: newCoins });
 };
 
-  const handleManualReset = () => {
+const recordStudySession = async (durationInMinutes) => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+  const studySessionsRef = collection(db, 'users', userId, 'StudySessions');
+  await addDoc(studySessionsRef, {
+    timestamp: Timestamp.now(),
+    durationInMinutes,
+  })
+}
+
+const getWeeklyStudySessions = async () => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const ref = collection(db, 'users', userId, 'StudySessions');
+  
+  const q = query(ref, where('timestamp', '>=', Timestamp.fromDate(weekStart)));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+}
+
+const getAllStudySessions = async () => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+  const ref = collection(db, 'users', userId, 'StudySessions');
+
+  const snapshot = await getDocs(ref);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+}
+
+const getWeeklyHours = async () => {
+  const sessions = await getWeeklyStudySessions();
+  //console.log('Weekly sessions:', sessions);
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
+  return (Math.floor(totalMinutes / 30)) * 0.5
+}
+
+const getTotalHours = async () => {
+  const sessions = await getAllStudySessions();
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
+  return (Math.floor(totalMinutes / 30)) * 0.5
+}
+
+const refreshStudyHours = async () => {
+  const weekly = await getWeeklyHours();
+  console.log('Weekly hours:', weekly);
+  const total = await getTotalHours();
+  setWeeklyHours(weekly);
+  setTotalHours(total);
+};
+
+const handleManualReset = () => {
   setRunning(false);
   clearInterval(intervalRef.current);
 
@@ -191,6 +285,10 @@ const awardCoins = async (amount) => {
     clearInterval(resetCountdownIntervalRef.current);
     resetCountdownIntervalRef.current = null;
   }
+
+  recordStudySession(elapsed);
+  refreshStudyHours();
+
   setElapsed(0);
   setResetCountdown(180);
 };
@@ -219,11 +317,9 @@ const awardCoins = async (amount) => {
   </Text>
 </Pressable>
 
-
-
     <View style={styles.studyRow}>
-        <IconText icon="hourglass-half" text={`12.5h`} color="rgb(46, 192, 245)" header="  Week" />
-        <IconText icon="clock" text={`240h`} color="#f59e0b" header="  Total" />
+        <IconText icon="hourglass-half" text={`${weeklyHours} h`} color="rgb(46, 192, 245)" header="  Week" />
+        <IconText icon="clock" text={`${totalHours} h`} color="#f59e0b" header="  Total" />
     </View>
 
       <View style={styles.timerContainer}>
