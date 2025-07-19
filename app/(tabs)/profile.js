@@ -1,28 +1,58 @@
+import { auth, db } from '@/firebase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
   const nav = useNavigation();
 
-  const user = {
-    name: 'Dan Leong',
+  const [user, setUser] = useState({
+    name: '',
     avatar: 'https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200',
-    level: 7,
-    xp: 3800,
-    xpToNext: 5000,
-    studyHours: 124,
-    tasksCompleted: 58,
-    rank: 14,
-    badges: [
-      { id: 'b1', icon: 'medal', label: 'First 10 hrs' },
-      { id: 'b2', icon: 'fire', label: '7-day Streak' },
-      { id: 'b3', icon: 'award', label: 'Task Master' },
-      { id: 'b4', icon: 'user-friends', label: 'Study Buddy' },
-    ],
-  };
+    level: 0,
+    xp: 0,
+    xpToNext: 1000,
+    studyHours: 0,
+    tasksCompleted: 80,
+    rank: 2,
+    badges: [],
+  });
 
-  const xpPercent = user.xp / user.xpToNext;
+    useEffect(() => {
+      const fetchUserData = async () => {
+        const rawEmail = auth.currentUser?.email;
+        if (!rawEmail) return;
+
+        const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+        const userRef = doc(db, 'users', userId, 'profile', 'data');
+        const sessionRef = collection(db, 'users', userId, 'StudySessions');
+
+        const [profileSnap, sessionsSnap] = await Promise.all([
+          getDoc(userRef),
+          getDocs(sessionRef),
+        ]);
+
+        let name = 'Anonymous';
+        if (profileSnap.exists()) {
+          const data = profileSnap.data();
+          name = data.name || name;
+        }
+
+        const sessions = sessionsSnap.docs.map(doc => doc.data());
+        const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
+        const totalHours = (Math.floor(totalMinutes / 30)) * 0.5;
+
+        setUser(prev => ({
+          ...prev,
+          name,
+          studyHours: totalHours,
+        }));
+      };
+
+    fetchUserData();
+  }, []);
 
   const showBadge = ({ item }) => (
     <View style={styles.badgeWrapper}>
