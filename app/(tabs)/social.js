@@ -111,11 +111,21 @@ export default function SocialScreen() {
     const myFriendsRef = doc(db, 'users', currentId, 'friends', 'list');
     const theirFriendsRef = doc(db, 'users', friendId, 'friends', 'list');
 
+
+    const myFriendsSnap = await getDoc(myFriendsRef);
+    if (myFriendsSnap.exists() && myFriendsSnap.data()[friendId]) {
+      alert('Friend already added');
+      return;
+    }
+
     try {
       await Promise.all([
         setDoc(myFriendsRef, { [friendId]: true }, { merge: true }),
         setDoc(theirFriendsRef, { [currentId]: true }, { merge: true }),
       ]);
+
+      const data = await fetchFriendsPets(); // refresh pets
+      setFriendsPets(data);
 
       alert('Friend added!');
       setModalVisible(false);
@@ -220,7 +230,7 @@ export default function SocialScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
-              <Text style={styles.ownerId}>Owner: {item.ownerId || item.id}</Text> 
+              <Text style={styles.ownerName}>Owner: {item.ownerName}</Text> 
               <Pressable 
                 onPress={() => {
                   router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } });
@@ -294,5 +304,5 @@ const styles = StyleSheet.create({
   addBtn: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 6 },
   cancelText: { color: '#374151', fontWeight: '600' },
   addText: { color: '#fff', fontWeight: '600' },
-  ownerId: { fontSize: 10, color: '#9ca3af', marginVertical: 6 },
+  ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
 });

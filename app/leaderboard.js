@@ -76,6 +76,12 @@ const getTotalHours = async (friendId) => {
         const rawPet = petSnap.data();
         const { updatedPet } = computePetStats(rawPet, 30, 20, 2);
 
+        const profileRef = doc(db, 'users', fid, 'profile', 'data');
+        const profileSnap = await getDoc(profileRef);
+
+        // owner name
+        const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Nameless';
+
         // hours
         const hoursWeek = await getWeeklyHours(fid);
         const hoursTotal = await getTotalHours(fid);
@@ -88,7 +94,7 @@ const getTotalHours = async (friendId) => {
         const pet = petImages[image] || petImages.default;
 
         // fallback name if not present
-        const name = updatedPet.name || 'Unknown';
+        const petName = updatedPet.name || 'Unknown';
 
         // mock badge icons and count
         const badgeIcons = ['fire', 'tasks', 'sun'];
@@ -96,7 +102,8 @@ const getTotalHours = async (friendId) => {
 
         return {
           id: fid,
-          name,
+          ownerName,
+          petName,
           pet,
           level,
           totalBadges,
@@ -137,8 +144,8 @@ const getTotalHours = async (friendId) => {
             <View style={styles.rank}><Text style={styles.rankTxt}>{index+1}</Text></View>
             <Image source={item.pet} style={styles.avatar} />
             <View style={styles.infoCol}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.ownerId}>Owner ID: {item.id}</Text>
+              <Text style={styles.petName}>{item.petName}</Text>
+              <Text style={styles.ownerName}>Owner: {item.ownerName}</Text>
               <Text style={styles.level}>Lvl {item.level}</Text>
               <View style={styles.badgeRow}>
                 {item.badgeIcons.map((icon, i) => (
@@ -169,7 +176,7 @@ const styles = StyleSheet.create({
   rank:{width:30},rankTxt:{fontSize:18,fontWeight:'800',color:'#065f46'},
   avatar:{width:60,height:60,resizeMode:'contain',marginHorizontal:6},
   infoCol:{flex:1,marginLeft:8},
-  name:{fontSize:18,fontWeight:'700',color:'#1f2937'},
+  petName:{fontSize:18,fontWeight:'700',color:'#1f2937'},
   level:{fontSize:14,fontWeight:'600',color:'#f87171'},
   badgeRow:{flexDirection:'row',alignItems:'center',marginTop:4},
   badgeIcon:{width:22,height:22,borderRadius:11,justifyContent:'center',alignItems:'center',marginRight:4},
@@ -180,5 +187,5 @@ const styles = StyleSheet.create({
   hourVal:{marginLeft:4,fontSize:20,fontWeight:'700',color:'#0ea5e9'},
   weekLbl:{fontSize:10,color:'#6b7280', marginTop: -2},
   totalLbl:{fontSize:10,color:'#6b7280',marginTop:10},
-  ownerId: { fontSize: 10, color: '#6b7280', marginTop: 2, marginBottom: 4 },
+  ownerName: { fontSize: 12, color: '#6b7280', marginTop: 2, marginBottom: 4 },
 });
