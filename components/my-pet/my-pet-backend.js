@@ -312,7 +312,7 @@ export default function PetAndBadgesBackend() {
   );
 }
 
-function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
+export function computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE, commitSave = false) {
   const now = Date.now();
   const lastUpdated = typeof petData.lastUpdated === 'number' ? petData.lastUpdated : now;
   const elapsedMs = now - lastUpdated;

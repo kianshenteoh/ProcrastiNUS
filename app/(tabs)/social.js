@@ -64,7 +64,6 @@ export default function SocialScreen() {
     return petData.filter(Boolean);
   }
 
-
   useEffect(() =>{
     const loadFriends = async () => {
       const data = await fetchFriendsPets();
@@ -77,7 +76,7 @@ export default function SocialScreen() {
   const [groups, setGroups] = useState([
     {
       id: 'g1',
-      name: 'Focus Ninjas',
+      name: 'CS Sufferers',
       members: [
         { name: 'Dan', hoursWeek: 14 },
         { name: 'Ton', hoursWeek: 12 },
