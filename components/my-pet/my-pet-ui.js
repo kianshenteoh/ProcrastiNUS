@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
   barBg: { height: 10, borderRadius: 5, backgroundColor: '#e5e7eb', overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
 
-  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20, justfifyContent: 'center' },
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20, justifyContent: 'center' },
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
   invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },

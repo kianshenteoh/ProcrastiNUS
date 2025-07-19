@@ -33,7 +33,6 @@ export default function PomodoroScreen() {
   "The coffee’s strong, but your focus is stronger.",
   "Every tick is a step closer to freedom (or snacks).",
   "Work now, flex later.",
-  "You can do anything for 25 minutes. Even this.",
   "Be the main character in your study montage.",
   "Focus like your GPA depends on it. (It probably does.)",
   "This Pomodoro is sponsored by sheer willpower and questionable caffeine intake.",
