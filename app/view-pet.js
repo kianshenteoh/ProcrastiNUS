@@ -169,10 +169,9 @@ export default function ViewPetScreen() {
     <ScrollView contentContainerStyle={styles.wrapper}>
       <View style={styles.headerRow}>
         <View style={styles.wallet}><IconText icon="coins" text={wallet.coins} color="#ffd700" /></View>
-        <Text style={styles.sectionTitle}>Feed Friend's Pet</Text>
+        <Text style={styles.sectionTitle}>Feed {typeof pet?.ownerName === 'string' ? pet.ownerName : 'Nameless'}'s Pet</Text>
       </View>
       <View style={styles.petCard}>
-        <Text style={styles.ownerId}>Owner ID: {friendId}</Text>
         <Image source={petImages[typeof pet?.image === 'number' ? pet.image : 0]} style={styles.petImage}/>
         <Text style={styles.petName}>{typeof pet?.name === 'string' ? pet.name : 'Unnamed Pet'}</Text>
         <Text style={styles.level}>Lvl {typeof pet?.level === 'number' ? pet.level : 1}</Text>
@@ -266,5 +265,5 @@ const styles = StyleSheet.create({
   foodLabel: { fontSize: 16, fontWeight: '700', color: '#374151' },
   closeBtn: { alignSelf: 'center', marginTop: 14 },
   closeTxt: { color: '#3b82f6', fontWeight: '700', fontSize: 16 },
-  ownerId: { fontSize: 12, color: '#6b7280', marginTop: 2 },
+  ownerName: { fontSize: 12, color: '#6b7280', marginTop: 2 },
 });

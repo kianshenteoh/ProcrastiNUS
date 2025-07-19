@@ -10,13 +10,19 @@ export default function RegisterScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
 
   const handleRegister = async () => {
     try { 
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
       const userId = email.trim().replace(/[.#$/[\]]/g, '_');
-      await setDoc(doc(db, 'users', userId, 'friends', 'list'), {}),
+
+      await Promise.all([
+        setDoc(doc(db, 'users', userId, 'friends', 'list'), {}),
+        setDoc(doc(db, 'users', userId, 'profile', 'data'), { name: name.trim() })
+      ]);
+
       router.replace('./LoginScreen');
     } catch (err) {
       alert(err.message);
@@ -28,6 +34,14 @@ export default function RegisterScreen() {
       <View style={styles.card}>
         <Image source={require('@/assets/images/logo.png')} style={styles.logo} />
         <Text style={styles.heading}>Create Account</Text>
+
+        <TextInput
+          placeholder="Name"
+          placeholderTextColor="#94a3b8"
+          style={styles.input}
+          value={name}
+          onChangeText={setName}
+        />
 
         <TextInput
           placeholder="Email"

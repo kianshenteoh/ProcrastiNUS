@@ -39,20 +39,23 @@ export default function PetAndBadgesBackend() {
   const petDocRef = userId ? doc(db, 'users', userId, 'pet', 'data') : null;
   const walletRef = userId ? doc(db, 'users', userId, 'wallet', 'data') : null;
   const inventoryRef = userId ? doc(db, 'users', userId, 'inventory', 'data') : null;
+  const profileRef = userId ? doc(db, 'users', userId, 'profile', 'data') : null;
 
   useEffect(() => {
-    if (!userId || !petDocRef || !walletRef || !inventoryRef) return;
+    if (!userId || !petDocRef || !walletRef || !inventoryRef || !profileRef) return;
 
     async function fetchOrCreatePet() {
       try {
         const petSnap = await getDoc(petDocRef);
         const walletSnap = await getDoc(walletRef);
         const inventorySnap = await getDoc(inventoryRef);
+        const profileSnap = await getDoc(profileRef);
 
         // PET
         if (!petSnap.exists()) {
           const newPet = {
             ownerId: userId,
+            ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
             name: 'Danny',
             hunger: 100,
             totalXp: 1000,
