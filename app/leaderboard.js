@@ -138,6 +138,7 @@ const getTotalHours = async (friendId) => {
             <Image source={item.pet} style={styles.avatar} />
             <View style={styles.infoCol}>
               <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.ownerId}>Owner ID: {item.id}</Text>
               <Text style={styles.level}>Lvl {item.level}</Text>
               <View style={styles.badgeRow}>
                 {item.badgeIcons.map((icon, i) => (
@@ -179,4 +180,5 @@ const styles = StyleSheet.create({
   hourVal:{marginLeft:4,fontSize:20,fontWeight:'700',color:'#0ea5e9'},
   weekLbl:{fontSize:10,color:'#6b7280', marginTop: -2},
   totalLbl:{fontSize:10,color:'#6b7280',marginTop:10},
+  ownerId: { fontSize: 10, color: '#6b7280', marginTop: 2, marginBottom: 4 },
 });

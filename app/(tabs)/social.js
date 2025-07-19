@@ -220,8 +220,15 @@ export default function SocialScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
               <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
-              <Pressable onPress={() => {router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } });}} 
-                style={styles.feedBtn}><Text style={styles.feedTxt}>View Pet</Text></Pressable>
+              <Text style={styles.ownerId}>Owner: {item.ownerId || item.id}</Text> 
+              <Pressable 
+                onPress={() => {
+                  router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } });
+                }}
+                style={styles.feedBtn}
+              >
+                <Text style={styles.feedTxt}>View Pet</Text>
+              </Pressable>
             </View>
           )}
         />
@@ -287,4 +294,5 @@ const styles = StyleSheet.create({
   addBtn: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 6 },
   cancelText: { color: '#374151', fontWeight: '600' },
   addText: { color: '#fff', fontWeight: '600' },
+  ownerId: { fontSize: 10, color: '#9ca3af', marginVertical: 6 },
 });
