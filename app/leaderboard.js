@@ -1,19 +1,13 @@
+import petImages from '@/assets/pet-images';
+import { computePetStats } from '@/components/my-pet/my-pet-backend';
+import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { startOfWeek } from 'date-fns';
+import { collection, doc, getDoc, getDocs, query, Timestamp, where } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function LeaderboardScreen() {
-  const [players] = useState([
-    { id:'1', name:'Abby',   pet:require('@/assets/images/Pet-Dog-Golden.png'), level:8, totalBadges:8, badgeIcons:['fire','tasks','sun'],  hoursTotal:220, hoursWeek:14 },
-    { id:'2', name:'Joseph',   pet:require('@/assets/images/Pet-Cat-Red.png'), level:9, totalBadges:4, badgeIcons:['trophy','tasks','fire'],hoursTotal:240, hoursWeek:12 },
-    { id:'3', name:'Ming Yuan',  pet:require('@/assets/images/Pet-Parrot-CottonCandyBlue.png'), level:6, totalBadges:9, badgeIcons:['sun','bolt','moon'],hoursTotal:150, hoursWeek:11 },
-    { id:'4', name:'Andrew Yang',    pet:require('@/assets/images/Pet-Axolotl-CottonCandyPink.png'), level:7, totalBadges:12, badgeIcons:['moon','tasks','trophy'],hoursTotal:180, hoursWeek:10 },
-    { id:'5', name:'Jovan',    pet:require('@/assets/images/Pet-BearCub-RoseGold.png'), level:5, totalBadges:7, badgeIcons:['bolt','sun','fire'], hoursTotal:130, hoursWeek:9 },
-    { id:'6', name:'Fiona',   pet:require('@/assets/images/Pet-Raccoon-Golden.png'), level:4, totalBadges:4, badgeIcons:['tasks','moon','sun'],hoursTotal:110, hoursWeek:8 },
-    { id:'7', name:'Xiao Ming',  pet:require('@/assets/images/Pet-Sheep-Shade.png'), level:6, totalBadges:6, badgeIcons:['trophy','fire','bolt'],hoursTotal:160, hoursWeek:7 },
-    { id:'8', name:'Lina',    pet:require('@/assets/images/Pet-PandaCub-Turquoise.png'), level:3, totalBadges:11, badgeIcons:['sun','tasks','moon'],hoursTotal:90,  hoursWeek:6 },
-  ].sort((a,b)=>b.hoursWeek-a.hoursWeek));
-
   const badgeColors = {
     fire: '#f97316',
     tasks: '#3b82f6',
@@ -23,11 +17,118 @@ export default function LeaderboardScreen() {
     moon: '#8b5cf6',
   };
 
+const getWeeklyStudySessions = async (friendId) => {
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const ref = collection(db, 'users', friendId, 'StudySessions');
+  
+  const q = query(ref, where('timestamp', '>=', Timestamp.fromDate(weekStart)));
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+}
+
+const getAllStudySessions = async (friendId) => {
+  const ref = collection(db, 'users', friendId, 'StudySessions');
+
+  const snapshot = await getDocs(ref);
+
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  }))
+}
+
+const getWeeklyHours = async (friendId) => {
+  const sessions = await getWeeklyStudySessions(friendId);
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
+  return (Math.floor(totalMinutes / 30)) * 0.5
+}
+
+const getTotalHours = async (friendId) => {
+  const sessions = await getAllStudySessions(friendId);
+  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
+  return (Math.floor(totalMinutes / 30)) * 0.5
+}
+
+  const [friendsPetsAndHours, setFriendsPetsAndHours] = useState([]);
+
+  const fetchAndSortFriendsPetsAndHours = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return [];
+
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const friendsDocRef = doc(db, 'users', userId, 'friends', 'list');
+    const friendsSnap = await getDoc(friendsDocRef);
+    if (!friendsSnap.exists()) return [];
+
+    const friendIds = Object.keys(friendsSnap.data());
+
+    const friendsData = await Promise.all(friendIds.map(async (fid) => {
+      try {
+        const petRef = doc(db, 'users', fid, 'pet', 'data');
+        const petSnap = await getDoc(petRef);
+        if (!petSnap.exists()) return null;
+
+        const rawPet = petSnap.data();
+        const { updatedPet } = computePetStats(rawPet, 30, 20, 2);
+
+        // hours
+        const hoursWeek = await getWeeklyHours(fid);
+        const hoursTotal = await getTotalHours(fid);
+
+        // level
+        const level = Math.floor(updatedPet.totalXp / 1000);
+
+        // pet image
+        const image = updatedPet.image;
+        const pet = petImages[image] || petImages.default;
+
+        // fallback name if not present
+        const name = updatedPet.name || 'Unknown';
+
+        // mock badge icons and count
+        const badgeIcons = ['fire', 'tasks', 'sun'];
+        const totalBadges = badgeIcons.length;
+
+        return {
+          id: fid,
+          name,
+          pet,
+          level,
+          totalBadges,
+          badgeIcons,
+          hoursTotal,
+          hoursWeek
+        };
+      } catch (err) {
+        console.error(`Failed to load friend (${fid})`, err);
+        return null;
+      }
+    }));
+
+    // sorting and filtering
+    const filtered = friendsData.filter(Boolean).sort((a, b) => b.hoursWeek - a.hoursWeek);
+    
+    return filtered;
+  };
+
+  useEffect(() =>{
+    const loadFriends = async () => {
+      const data = await fetchAndSortFriendsPetsAndHours();
+      setFriendsPetsAndHours(data);
+    }
+    loadFriends();
+  }, []);
+
   return (
     <ScrollView style={styles.wrapper}>
       <Text style={styles.title}>🏆 Weekly Ranking</Text>
       <FlatList
-        data={players}
+        data={friendsPetsAndHours}
         keyExtractor={item=>item.id}
         scrollEnabled={false} // did this to avoid warning
         contentContainerStyle={{paddingBottom:40}}
