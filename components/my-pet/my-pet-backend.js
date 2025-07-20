@@ -1,7 +1,7 @@
 import { auth, db } from '@/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import LoginScreen from '../../app/LoginScreen';
 import PetAndBadges from './my-pet-ui';
 
@@ -14,35 +14,27 @@ export default function PetAndBadgesBackend() {
   const [wallet, setWallet] = useState({ coins: 100000 });
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
-  const [userId, setUserId] = useState(null);
-  
-  // Use ref to track the latest pet state for the interval
+
   const petRef = useRef(null);
   const isUpdatingRef = useRef(false);
 
   const rawEmail = auth.currentUser?.email;
 
-  // Firestore refs (safe)
-  const petDocRef = userId ? doc(db, 'users', userId, 'pet', 'data') : null;
-  const walletRef = userId ? doc(db, 'users', userId, 'wallet', 'data') : null;
-  const inventoryRef = userId ? doc(db, 'users', userId, 'inventory', 'data') : null;
-  const profileRef = userId ? doc(db, 'users', userId, 'profile', 'data') : null;
+  const userId = useMemo(() => {
+    return rawEmail?.replace(/[.#$/[\]]/g, '_') || null;
+  }, [rawEmail]);
+
+  const petDocRef = useMemo(() => userId ? doc(db, 'users', userId, 'pet', 'data') : null, [userId]);
+  const walletRef = useMemo(() => userId ? doc(db, 'users', userId, 'wallet', 'data') : null, [userId]);
+  const inventoryRef = useMemo(() => userId ? doc(db, 'users', userId, 'inventory', 'data') : null, [userId]);
+  const profileRef = useMemo(() => userId ? doc(db, 'users', userId, 'profile', 'data') : null, [userId]);
 
   useEffect(() => {
-    if (!rawEmail) return;
-
-    const resolvedUserId = rawEmail.replace(/[.#$/[\]]/g, '_');
-    setUserId(resolvedUserId);
-    petRef.current = pet;
-
-    const petDocRef = doc(db, 'users', resolvedUserId, 'pet', 'data');
-    const walletRef = doc(db, 'users', resolvedUserId, 'wallet', 'data');
-    const inventoryRef = doc(db, 'users', resolvedUserId, 'inventory', 'data');
-    const profileRef = doc(db, 'users', resolvedUserId, 'profile', 'data');
+    if (!userId || !petDocRef || !walletRef || !inventoryRef || !profileRef) return;
 
     async function fetchOrCreatePet() {
       try {
-        const cached = await AsyncStorage.getItem(`petData_${resolvedUserId}`);
+        const cached = await AsyncStorage.getItem(`petData_${userId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
           setPet(parsed.pet);
@@ -61,7 +53,7 @@ export default function PetAndBadgesBackend() {
         let finalPet;
         if (!petSnap.exists()) {
           const newPet = {
-            ownerId: resolvedUserId,
+            ownerId: userId,
             ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
             name: 'Danny',
             hunger: 100,
@@ -104,7 +96,7 @@ export default function PetAndBadgesBackend() {
         setInventory(finalInventory);
         setLoading(false);
 
-        await AsyncStorage.setItem(`petData_${resolvedUserId}`, JSON.stringify({
+        await AsyncStorage.setItem(`petData_${userId}`, JSON.stringify({
           pet: finalPet,
           wallet: finalWallet,
           inventory: finalInventory,
@@ -116,15 +108,13 @@ export default function PetAndBadgesBackend() {
     }
 
     fetchOrCreatePet();
-  }, [rawEmail, pet]);
-
+  }, [userId, petDocRef, walletRef, inventoryRef, profileRef]);
 
   useEffect(() => {
     if (!petDocRef || !userId) return;
 
     let lastSaveTime = Date.now();
     const interval = setInterval(() => {
-      // Skip if we're currently updating from user actions
       if (isUpdatingRef.current || !petRef.current) return;
 
       const currentPet = petRef.current;
@@ -136,7 +126,6 @@ export default function PetAndBadgesBackend() {
         false
       );
 
-      // Only update if there's an actual change
       if (
         updatedPet.hunger !== currentPet.hunger ||
         updatedPet.totalXp !== currentPet.totalXp
@@ -149,7 +138,6 @@ export default function PetAndBadgesBackend() {
         }));
       }
 
-      // Only save to Firestore once per hour
       if (Date.now() - lastSaveTime > 60 * 60 * 1000) {
         const { updatedPet: savePet } = computePetStats(
           currentPet,
@@ -166,31 +154,26 @@ export default function PetAndBadgesBackend() {
     return () => clearInterval(interval);
   }, [userId, petDocRef]);
 
-  // Guards before rendering
-  if (!rawEmail) {
-    return <LoginScreen />;
-  }
+  useEffect(() => {
+    if (pet) petRef.current = pet;
+  }, [pet]);
 
-  if (loading || !pet) {
-    return null;
-  }
+  if (!rawEmail) return <LoginScreen />;
+  if (loading || !pet) return null;
 
-  // Helper function to update pet state safely
   const updatePetState = async (updateFn) => {
     if (!petDocRef || !pet) return;
-    
+
     isUpdatingRef.current = true;
     try {
       await updateFn();
     } finally {
-      // Small delay to ensure state has settled
       setTimeout(() => {
         isUpdatingRef.current = false;
       }, 100);
     }
   };
 
-  // Buy food
   const buyFood = async (food) => {
     if (!walletRef || !inventoryRef) return;
     if (wallet.coins < food.cost) return;
@@ -203,15 +186,12 @@ export default function PetAndBadgesBackend() {
     setWallet(newWallet);
     setInventory(newInventory);
 
-    const rawEmail = auth.currentUser?.email;
     if (rawEmail) {
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      await AsyncStorage.removeItem(`petData_${userId}`);
+      const id = rawEmail.replace(/[.#$/[\]]/g, '_');
+      await AsyncStorage.removeItem(`petData_${id}`);
     }
   };
 
-
-  // Use food
   const useFood = async (food) => {
     await updatePetState(async () => {
       if (!petDocRef || !inventoryRef || !pet) return;
@@ -224,14 +204,12 @@ export default function PetAndBadgesBackend() {
         true
       );
 
-      const currentHunger = updatedPet.hunger;
-      
-      if (currentHunger >= 100) {
-        console.warn("Pet is already full. Cannot feed.");
+      if (updatedPet.hunger >= 100) {
+        console.warn("Pet is already full.");
         return;
       }
 
-      const fedHunger = Math.min(currentHunger + food.hunger, 100);
+      const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
       const newLastUpdated = Date.now();
 
       const newInventory = [...inventory];
@@ -260,15 +238,10 @@ export default function PetAndBadgesBackend() {
     });
   };
 
-
-
-
-  //Remove for final deployment
   const simulateTimePassed = async (hours) => {
     await updatePetState(async () => {
       if (!petDocRef || !pet) return;
 
-      // 1. First, get current stats (apply any pending decay)
       const { updatedPet: currentPet } = computePetStats(
         pet,
         HUNGER_THRESHOLD,
@@ -277,16 +250,13 @@ export default function PetAndBadgesBackend() {
         false
       );
 
-      // 2. Calculate the timestamp for 'hours' ago
       const simulatedLastUpdated = Date.now() - (hours * 3600000);
 
-      // 3. Create a pet object as if it was last updated 'hours' ago
       const petAtSimulatedTime = {
         ...currentPet,
         lastUpdated: simulatedLastUpdated
       };
 
-      // 4. Apply the time passage from that simulated time to now
       const { updatedPet: finalPet } = computePetStats(
         petAtSimulatedTime,
         HUNGER_THRESHOLD,
@@ -295,22 +265,18 @@ export default function PetAndBadgesBackend() {
         true
       );
 
-      // 5. Update database
       await updateDoc(petDocRef, {
         hunger: finalPet.hunger,
         totalXp: finalPet.totalXp,
         lastUpdated: finalPet.lastUpdated
       });
 
-      // 6. Update local state
       setPet({
         ...finalPet,
         level: Math.floor(finalPet.totalXp / 1000),
         xp: finalPet.totalXp % 1000,
         xpToNext: 1000,
       });
-
-      console.log(`Simulated ${hours} hour(s) passing.`);
     });
   };
 
