@@ -1,6 +1,6 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import { startOfWeek } from 'date-fns';
-import { addDoc, collection, doc, getDoc, getDocs, query, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -210,12 +210,23 @@ const recordStudySession = async (durationInMinutes) => {
   if (!rawEmail) return;
   const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
+  // 1. Record the session
   const studySessionsRef = collection(db, 'users', userId, 'StudySessions');
   await addDoc(studySessionsRef, {
-    timestamp: Timestamp.now(),
+    timestamp: serverTimestamp(),
     durationInMinutes,
-  })
-}
+  });
+
+  // 2. Update stats
+  const statsRef = doc(db, 'users', userId, 'stats', 'data');
+  const hoursToAdd = Math.floor(durationInMinutes / 30) * 0.5;
+  
+  await updateDoc(statsRef, {
+    weeklyHours: increment(hoursToAdd),
+    totalHours: increment(hoursToAdd),
+    lastUpdated: serverTimestamp()
+  }, { merge: true });
+};
 
 const getWeeklyStudySessions = async () => {
   const rawEmail = auth.currentUser?.email;
@@ -251,17 +262,25 @@ const getAllStudySessions = async () => {
 }
 
 const getWeeklyHours = async () => {
-  const sessions = await getWeeklyStudySessions();
-  //console.log('Weekly sessions:', sessions);
-  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
-  return (Math.floor(totalMinutes / 30)) * 0.5
-}
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return 0;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  
+  // Use stats document instead of querying all sessions
+  const statsRef = doc(db, 'users', userId, 'stats', 'data');
+  const snap = await getDoc(statsRef);
+  return snap.exists() ? snap.data().weeklyHours || 0 : 0;
+};
 
 const getTotalHours = async () => {
-  const sessions = await getAllStudySessions();
-  const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
-  return (Math.floor(totalMinutes / 30)) * 0.5
-}
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return 0;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  
+  const statsRef = doc(db, 'users', userId, 'stats', 'data');
+  const snap = await getDoc(statsRef);
+  return snap.exists() ? snap.data().totalHours || 0 : 0;
+};
 
 const refreshStudyHours = async () => {
   const weekly = await getWeeklyHours();

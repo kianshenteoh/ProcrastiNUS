@@ -2,7 +2,7 @@ import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
@@ -33,36 +33,61 @@ export default function SocialScreen() {
   const fetchFriendsPets = async () => {
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return [];
-
+    
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-    const friendsDocRef = doc(db, 'users', userId, 'friends', 'list');
-    const friendsSnap = await getDoc(friendsDocRef);
+    
+    try {
+      // 1. First try to get friends list
+      const friendsSnap = await getDoc(doc(db, 'users', userId, 'friends', 'list'));
+      if (!friendsSnap.exists()) return [];
 
-    if (!friendsSnap.exists()) return [];
+      const friendIds = Object.keys(friendsSnap.data());
+      if (friendIds.length === 0) return [];
 
-    const friendIds = Object.keys(friendsSnap.data());
+      // 2. Fetch all friend pets in parallel
+      const petPromises = friendIds.map(async (fid) => {
+        try {
+          const petSnap = await getDoc(doc(db, 'users', fid, 'pet', 'data'));
+          if (!petSnap.exists()) return null;
 
-    const petData = await Promise.all(friendIds.map(async (fid) => {
-      const petRef = doc(db, 'users', fid, 'pet', 'data');
-      const petSnap = await getDoc(petRef);
-      if (!petSnap.exists()) return null;
+          const petData = petSnap.data();
+          const { updatedPet } = computePetStats(petData, 30, 20, 2);
 
-      const rawPet = petSnap.data();
-      const { updatedPet } = computePetStats(
-        rawPet,
-        30,   // HUNGER_THRESHOLD
-        20,   // XP_GAIN_RATE
-        2     // HUNGER_DROP_RATE
-      );
+          // Also get the owner's name
+          const profileSnap = await getDoc(doc(db, 'users', fid, 'profile', 'data'));
+          const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
 
-      return {
-        id: fid,
-        ...updatedPet
-      };
-    }));
+          return {
+            id: fid,
+            ...updatedPet,
+            ownerName,
+            ownerId: fid, // Make sure this is included for view-pet navigation
+          };
+        } catch (error) {
+          console.error(`Error loading friend ${fid}:`, error);
+          return null;
+        }
+      });
 
-    return petData.filter(Boolean);
-  }
+      const petData = await Promise.all(petPromises);
+      const result = petData.filter(Boolean);
+
+      // 3. Update cache (optional - can remove if causing issues)
+      try {
+        await setDoc(doc(db, 'users', userId, 'friends', 'petsCache'), {
+          pets: result,
+          lastUpdated: serverTimestamp(),
+        });
+      } catch (cacheError) {
+        console.log('Cache update failed:', cacheError);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch friends:', error);
+      return [];
+    }
+  };
 
   useEffect(() =>{
     const loadFriends = async () => {
@@ -99,32 +124,34 @@ export default function SocialScreen() {
       return;
     }
 
-    // check if friend user exists by looking for their pet data
-    const friendPetRef = doc(db, 'users', friendId, 'pet', 'data');
-    const friendPetSnap = await getDoc(friendPetRef);
-
-    if (!friendPetSnap.exists()) {
-      alert('User not found');
-      return;
-    }
-
-    const myFriendsRef = doc(db, 'users', currentId, 'friends', 'list');
-    const theirFriendsRef = doc(db, 'users', friendId, 'friends', 'list');
-
-
-    const myFriendsSnap = await getDoc(myFriendsRef);
-    if (myFriendsSnap.exists() && myFriendsSnap.data()[friendId]) {
-      alert('Friend already added');
-      return;
-    }
-
     try {
+      // 1. Check if friend exists
+      const friendPetRef = doc(db, 'users', friendId, 'pet', 'data');
+      const friendPetSnap = await getDoc(friendPetRef);
+      if (!friendPetSnap.exists()) {
+        alert('User not found');
+        return;
+      }
+
+      // 2. Check if already friends
+      const myFriendsRef = doc(db, 'users', currentId, 'friends', 'list');
+      const myFriendsSnap = await getDoc(myFriendsRef);
+      if (myFriendsSnap.exists() && myFriendsSnap.data()[friendId]) {
+        alert('Friend already added');
+        return;
+      }
+
+      // 3. Add friend relationship both ways
       await Promise.all([
         setDoc(myFriendsRef, { [friendId]: true }, { merge: true }),
-        setDoc(theirFriendsRef, { [currentId]: true }, { merge: true }),
+        setDoc(doc(db, 'users', friendId, 'friends', 'list'), 
+          { [currentId]: true }, 
+          { merge: true }
+        ),
       ]);
 
-      const data = await fetchFriendsPets(); // refresh pets
+      // 4. Refresh friends list
+      const data = await fetchFriendsPets();
       setFriendsPets(data);
 
       alert('Friend added!');
@@ -132,10 +159,9 @@ export default function SocialScreen() {
       setFriendEmail('');
     } catch (error) {
       console.error('Error adding friend:', error);
-      alert('Failed to add friend. Try again later.');
+      alert('Failed to add friend. Please try again.');
     }
   };
-
 
   return (
     <MenuProvider>
