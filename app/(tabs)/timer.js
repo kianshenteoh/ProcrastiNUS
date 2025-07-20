@@ -1,4 +1,5 @@
 import { FontAwesome5 } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
 import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
@@ -23,6 +24,7 @@ export default function PomodoroScreen() {
   const [resetCountdown, setResetCountdown] = useState(180);
   const [weeklyHours, setWeeklyHours] = useState(0);
   const [totalHours, setTotalHours] = useState(0);
+  const [lastStatsFetch, setLastStatsFetch] = useState(null);
   const intervalRef = useRef(null);
 
   const quotes = [
@@ -46,54 +48,39 @@ export default function PomodoroScreen() {
 
   useEffect(() => {
     if (!running) return;
+
     if (mode === 'stopwatch' && resetTimer) {
       clearTimeout(resetTimer);
       setResetTimer(null);
       clearInterval(resetCountdownIntervalRef.current);
       setResetCountdown(180);
     }
-    
 
     intervalRef.current = setInterval(() => {
       if (mode === 'timer') {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current);
-          setRunning(false);
-          Vibration.vibrate(800);
+        setSecondsLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(intervalRef.current);
+            setRunning(false);
+            Vibration.vibrate(800);
 
-          const fullMinutes = Math.floor(initialTime / 60);
-          if (fullMinutes > 0) {
-            awardCoins(fullMinutes * 2); 
-            recordStudySession(fullMinutes);
-            refreshStudyHours();
+            const fullMinutes = Math.floor(initialTime / 60);
+            if (fullMinutes > 0) {
+              awardCoins(fullMinutes * 2);
+              recordStudySession(fullMinutes);
+              refreshStudyHours(); 
+            }
+            return 0;
           }
-          return 0;
-        }
-        return prev - 1;
-      });
-    } else {
-      setElapsed(prev => prev + 1);
-    }
+          return prev - 1;
+        });
+      } else {
+        setElapsed(prev => prev + 1);
+      }
     }, 1000);
+
     return () => clearInterval(intervalRef.current);
   }, [running, mode]);
-
-  useEffect(() => {
-    const fetchWeeklyHours = async () => {
-      const hours = await getWeeklyHours();
-      setWeeklyHours(hours);
-      console.log('Weekly hours:', hours);
-    };
-
-    const fetchTotalHours = async () => {
-      const hours = await getTotalHours();
-      setTotalHours(hours);
-    }
-
-    fetchWeeklyHours();
-    fetchTotalHours();
-  }, [])
 
   const startTimer = sec => {
     setSecondsLeft(sec);
@@ -282,12 +269,42 @@ const getTotalHours = async () => {
   return snap.exists() ? snap.data().totalHours || 0 : 0;
 };
 
+
 const refreshStudyHours = async () => {
-  const weekly = await getWeeklyHours();
-  console.log('Weekly hours:', weekly);
-  const total = await getTotalHours();
-  setWeeklyHours(weekly);
-  setTotalHours(total);
+  try {
+    const cacheKey = 'studyHoursCache';
+    const cached = await AsyncStorage.getItem(cacheKey);
+    const now = Date.now();
+
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      const isFresh = now - timestamp < 5 * 60 * 1000; // 5 minutes
+      if (isFresh) {
+        console.log('Using cached study hours:', data);
+        setWeeklyHours(data.weekly);
+        setTotalHours(data.total);
+        return;
+      }
+    }
+
+    // Fetch fresh data
+    const [weekly, total] = await Promise.all([
+      getWeeklyHours(),
+      getTotalHours()
+    ]);
+
+    setWeeklyHours(weekly);
+    setTotalHours(total);
+
+    // Cache it
+    await AsyncStorage.setItem(cacheKey, JSON.stringify({
+      data: { weekly, total },
+      timestamp: now
+    }));
+
+  } catch (err) {
+    console.error('Error refreshing study hours:', err);
+  }
 };
 
 const handleManualReset = () => {

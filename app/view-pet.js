@@ -1,8 +1,9 @@
 import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { computePetStats } from '../components/my-pet/my-pet-backend';
@@ -25,102 +26,104 @@ export default function ViewPetScreen() {
     { id: 'premium', label: 'Big Mac', cost: 10, hunger: 40, icon: 'hamburger' },
   ];
 
-  const loadData = async () => {
-    setLoading(true);
-    const rawEmail = auth.currentUser?.email;
-    if (!rawEmail || !friendId) return;
 
-    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+const loadData = async () => {
+  setLoading(true);
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail || !friendId) return;
 
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const cacheKey = `viewPetCache-${friendId}`;
+  const now = Date.now();
+
+  try {
+    // Try to load from cache
+    const cached = await AsyncStorage.getItem(cacheKey);
+    if (cached) {
+      const { timestamp, pet, wallet, inventory } = JSON.parse(cached);
+      // Use cache if it's less than 5 minutes old
+      if (now - timestamp < 5 * 60 * 1000) {
+        setPet(pet);
+        setWallet(wallet);
+        setInventory(inventory);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Refs
     walletRef.current = doc(db, 'users', userId, 'wallet', 'data');
     inventoryRef.current = doc(db, 'users', userId, 'inventory', 'data');
     petRef.current = doc(db, 'users', friendId, 'pet', 'data');
 
+    // Fresh fetch
     const [petSnap, walletSnap, invSnap] = await Promise.all([
       getDoc(petRef.current),
       getDoc(walletRef.current),
       getDoc(inventoryRef.current),
     ]);
 
+    let petObj = null;
     if (petSnap.exists()) {
       const data = petSnap.data();
-      const { updatedPet } = computePetStats(
-        data,
-        30,   // HUNGER_THRESHOLD
-        20,   // XP_GAIN_RATE
-        2     // HUNGER_DROP_RATE
-      );
-
-      setPet({
+      const { updatedPet } = computePetStats(data, 30, 20, 2);
+      petObj = {
         ...updatedPet,
         level: Math.floor(updatedPet.totalXp / 1000),
         xp: updatedPet.totalXp % 1000,
         xpToNext: 1000,
-      });
+      };
+      setPet(petObj);
     }
 
-    if (walletSnap.exists()) setWallet(walletSnap.data());
-    if (invSnap.exists()) setInventory(invSnap.data().items || []);
+    const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0 };
+    const inventoryData = invSnap.exists() ? invSnap.data().items || [] : [];
 
-    setLoading(false);
-  };
+    setWallet(walletData);
+    setInventory(inventoryData);
 
-  useEffect(() => {
-    if (!friendId) return;
+    // Save to cache
+    await AsyncStorage.setItem(cacheKey, JSON.stringify({
+      timestamp: now,
+      pet: petObj,
+      wallet: walletData,
+      inventory: inventoryData,
+    }));
 
-    const rawEmail = auth.currentUser?.email;
-    if (!rawEmail) return;
+  } catch (err) {
+    console.error('Error loading pet data:', err);
+  }
 
-    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  setLoading(false);
+};
 
-    walletRef.current = doc(db, 'users', userId, 'wallet', 'data');
-    inventoryRef.current = doc(db, 'users', userId, 'inventory', 'data');
-    petRef.current = doc(db, 'users', friendId, 'pet', 'data');
-
-    setLoading(true);
-
-    const unsubscribe = onSnapshot(petRef.current, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const { updatedPet } = computePetStats(
-          data,
-          30,  // HUNGER_THRESHOLD
-          20,  // XP_GAIN_RATE
-          2    // HUNGER_DROP_RATE
-        );
-
-        setPet({
-          ...updatedPet,
-          level: Math.floor(updatedPet.totalXp / 1000),
-          xp: updatedPet.totalXp % 1000,
-          xpToNext: 1000,
-        });
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [friendId]);
 
   useEffect(() => {
-    if (!walletRef.current || !inventoryRef.current) return;
+    const loadEverything = async () => {
+      if (!friendId) return;
 
-    async function loadWalletAndInventory() {
+      setLoading(true);
+
       try {
-        const [walletSnap, invSnap] = await Promise.all([
-          getDoc(walletRef.current),
-          getDoc(inventoryRef.current),
-        ]);
+        await loadData(); // loads pet, wallet, inventory, etc. — already includes cache
+        if (walletRef.current && inventoryRef.current) {
+          const [walletSnap, invSnap] = await Promise.all([
+            getDoc(walletRef.current),
+            getDoc(inventoryRef.current),
+          ]);
 
-        if (walletSnap.exists()) setWallet(walletSnap.data());
-        if (invSnap.exists()) setInventory(invSnap.data().items || []);
+          if (walletSnap.exists()) setWallet(walletSnap.data());
+          if (invSnap.exists()) setInventory(invSnap.data().items || []);
+        }
       } catch (err) {
-        console.error('Error loading wallet or inventory:', err);
+        console.error('Failed to load everything:', err);
       }
-    }
 
-    loadWalletAndInventory();
-  }, [walletRef.current, inventoryRef.current]);
+      setLoading(false);
+    };
+
+    loadEverything();
+  }, [friendId]);
 
 
 

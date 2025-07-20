@@ -2,7 +2,7 @@ import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
@@ -15,17 +15,29 @@ export default function SocialScreen() {
   const [friendEmail, setFriendEmail] = useState('');
 
   useEffect(() => {
-    const fetchWallet = async () => {
+    const loadData = async () => {
       const rawEmail = auth.currentUser?.email;
       if (!rawEmail) return;
+
       const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      const walletRef = doc(db, 'users', userId, 'wallet', 'data');
-      const snap = await getDoc(walletRef);
-      if (snap.exists()) {
-        setWallet(snap.data());
+
+      try {
+        // --- Load wallet ---
+        const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+        const walletSnap = await getDoc(walletRef);
+        if (walletSnap.exists()) {
+          setWallet(walletSnap.data());
+        }
+
+        // --- Load friends' pet data (cached internally in your fetchFriendsPets) ---
+        const friendsData = await fetchFriendsPets();
+        setFriendsPets(friendsData);
+      } catch (err) {
+        console.error('Error loading wallet or friends data:', err);
       }
     };
-    fetchWallet();
+
+    loadData();
   }, []);
 
   const [friendsPets, setFriendsPets] = useState([]);
@@ -33,38 +45,52 @@ export default function SocialScreen() {
   const fetchFriendsPets = async () => {
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return [];
-    
+
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-    
+    const cacheRef = doc(db, 'users', userId, 'friends', 'petsCache');
+
     try {
-      // 1. First try to get friends list
+      // Check if cached data exists
+      const cacheSnap = await getDoc(cacheRef);
+      if (cacheSnap.exists()) {
+        const cachedData = cacheSnap.data();
+        const lastUpdated = cachedData.lastUpdated?.toMillis?.() || 0;
+        const now = Date.now();
+
+        // Use cache if it's less than 15 minutes old
+        if (now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
+          console.log("Using cached pets data");
+          return cachedData.pets;
+        }
+      }
+
+      // Otherwise, fetch fresh data and cache it
       const friendsSnap = await getDoc(doc(db, 'users', userId, 'friends', 'list'));
       if (!friendsSnap.exists()) return [];
 
       const friendIds = Object.keys(friendsSnap.data());
       if (friendIds.length === 0) return [];
 
-      // 2. Fetch all friend pets in parallel
       const petPromises = friendIds.map(async (fid) => {
         try {
-          const petSnap = await getDoc(doc(db, 'users', fid, 'pet', 'data'));
+          const [petSnap, profileSnap] = await Promise.all([
+            getDoc(doc(db, 'users', fid, 'pet', 'data')),
+            getDoc(doc(db, 'users', fid, 'profile', 'data')),
+          ]);
+
           if (!petSnap.exists()) return null;
 
           const petData = petSnap.data();
           const { updatedPet } = computePetStats(petData, 30, 20, 2);
-
-          // Also get the owner's name
-          const profileSnap = await getDoc(doc(db, 'users', fid, 'profile', 'data'));
           const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
 
           return {
             id: fid,
             ...updatedPet,
             ownerName,
-            ownerId: fid, // Make sure this is included for view-pet navigation
+            ownerId: fid,
           };
-        } catch (error) {
-          console.error(`Error loading friend ${fid}:`, error);
+        } catch {
           return null;
         }
       });
@@ -72,15 +98,11 @@ export default function SocialScreen() {
       const petData = await Promise.all(petPromises);
       const result = petData.filter(Boolean);
 
-      // 3. Update cache (optional - can remove if causing issues)
-      try {
-        await setDoc(doc(db, 'users', userId, 'friends', 'petsCache'), {
-          pets: result,
-          lastUpdated: serverTimestamp(),
-        });
-      } catch (cacheError) {
-        console.log('Cache update failed:', cacheError);
-      }
+      // Update the cache with a new timestamp
+      await setDoc(cacheRef, {
+        pets: result,
+        lastUpdated: new Date()
+      });
 
       return result;
     } catch (error) {
@@ -89,13 +111,6 @@ export default function SocialScreen() {
     }
   };
 
-  useEffect(() =>{
-    const loadFriends = async () => {
-      const data = await fetchFriendsPets();
-      setFriendsPets(data);
-    }
-    loadFriends();
-  }, []);
 
 
   const [groups, setGroups] = useState([

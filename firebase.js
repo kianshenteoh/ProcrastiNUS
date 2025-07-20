@@ -1,8 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth } from 'firebase/auth';
-import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
-
+import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import {
+  getFirestore,
+  initializeFirestore,
+  memoryLocalCache,
+  persistentLocalCache,
+} from 'firebase/firestore';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBXciVIdPwVzPYEFHO2HSaPUgCsERnDT80",
@@ -16,26 +21,16 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-let auth;
-const isTesting = process.env.JEST_WORKER_ID !== undefined;
+// ✅ Always initialize auth with AsyncStorage
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 
-try {
-  auth = getAuth(app);
-} catch (e) {
-  if (!isTesting && e.code === 'auth/no-auth') {
-    const { getReactNativePersistence } = require('firebase/auth');
-    auth = initializeAuth(app, {
-      persistence: getReactNativePersistence(AsyncStorage),
-    });
-  } else {
-    throw e;
-  }
-}
-
+// ✅ Platform-aware Firestore cache
 let db;
 try {
   db = initializeFirestore(app, {
-    localCache: persistentLocalCache()
+    localCache: Platform.OS === 'web' ? persistentLocalCache() : memoryLocalCache()
   });
 } catch (e) {
   db = getFirestore(app);

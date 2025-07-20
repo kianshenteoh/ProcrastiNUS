@@ -2,7 +2,7 @@ import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -23,14 +23,22 @@ export default function LeaderboardScreen() {
     const user = auth.currentUser;
     if (!user) return [];
 
+    const safeId = user.email.replace(/[.#$/\[\]]/g, '_');
+    const cacheRef = doc(db, 'users', safeId, 'leaderboard', 'cache');
+
     try {
-      const safeId = user.email.replace(/[.#$/\[\]]/g, '_');
+      const cacheSnap = await getDoc(cacheRef);
+      const now = Date.now();
+      const lastUpdated = cacheSnap.exists() ? cacheSnap.data().lastUpdated?.toMillis?.() || 0 : 0;
+
+      if (now - lastUpdated < 15 * 60 * 1000 && cacheSnap.exists()) {
+        console.log('Using cached leaderboard data');
+        return cacheSnap.data().friends || [];
+      }
+
       const friendsListRef = doc(db, 'users', safeId, 'friends', 'list');
       const friendsListSnap = await getDoc(friendsListRef);
-
-      if (!friendsListSnap.exists()) {
-        return [];
-      }
+      if (!friendsListSnap.exists()) return [];
 
       const friendIds = Object.keys(friendsListSnap.data());
 
@@ -40,7 +48,7 @@ export default function LeaderboardScreen() {
             const [petSnap, profileSnap, statsSnap] = await Promise.all([
               getDoc(doc(db, 'users', friendId, 'pet', 'data')),
               getDoc(doc(db, 'users', friendId, 'profile', 'data')),
-              getDoc(doc(db, 'users', friendId, 'stats', 'data'))
+              getDoc(doc(db, 'users', friendId, 'stats', 'data')),
             ]);
 
             if (!petSnap.exists()) return null;
@@ -51,9 +59,6 @@ export default function LeaderboardScreen() {
             const weeklyMinutes = statsSnap.exists() ? statsSnap.data().weeklyMinutes || 0 : 0;
             const totalMinutes = statsSnap.exists() ? statsSnap.data().totalMinutes || 0 : 0;
 
-            const imageKey = updatedPet.image;
-            const petImage = petImages[imageKey] || petImages.default;
-
             return {
               id: friendId,
               petName: updatedPet.name || 'Unknown',
@@ -63,21 +68,28 @@ export default function LeaderboardScreen() {
               hoursTotal: Math.floor(totalMinutes / 30) * 0.5,
               badgeIcons: ['fire', 'tasks', 'sun'],
               totalBadges: 3,
-              pet: petImage
+              pet: petImages[updatedPet.image] || petImages.default,
             };
-          } catch (error) {
-            console.error(`Error loading friend ${friendId}:`, error);
+          } catch {
             return null;
           }
         })
       );
 
-      return friendsData.filter(Boolean).sort((a, b) => b.hoursWeek - a.hoursWeek);
-    } catch (error) {
-      console.error("Failed to fetch friends data:", error);
+      const result = friendsData.filter(Boolean).sort((a, b) => b.hoursWeek - a.hoursWeek);
+
+      await setDoc(cacheRef, {
+        friends: result,
+        lastUpdated: new Date(),
+      });
+
+      return result;
+    } catch (e) {
+      console.error("Leaderboard fetch failed:", e);
       return [];
     }
   };
+
 
   useEffect(() => {
     const loadData = async () => {

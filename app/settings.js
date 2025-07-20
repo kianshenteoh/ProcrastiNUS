@@ -2,13 +2,13 @@ import { useRouter } from "expo-router";
 import { signOut } from "firebase/auth";
 import { useState } from "react";
 import {
-    Alert,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    View,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
 } from "react-native";
 import { auth } from "../firebase";
 
@@ -21,6 +21,7 @@ export default function SettingsScreen() {
 
   const handleLogout = async () => {
     try {
+      await AsyncStorage.removeItem('studyHoursCache')
       await signOut(auth);
       router.replace("/LoginScreen");
     } catch (err) {

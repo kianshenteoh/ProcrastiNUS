@@ -1,6 +1,6 @@
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { addDoc, collection, deleteDoc, doc, getDocs, increment, orderBy, query, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
@@ -19,30 +19,52 @@ export default function TasksScreen() {
   const [editId, setEditId] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastFetched, setLastFetched] = useState(null);
 
   useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        const rawEmail = auth.currentUser?.email;
-        if (!rawEmail) return;
-        const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const loadAndCleanTasks = async () => {
+      const now = Date.now();
+      if (lastFetched && now - lastFetched < 5 * 60 * 1000) return;
 
-        const q = query(collection(db, 'users', userId, 'tasks'), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        const fetchedTasks = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          dueDate: doc.data().dueDate?.toDate?.() || null,
-        }));
-        setTasks(fetchedTasks);
-      } catch (error) {
-        console.error('Error loading tasks:', error);
-      } finally {
-        setLoading(false);
-      }
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
+
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+      const tasksCollection = collection(db, 'users', userId, 'tasks');
+      const snapshot = await getDocs(tasksCollection); 
+
+      const oneDay = 24 * 60 * 60 * 1000;
+      const validTasks = [];
+      const tasksToDelete = [];
+
+      snapshot.forEach(docSnap => {
+        const task = { id: docSnap.id, ...docSnap.data() };
+        const isOldCompleted =
+          task.completed &&
+          task.createdAt &&
+          now - new Date(task.createdAt).getTime() > oneDay;
+
+        if (isOldCompleted) {
+          tasksToDelete.push(task.id);
+        } else {
+          validTasks.push(task);
+        }
+      });
+
+      await Promise.all(
+        tasksToDelete.map(id =>
+          deleteDoc(doc(db, 'users', userId, 'tasks', id))
+        )
+      );
+
+      setTasks(validTasks);
+      setLastFetched(now);
     };
-      loadTasks();
-  }, []);
+
+    loadAndCleanTasks();
+  }, [lastFetched]);
+
+
 
   const trackTaskEvent = async eventType => {
     const rawEmail = auth.currentUser?.email;
@@ -127,20 +149,33 @@ export default function TasksScreen() {
     }
   };
 
-  const completeTask = async id => {
-    const rawEmail = auth.currentUser?.email;
-      if (!rawEmail) return;
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const completeTask = async (id) => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
-    try {
-      const ref = doc(db, 'users', userId, 'tasks', id);
-      await updateDoc(ref, { completed: true });
-      setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
-      trackTaskEvent('completed');
-    } catch (error) {
-      console.error('Error marking task as complete:', error);
-    }
-  };
+  const taskRef = doc(db, 'users', userId, 'tasks', id);
+
+  try {
+    const taskSnap = await getDoc(taskRef);
+    if (!taskSnap.exists()) return;
+
+    const taskData = taskSnap.data();
+    if (taskData.completed) return; 
+    await updateDoc(taskRef, { completed: true });
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: true } : t))
+    )
+    const profileRef = doc(db, 'users', userId, 'profile', 'data');
+    await updateDoc(profileRef, { tasksCompleted: increment(1) });
+    trackTaskEvent('completed');
+
+  } catch (error) {
+    console.error('Error completing task:', error);
+  }
+};
+
 
   const groupTasks = () => {
     const priorities = ['High', 'Medium', 'Low'];
