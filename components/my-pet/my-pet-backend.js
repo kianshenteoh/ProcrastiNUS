@@ -225,29 +225,29 @@ export default function PetAndBadgesBackend() {
       );
 
       const currentHunger = updatedPet.hunger;
-      const fedHunger = Math.min(currentHunger + food.hunger, 100);
-
+      
       if (currentHunger >= 100) {
-        console.log("Pet is already full.");
+        console.warn("Pet is already full. Cannot feed.");
         return;
       }
 
+      const fedHunger = Math.min(currentHunger + food.hunger, 100);
       const newLastUpdated = Date.now();
 
-      // Remove one food item
       const newInventory = [...inventory];
       const index = newInventory.findIndex(f => f.id === food.id);
-      if (index > -1) newInventory.splice(index, 1);
+      if (index > -1) {
+        newInventory.splice(index, 1);
+      }
 
-      // Write to Firestore
       await updateDoc(petDocRef, {
         hunger: fedHunger,
         totalXp: updatedPet.totalXp,
         lastUpdated: newLastUpdated,
       });
+
       await updateDoc(inventoryRef, { items: newInventory });
 
-      // Update local state
       setPet({
         ...updatedPet,
         hunger: fedHunger,
@@ -255,9 +255,11 @@ export default function PetAndBadgesBackend() {
         level: Math.floor(updatedPet.totalXp / 1000),
         xp: updatedPet.totalXp % 1000,
       });
+
       setInventory(newInventory);
     });
   };
+
 
 
 

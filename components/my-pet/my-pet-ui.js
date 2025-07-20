@@ -85,9 +85,9 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
           contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 5 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => isFeeding ? null : pet.hunger >= 100 ? alertFullness() : useFood(item)}
-              disabled={isFeeding}
-              style={[styles.invCard, isFeeding && { opacity: 0.5 }]}>
+              onPress={() => pet.hunger >= 100 ? alertFullness() : useFood(item)}
+              disabled={isFeeding || pet.hunger >= 100}
+              style={[styles.invCard, (isFeeding || pet.hunger >= 100) && { opacity: 0.5 }]}>
               <FontAwesome5 name={item.icon || 'hamburger'} size={18} color="#f97316" />
               <Text style={styles.invLabel}>{item.label}</Text>
             </TouchableOpacity>

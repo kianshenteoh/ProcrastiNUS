@@ -51,9 +51,7 @@
       }
     },
     "owner": "kianshenteoh",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/f610f733-68e4-40ec-b9e7-2004b8bce9f8"
     }

@@ -21,12 +21,12 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// ✅ Always initialize auth with AsyncStorage
+// Always initialize auth with AsyncStorage
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
-// ✅ Platform-aware Firestore cache
+// Platform-aware Firestore cache
 let db;
 try {
   db = initializeFirestore(app, {
