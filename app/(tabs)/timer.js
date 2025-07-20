@@ -1,7 +1,7 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, increment, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -211,6 +211,19 @@ const recordStudySession = async (durationInMinutes) => {
   await updateDoc(statsRef, {
     weeklyHours: increment(hoursToAdd),
     totalHours: increment(hoursToAdd),
+    lastUpdated: serverTimestamp()
+  }, { merge: true });
+
+  // 3. Update profile cache
+  const profileCacheRef = doc(db, 'users', userId, 'cache', 'profile');
+  const profileCacheSnap = await getDoc(profileCacheRef);
+  
+  const currentStudyHours = profileCacheSnap.exists() 
+    ? profileCacheSnap.data().userData?.studyHours || 0 
+    : 0;
+  
+  await updateDoc(profileCacheRef, {
+    'userData.studyHours': currentStudyHours + hoursToAdd,
     lastUpdated: serverTimestamp()
   }, { merge: true });
 };

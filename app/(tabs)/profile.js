@@ -1,8 +1,8 @@
 import { auth, db } from '@/firebase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useCallback, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
@@ -20,73 +20,71 @@ export default function ProfileScreen() {
     badges: [],
   });
 
-   useEffect(() => {
-    const fetchUserData = async () => {
-      const rawEmail = auth.currentUser?.email;
-      if (!rawEmail) return;
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUserData = async () => {
+        const rawEmail = auth.currentUser?.email;
+        if (!rawEmail) return;
 
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      const profileRef = doc(db, 'users', userId, 'profile', 'data');
-      const sessionsRef = collection(db, 'users', userId, 'StudySessions');
-      const tasksRef = collection(db, 'users', userId, 'tasks');
-      const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
+        const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+        const profileRef = doc(db, 'users', userId, 'profile', 'data');
+        const statsRef = doc(db, 'users', userId, 'stats', 'data');
+        const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+        const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
 
-      try {
-        const cacheSnap = await getDoc(cacheRef);
-        const now = Date.now();
-        const lastUpdated = cacheSnap.exists() && cacheSnap.data().lastUpdated?.toMillis
-          ? cacheSnap.data().lastUpdated.toMillis()
-          : 0;
+        try {
+          const cacheSnap = await getDoc(cacheRef);
+          const now = Date.now();
+          const lastUpdated = cacheSnap.exists() && cacheSnap.data().lastUpdated?.toMillis
+            ? cacheSnap.data().lastUpdated.toMillis()
+            : 0;
 
-        const TEN_MIN = 10 * 60 * 1000;
+          const TEN_MIN = 10 * 60 * 1000;
 
-        if (cacheSnap.exists() && now - lastUpdated < TEN_MIN) {
+          if (cacheSnap.exists() && now - lastUpdated < TEN_MIN) {
+            setUser(prev => ({
+              ...prev,
+              ...cacheSnap.data().userData
+            }));
+            return;
+          }
+
+          const [profileSnap, statsSnap, dailyStatsSnap] = await Promise.all([
+            getDoc(profileRef),
+            getDoc(statsRef),
+            getDoc(dailyStatsRef)
+          ]);
+
+          const name = profileSnap.exists() ? profileSnap.data().name || 'Anonymous' : 'Anonymous';
+          const studyHours = statsSnap.exists() ? statsSnap.data().totalHours || 0 : 0;
+          const tasksCompleted = dailyStatsSnap.exists() ? dailyStatsSnap.data().completed || 0 : 0;
+
+          const updatedUser = {
+            name,
+            studyHours,
+            tasksCompleted
+            // rank comes from cache
+          };
+
           setUser(prev => ({
             ...prev,
-            ...cacheSnap.data().userData
+            ...updatedUser
           }));
-          return;
+
+          const oldData = cacheSnap.data()?.userData || {};
+          if (JSON.stringify(updatedUser) !== JSON.stringify(oldData)) {
+            await setDoc(cacheRef, {
+              userData: updatedUser,
+              lastUpdated: new Date()
+            });
+          }
+
+        } catch (err) {
+          console.error('Error loading profile:', err);
         }
-
-        const [profileSnap, sessionsSnap, tasksSnap] = await Promise.all([
-          getDoc(profileRef),
-          getDocs(sessionsRef),
-          getDocs(tasksRef)
-        ]);
-
-        const name = profileSnap.exists() ? profileSnap.data().name || 'Anonymous' : 'Anonymous';
-        const sessions = sessionsSnap.docs.map(doc => doc.data());
-        const totalMinutes = sessions.reduce((sum, s) => sum + (s.durationInMinutes || 0), 0);
-        const totalHours = (Math.floor(totalMinutes / 30)) * 0.5;
-        const completedTasks = tasksSnap.docs.filter(doc => doc.data().completed).length;
-
-        const updatedUser = {
-          name,
-          studyHours: totalHours,
-          tasksCompleted: completedTasks
-        };
-
-        setUser(prev => ({
-          ...prev,
-          ...updatedUser
-        }));
-
-        // Only write cache if data has changed
-        const oldData = cacheSnap.data()?.userData || {};
-        if (JSON.stringify(updatedUser) !== JSON.stringify(oldData)) {
-          await setDoc(cacheRef, {
-            userData: updatedUser,
-            lastUpdated: new Date()
-          });
-        }
-
-      } catch (err) {
-        console.error('Error loading profile:', err);
-      }
-    };
-
-    fetchUserData();
-  }, []);
+      };
+      fetchUserData();
+    }, []));
 
 
   const showBadge = ({ item }) => (

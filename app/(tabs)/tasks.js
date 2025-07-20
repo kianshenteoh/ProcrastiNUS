@@ -1,11 +1,12 @@
 import { FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { auth, db } from '../../firebase';
+
 
 export default function TasksScreen() {
   const nav = useNavigation();
@@ -72,18 +73,25 @@ export default function TasksScreen() {
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
     const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
 
-    const statsSnap = await getDoc(statsRef);
-    if (!statsSnap.exists()) {
-      await setDoc(statsRef, { created: 0, completed: 0, hasOverdue: false });
+    try {
+      const statsSnap = await getDoc(statsRef);
+      if (!statsSnap.exists()) {
+        await setDoc(statsRef, { 
+          created: 0, 
+          completed: 0, 
+          hasOverdue: false 
+        });
+      }
+
+      const updateObj = {};
+      if (eventType === 'created') updateObj.created = increment(1);
+      if (eventType === 'completed') updateObj.completed = increment(1);
+
+      await updateDoc(statsRef, updateObj);
+    } catch (error) {
+      console.error('Error updating daily stats:', error);
     }
-
-    const updateObj = {};
-    if (eventType === 'created') updateObj.created = increment(1);
-    if (eventType === 'completed') updateObj.completed = increment(1);
-
-    await updateDoc(statsRef, updateObj);
   }
-
   const resetForm = () => {
     setTitle('');
     setPriority('Medium');
@@ -150,31 +158,53 @@ export default function TasksScreen() {
   };
 
   const completeTask = async (id) => {
-  const rawEmail = auth.currentUser?.email;
-  if (!rawEmail) return;
-  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
-  const taskRef = doc(db, 'users', userId, 'tasks', id);
-
-  try {
-    const taskSnap = await getDoc(taskRef);
-    if (!taskSnap.exists()) return;
-
-    const taskData = taskSnap.data();
-    if (taskData.completed) return; 
-    await updateDoc(taskRef, { completed: true });
-
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: true } : t))
-    )
+    const taskRef = doc(db, 'users', userId, 'tasks', id);
     const profileRef = doc(db, 'users', userId, 'profile', 'data');
-    await updateDoc(profileRef, { tasksCompleted: increment(1) });
-    trackTaskEvent('completed');
+    const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
+    const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
 
-  } catch (error) {
-    console.error('Error completing task:', error);
-  }
-};
+    try {
+      // First check if task exists and isn't already completed
+      const taskSnap = await getDoc(taskRef);
+      if (!taskSnap.exists() || taskSnap.data().completed) return;
+
+      // Optimistically update UI
+      setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: true } : t)));
+
+      // Perform all updates in a single batch
+      const batch = writeBatch(db);
+      
+      // Mark task as completed
+      batch.update(taskRef, { completed: true });
+      
+      // Increment tasksCompleted in dailyStats
+      batch.update(dailyStatsRef, { completed: increment(1) });
+      
+      // Update cache with new count
+      const cacheSnap = await getDoc(cacheRef);
+      const prevTasksCompleted = cacheSnap.exists() 
+        ? cacheSnap.data().userData?.tasksCompleted || 0 
+        : 0;
+      batch.set(cacheRef, {
+        userData: {
+          ...(cacheSnap.exists() ? cacheSnap.data().userData || {} : {}),
+          tasksCompleted: prevTasksCompleted + 1
+        },
+        lastUpdated: new Date()
+      });
+
+      await batch.commit();
+      trackTaskEvent('completed');
+    } catch (error) {
+      console.error('Error completing task:', error);
+      // Rollback UI if error occurs
+      setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: false } : t)));
+    }
+  };
 
 
   const groupTasks = () => {
@@ -214,19 +244,51 @@ const renderRightActions = (progress, dragX, task) => {
   );
 };
 
-  const uncompleteTask = async id => {
+  const uncompleteTask = async (id) => {
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return;
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
 
+    const taskRef = doc(db, 'users', userId, 'tasks', id);
+    const profileRef = doc(db, 'users', userId, 'profile', 'data');
+    const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
+    const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+
     try {
-      const ref = doc(db, 'users', userId, 'tasks', id);
-      await updateDoc(ref, { completed: false });
+      // Optimistically update UI
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: false } : task));
+
+      // Perform all updates in a single batch
+      const batch = writeBatch(db);
+      
+      // Mark task as not completed
+      batch.update(taskRef, { completed: false });
+      
+      // Decrement tasksCompleted in dailyStats
+      batch.update(dailyStatsRef, { completed: increment(-1) });
+      
+      // Update cache with new count
+      const cacheSnap = await getDoc(cacheRef);
+      const prevTasksCompleted = cacheSnap.exists() 
+        ? cacheSnap.data().userData?.tasksCompleted || 0 
+        : 0;
+      batch.set(cacheRef, {
+        userData: {
+          ...(cacheSnap.exists() ? cacheSnap.data().userData || {} : {}),
+          tasksCompleted: Math.max(0, prevTasksCompleted - 1) // Ensure it doesn't go negative
+        },
+        lastUpdated: new Date()
+      });
+
+      await batch.commit();
     } catch (error) {
       console.error('Error marking task as incomplete:', error);
+      // Rollback UI if error occurs
+      setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
     }
   };
+
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

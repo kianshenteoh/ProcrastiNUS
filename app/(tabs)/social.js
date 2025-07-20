@@ -32,6 +32,7 @@ export default function SocialScreen() {
         // --- Load friends' pet data (cached internally in your fetchFriendsPets) ---
         const friendsData = await fetchFriendsPets();
         setFriendsPets(friendsData);
+        await updateFriendRanks();
       } catch (err) {
         console.error('Error loading wallet or friends data:', err);
       }
@@ -175,6 +176,68 @@ export default function SocialScreen() {
     } catch (error) {
       console.error('Error adding friend:', error);
       alert('Failed to add friend. Please try again.');
+    }
+  };
+
+  const updateFriendRanks = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+    try {
+      // Get all friends
+      const friendsRef = doc(db, 'users', userId, 'friends', 'list');
+      const friendsSnap = await getDoc(friendsRef);
+      if (!friendsSnap.exists()) return;
+
+      const friendIds = Object.keys(friendsSnap.data());
+      if (friendIds.length === 0) return;
+
+      // Get study hours for all friends (including current user)
+      const statsPromises = [
+        getDoc(doc(db, 'users', userId, 'stats', 'data')),
+        ...friendIds.map(fid => getDoc(doc(db, 'users', fid, 'stats', 'data')))
+      ];
+
+      const statsSnaps = await Promise.all(statsPromises);
+      
+      // Create array with user data and timestamps
+      const usersData = statsSnaps.map((snap, index) => {
+        const id = index === 0 ? userId : friendIds[index - 1];
+        const data = snap.exists() ? snap.data() : { totalHours: 0 };
+        return {
+          id,
+          hours: data.totalHours || 0,
+          lastUpdated: data.lastUpdated?.toMillis?.() || 0
+        };
+      });
+
+      // Sort by hours (descending) then by lastUpdated (ascending - later updates rank higher)
+      usersData.sort((a, b) => {
+        if (b.hours !== a.hours) return b.hours - a.hours;
+        return a.lastUpdated - b.lastUpdated;
+      });
+
+      // Update ranks in cache
+      const cacheRef = doc(db, 'users', userId, 'friends', 'ranksCache');
+      await setDoc(cacheRef, {
+        ranks: usersData,
+        lastUpdated: new Date()
+      });
+
+      // Update each user's rank in their profile cache
+      await Promise.all(usersData.map(async (user, index) => {
+        const rank = index + 1;
+        const userCacheRef = doc(db, 'users', user.id, 'cache', 'profile');
+        await setDoc(userCacheRef, {
+          userData: {
+            rank: rank
+          }
+        }, { merge: true });
+      }));
+
+    } catch (error) {
+      console.error('Error updating ranks:', error);
     }
   };
 
