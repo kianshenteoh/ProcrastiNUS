@@ -22,20 +22,6 @@ export default function PetAndBadgesBackend() {
 
   const rawEmail = auth.currentUser?.email;
 
-  // Always set userId in a hook
-  useEffect(() => {
-    if (rawEmail) {
-      setUserId(rawEmail.replace(/[.#$/[\]]/g, '_'));
-    } else {
-      setUserId(null);
-    }
-  }, [rawEmail]);
-
-  // Update ref whenever pet state changes
-  useEffect(() => {
-    petRef.current = pet;
-  }, [pet]);
-
   // Firestore refs (safe)
   const petDocRef = userId ? doc(db, 'users', userId, 'pet', 'data') : null;
   const walletRef = userId ? doc(db, 'users', userId, 'wallet', 'data') : null;
@@ -43,12 +29,20 @@ export default function PetAndBadgesBackend() {
   const profileRef = userId ? doc(db, 'users', userId, 'profile', 'data') : null;
 
   useEffect(() => {
-    if (!userId || !petDocRef || !walletRef || !inventoryRef || !profileRef) return;
+    if (!rawEmail) return;
+
+    const resolvedUserId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    setUserId(resolvedUserId);
+    petRef.current = pet;
+
+    const petDocRef = doc(db, 'users', resolvedUserId, 'pet', 'data');
+    const walletRef = doc(db, 'users', resolvedUserId, 'wallet', 'data');
+    const inventoryRef = doc(db, 'users', resolvedUserId, 'inventory', 'data');
+    const profileRef = doc(db, 'users', resolvedUserId, 'profile', 'data');
 
     async function fetchOrCreatePet() {
       try {
-        // Try to get cached data first
-        const cached = await AsyncStorage.getItem(`petData_${userId}`);
+        const cached = await AsyncStorage.getItem(`petData_${resolvedUserId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
           setPet(parsed.pet);
@@ -65,10 +59,9 @@ export default function PetAndBadgesBackend() {
         ]);
 
         let finalPet;
-        // PET
         if (!petSnap.exists()) {
           const newPet = {
-            ownerId: userId,
+            ownerId: resolvedUserId,
             ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
             name: 'Danny',
             hunger: 100,
@@ -80,12 +73,7 @@ export default function PetAndBadgesBackend() {
           finalPet = { ...newPet, level: 1, xp: 0, xpToNext: 1000 };
         } else {
           const petData = petSnap.data();
-          const { updatedPet } = computePetStats(
-            petData,
-            HUNGER_THRESHOLD,
-            XP_GAIN_RATE,
-            HUNGER_DROP_RATE
-          );
+          const { updatedPet } = computePetStats(petData, HUNGER_THRESHOLD, XP_GAIN_RATE, HUNGER_DROP_RATE);
           finalPet = {
             ...updatedPet,
             level: Math.floor(updatedPet.totalXp / 1000),
@@ -94,7 +82,6 @@ export default function PetAndBadgesBackend() {
           };
         }
 
-        // WALLET
         let finalWallet;
         if (!walletSnap.exists()) {
           finalWallet = { coins: 10000 };
@@ -104,7 +91,6 @@ export default function PetAndBadgesBackend() {
           finalWallet = walletData?.coins === undefined ? { coins: 0 } : walletData;
         }
 
-        // INVENTORY
         let finalInventory;
         if (!inventorySnap.exists()) {
           finalInventory = [];
@@ -113,28 +99,25 @@ export default function PetAndBadgesBackend() {
           finalInventory = inventorySnap.data().items || [];
         }
 
-        // Set states
         setPet(finalPet);
         setWallet(finalWallet);
         setInventory(finalInventory);
         setLoading(false);
 
-        // Cache result
-        await AsyncStorage.setItem(
-          `petData_${userId}`,
-          JSON.stringify({
-            pet: finalPet,
-            wallet: finalWallet,
-            inventory: finalInventory,
-            timestamp: Date.now()
-          })
-        );
+        await AsyncStorage.setItem(`petData_${resolvedUserId}`, JSON.stringify({
+          pet: finalPet,
+          wallet: finalWallet,
+          inventory: finalInventory,
+          timestamp: Date.now()
+        }));
       } catch (err) {
         console.error('Error fetching pet data:', err);
       }
     }
+
     fetchOrCreatePet();
-  }, [userId, petDocRef, walletRef, inventoryRef]);
+  }, [rawEmail, pet]);
+
 
   useEffect(() => {
     if (!petDocRef || !userId) return;
@@ -241,15 +224,22 @@ export default function PetAndBadgesBackend() {
         true
       );
 
-      const fedHunger = Math.min(updatedPet.hunger + food.hunger, 100);
-      const newLastUpdated = Date.now();
+      const currentHunger = updatedPet.hunger;
+      const fedHunger = Math.min(currentHunger + food.hunger, 100);
 
-      const newInventory = [...inventory];
-      const index = newInventory.findIndex(f => f.id === food.id);
-      if (index > -1) {
-        newInventory.splice(index, 1);
+      if (currentHunger >= 100) {
+        console.log("Pet is already full.");
+        return;
       }
 
+      const newLastUpdated = Date.now();
+
+      // Remove one food item
+      const newInventory = [...inventory];
+      const index = newInventory.findIndex(f => f.id === food.id);
+      if (index > -1) newInventory.splice(index, 1);
+
+      // Write to Firestore
       await updateDoc(petDocRef, {
         hunger: fedHunger,
         totalXp: updatedPet.totalXp,
@@ -257,6 +247,7 @@ export default function PetAndBadgesBackend() {
       });
       await updateDoc(inventoryRef, { items: newInventory });
 
+      // Update local state
       setPet({
         ...updatedPet,
         hunger: fedHunger,
@@ -265,14 +256,9 @@ export default function PetAndBadgesBackend() {
         xp: updatedPet.totalXp % 1000,
       });
       setInventory(newInventory);
-
-      const rawEmail = auth.currentUser?.email;
-      if (rawEmail) {
-        const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-        await AsyncStorage.removeItem(`petData_${userId}`);
-      }
     });
   };
+
 
 
   //Remove for final deployment
