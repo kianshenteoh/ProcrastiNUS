@@ -3,7 +3,7 @@ import { auth, db } from '@/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { computePetStats } from '../components/my-pet/my-pet-backend';
@@ -27,75 +27,91 @@ export default function ViewPetScreen() {
   ];
 
 
-const loadData = async () => {
-  setLoading(true);
-  const rawEmail = auth.currentUser?.email;
-  if (!rawEmail || !friendId) return;
+  const loadData = async () => {
+    setLoading(true);
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail || !friendId) return;
+    const userId   = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const cacheKey = `viewPetCache-${friendId}`;
+    const now      = Date.now();
 
-  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-  const cacheKey = `viewPetCache-${friendId}`;
-  const now = Date.now();
+    // ── Move these up so refs exist even on cache‐hit ──
+    walletRef.current    = doc(db, 'users', userId,   'wallet',    'data');
+    inventoryRef.current = doc(db, 'users', userId,   'inventory', 'data');
+    petRef.current       = doc(db, 'users', friendId, 'pet',       'data');
 
-  try {
-    // Try to load from cache
-    const cached = await AsyncStorage.getItem(cacheKey);
-    if (cached) {
-      const { timestamp, pet, wallet, inventory } = JSON.parse(cached);
-      // Use cache if it's less than 5 minutes old
-      if (now - timestamp < 5 * 60 * 1000) {
-        setPet(pet);
-        setWallet(wallet);
-        setInventory(inventory);
-        setLoading(false);
-        return;
+    try {
+      // 1) Try 5-min AsyncStorage cache
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) {
+        const { timestamp, pet, wallet, inventory } = JSON.parse(cached);
+        if (now - timestamp < 5 * 60 * 1000) {
+          setPet(pet);
+          setWallet(wallet);
+          setInventory(inventory);
+          setLoading(false);
+          return;
+        }
       }
-    }
 
-    // Refs
-    walletRef.current = doc(db, 'users', userId, 'wallet', 'data');
-    inventoryRef.current = doc(db, 'users', userId, 'inventory', 'data');
-    petRef.current = doc(db, 'users', friendId, 'pet', 'data');
+      // 2) Cache miss → fetch fresh from Firestore
+      const [petSnap, walletSnap, invSnap] = await Promise.all([
+        getDoc(petRef.current),
+        getDoc(walletRef.current),
+        getDoc(inventoryRef.current),
+      ]);
 
-    // Fresh fetch
-    const [petSnap, walletSnap, invSnap] = await Promise.all([
-      getDoc(petRef.current),
-      getDoc(walletRef.current),
-      getDoc(inventoryRef.current),
-    ]);
-
-    let petObj = null;
-    if (petSnap.exists()) {
-      const data = petSnap.data();
-      const { updatedPet } = computePetStats(data, 30, 20, 2);
-      petObj = {
-        ...updatedPet,
-        level: Math.floor(updatedPet.totalXp / 1000),
-        xp: updatedPet.totalXp % 1000,
-        xpToNext: 1000,
-      };
+      // 3) Build petObj (handles missing docs safely)
+      let petObj;
+      if (petSnap.exists()) {
+        const data = petSnap.data();
+        const { updatedPet } = computePetStats(data, 30, 20, 2);
+        petObj = {
+          ...updatedPet,
+          level:    Math.floor(updatedPet.totalXp / 1000),
+          xp:       updatedPet.totalXp % 1000,
+          xpToNext: 1000,
+        };
+      } else {
+        console.warn(`No pet for friendId=${friendId}`);
+        petObj = {
+          ownerId:     friendId,
+          ownerName:   'Unknown',
+          hunger:      0,
+          totalXp:     0,
+          lastUpdated: now,
+          image:       0,
+          level:       0,
+          xp:          0,
+          xpToNext:    1000,
+        };
+      }
       setPet(petObj);
+
+      // 4) Wallet & inventory
+      const walletData    = walletSnap.exists() ? walletSnap.data() : { coins: 0 };
+      const inventoryData = invSnap.exists()   ? invSnap.data().items || [] : [];
+      setWallet(walletData);
+      setInventory(inventoryData);
+
+      // 5) Save back to cache
+      await AsyncStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          timestamp: now,
+          pet:       petObj,
+          wallet:    walletData,
+          inventory: inventoryData,
+        })
+      );
+    } catch (err) {
+      console.error('Error loading pet data:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0 };
-    const inventoryData = invSnap.exists() ? invSnap.data().items || [] : [];
 
-    setWallet(walletData);
-    setInventory(inventoryData);
-
-    // Save to cache
-    await AsyncStorage.setItem(cacheKey, JSON.stringify({
-      timestamp: now,
-      pet: petObj,
-      wallet: walletData,
-      inventory: inventoryData,
-    }));
-
-  } catch (err) {
-    console.error('Error loading pet data:', err);
-  }
-
-  setLoading(false);
-};
 
 
   useEffect(() => {
@@ -141,22 +157,59 @@ const loadData = async () => {
     };
 
     const useFood = async (food) => {
-    if (!pet) return;
+      try {
+        // 0. Ensure refs and data are available
+        if (!pet || !petRef.current || !inventoryRef.current) {
+          console.warn('useFood: missing pet or refs', {
+            pet,
+            petRef: petRef.current,
+            inventoryRef: inventoryRef.current,
+          });
+          return;
+        }
 
-    const updatedPet = { ...pet, hunger: Math.min(100, pet.hunger + food.hunger) };
+        // 1. Compute new hunger and updated inventory
+        const newHunger = Math.min(100, pet.hunger + food.hunger);
+        const updatedPet = { ...pet, hunger: newHunger };
+        const idx = inventory.findIndex(i => i.id === food.id);
+        if (idx < 0) {
+          console.warn('useFood: food item not in inventory', food, inventory);
+          return;
+        }
+        const updatedInventory = [...inventory];
+        updatedInventory.splice(idx, 1);
 
-    // remove one instance of that food
-    const index = inventory.findIndex(f => f.id === food.id);
-    if (index === -1) return;
+        // 2. Write changes to your pet document and inventory
+        await updateDoc(petRef.current, { hunger: newHunger });
+        await setDoc(inventoryRef.current, { items: updatedInventory });
 
-    const updatedInventory = [...inventory];
-    updatedInventory.splice(index, 1);
+        // 3. Patch the friends’ cache in place
+        const rawEmail = auth.currentUser?.email;
+        if (rawEmail) {
+          const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+          const cacheRef = doc(db, 'users', userId, 'friends', 'petsCache');
+          const cacheSnap = await getDoc(cacheRef);
+          if (cacheSnap.exists()) {
+            const { pets } = cacheSnap.data();
+            const patched = pets.map(p =>
+              p.ownerId === friendId
+                ? { ...p, hunger: newHunger }
+                : p
+            );
+            await setDoc(
+              cacheRef,
+              { pets: patched, lastUpdated: serverTimestamp() },
+              { merge: true }
+            );
+          }
+        }
 
-    await updateDoc(petRef.current, { hunger: updatedPet.hunger });
-    await setDoc(inventoryRef.current, { items: updatedInventory });
-
-    setPet(updatedPet);
-    setInventory(updatedInventory);
+        // 4. Update local state so the UI reflects the change immediately
+        setPet(updatedPet);
+        setInventory(updatedInventory);
+      } catch (err) {
+        console.error('useFood error:', err);
+      }
     };
 
 
