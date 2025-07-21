@@ -1,9 +1,10 @@
 import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
 import { computePetStats } from '../../components/my-pet/my-pet-backend';
@@ -41,9 +42,19 @@ export default function SocialScreen() {
     loadData();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      const refreshFriendsPets = async () => {
+        const data = await fetchFriendsPets();
+        setFriendsPets(data);
+      };
+      refreshFriendsPets();
+    }, [])
+  );
+
   const [friendsPets, setFriendsPets] = useState([]);
 
-  const fetchFriendsPets = async () => {
+  const fetchFriendsPets = async (shouldBypassCache = false) => {
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return [];
 
@@ -58,8 +69,7 @@ export default function SocialScreen() {
         const lastUpdated = cachedData.lastUpdated?.toMillis?.() || 0;
         const now = Date.now();
 
-        // Use cache if it's less than 15 minutes old
-        if (now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
+        if (!shouldBypassCache && now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
           console.log("Using cached pets data");
           return cachedData.pets;
         }

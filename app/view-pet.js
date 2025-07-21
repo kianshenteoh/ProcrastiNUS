@@ -3,7 +3,7 @@ import { auth, db } from '@/firebase';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { computePetStats } from '../components/my-pet/my-pet-backend';
@@ -158,7 +158,6 @@ export default function ViewPetScreen() {
 
     const useFood = async (food) => {
       try {
-        // 0. Ensure refs and data are available
         if (!pet || !petRef.current || !inventoryRef.current) {
           console.warn('useFood: missing pet or refs', {
             pet,
@@ -168,22 +167,27 @@ export default function ViewPetScreen() {
           return;
         }
 
-        // 1. Compute new hunger and updated inventory
         const newHunger = Math.min(100, pet.hunger + food.hunger);
-        const updatedPet = { ...pet, hunger: newHunger };
+        const now = Date.now();
+        const updatedPet = { ...pet, hunger: newHunger, lastUpdated: now };
+
         const idx = inventory.findIndex(i => i.id === food.id);
         if (idx < 0) {
           console.warn('useFood: food item not in inventory', food, inventory);
           return;
         }
+
         const updatedInventory = [...inventory];
         updatedInventory.splice(idx, 1);
 
-        // 2. Write changes to your pet document and inventory
-        await updateDoc(petRef.current, { hunger: newHunger });
+        // 🔥 FIX: Persist both hunger and lastUpdated
+        await updateDoc(petRef.current, {
+          hunger: newHunger,
+          lastUpdated: now,
+        });
+
         await setDoc(inventoryRef.current, { items: updatedInventory });
 
-        // 3. Patch the friends’ cache in place
         const rawEmail = auth.currentUser?.email;
         if (rawEmail) {
           const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
@@ -193,24 +197,29 @@ export default function ViewPetScreen() {
             const { pets } = cacheSnap.data();
             const patched = pets.map(p =>
               p.ownerId === friendId
-                ? { ...p, hunger: newHunger }
+                ? { ...p, hunger: newHunger, lastUpdated: now }
                 : p
             );
             await setDoc(
               cacheRef,
-              { pets: patched, lastUpdated: serverTimestamp() },
+              { pets: patched, lastUpdated: new Date() },
               { merge: true }
             );
           }
         }
 
-        // 4. Update local state so the UI reflects the change immediately
+        // Clear stale AsyncStorage
+        await AsyncStorage.removeItem(`viewPetCache-${friendId}`);
+
+        // Update local state
         setPet(updatedPet);
         setInventory(updatedInventory);
       } catch (err) {
         console.error('useFood error:', err);
       }
     };
+
+
 
 
   if (loading || !pet) {
