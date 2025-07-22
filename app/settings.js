@@ -18,7 +18,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [syncWithCalendar, setSyncWithCalendar] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -62,11 +61,6 @@ export default function SettingsScreen() {
           onValueChange={setNotificationsEnabled}
         />
       </View>
-      <View style={styles.row}>
-        <Text style={styles.label}>Sync with Calendar</Text>
-        <Switch value={syncWithCalendar} onValueChange={setSyncWithCalendar} />
-      </View>
-
       <Pressable
         style={styles.button}
         onPress={() => router.push("/focus-settings")}

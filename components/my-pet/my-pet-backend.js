@@ -37,11 +37,23 @@ export default function PetAndBadgesBackend() {
         const cached = await AsyncStorage.getItem(`petData_${userId}`);
         if (cached) {
           const parsed = JSON.parse(cached);
-          setPet(parsed.pet);
+          const { updatedPet } = computePetStats(
+            parsed.pet,
+            HUNGER_THRESHOLD,
+            XP_GAIN_RATE,
+            HUNGER_DROP_RATE
+          );
+          setPet({
+            ...updatedPet,
+            level: Math.floor(updatedPet.totalXp / 1000),
+            xp: updatedPet.totalXp % 1000,
+            xpToNext: 1000,
+          });
           setWallet(parsed.wallet);
           setInventory(parsed.inventory);
           setLoading(false);
         }
+
 
         const [petSnap, walletSnap, inventorySnap, profileSnap] = await Promise.all([
           getDoc(petDocRef),

@@ -1,9 +1,10 @@
 import { auth, db } from '@/firebase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ProfileScreen() {
   const nav = useNavigation();
@@ -19,6 +20,10 @@ export default function ProfileScreen() {
     rank: 2,
     badges: [],
   });
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newAvatar, setNewAvatar] = useState('');
+  const [nameErrorm, setnameError] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -95,32 +100,131 @@ export default function ProfileScreen() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
-        <Pressable style={styles.settingsBtn} onPress={() => nav.navigate('settings')}>
-          <Ionicons name="settings-sharp" size={24} color="#555" />
-        </Pressable>
-      </View>
+    <View style={{flex: 1}}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <Pressable style={styles.settingsBtn} onPress={() => nav.navigate('settings')}>
+            <Ionicons name="settings-sharp" size={24} color="#555" />
+          </Pressable>
+        </View>
 
-      <View style={styles.topSection}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        <Text style={styles.displayName}>{user.name}</Text>
-      </View>
+        <View style={styles.topSection}>
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <Text style={styles.displayName}>{user.name}</Text>
+        </View>
 
-      <View style={styles.statsRow}>
-        <Stat label="Study hrs" value={user.studyHours} icon="clock" />
-        <Stat label="Tasks" value={user.tasksCompleted} icon="tasks" />
-        <Stat label="Rank" value={`#${user.rank}`} icon="trophy" />
-      </View>
+        <View style={styles.statsRow}>
+          <Stat label="Study hrs" value={user.studyHours} icon="clock" />
+          <Stat label="Tasks" value={user.tasksCompleted} icon="tasks" />
+          <Stat label="Rank" value={`#${user.rank}`} icon="trophy" />
+        </View>
 
 
-      <View style={styles.actionColumn}>
-        <QuickBtn label="Edit Profile" icon="user-edit" onPress={() => nav.navigate('editProfile')} />
-        <QuickBtn label="Progress Chart" icon="chart-line" onPress={() => nav.navigate('progress')} />
-        <QuickBtn label="Focus Settings" icon="eye-slash" onPress={() => nav.navigate('focusMode')} />
-      </View>
-    </ScrollView>
+        <View style={styles.actionColumn}>
+          <QuickBtn label="Edit Profile" icon="user-edit" onPress={() => { setNewName(user.name); setNewAvatar(user.avatar); setEditModalVisible(true);}} />
+          <QuickBtn label="Progress Chart" icon="chart-line" onPress={() => nav.navigate('progress')} />
+          <QuickBtn label="Focus Settings" icon="eye-slash" onPress={() => nav.navigate('focusMode')} />
+        </View>
+      </ScrollView>
+
+      <Modal visible={editModalVisible} transparent animationType="slide">
+        <View style={{
+          flex: 1, justifyContent: 'center', alignItems: 'center',
+          backgroundColor: 'rgba(0,0,0,0.5)'
+        }}>
+          <View style={{
+            backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%'
+          }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Edit Profile</Text>
+
+            <TextInput
+              placeholder="Enter new name"
+              value={newName}
+              onChangeText={setNewName}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 10 }}
+            />
+
+            <Pressable
+              onPress={async () => {
+                const choice = await new Promise((resolve) =>
+                  Alert.alert(
+                    'Change Profile Picture',
+                    'Choose a method',
+                    [
+                      { text: 'Camera', onPress: () => resolve('camera') },
+                      { text: 'Gallery', onPress: () => resolve('gallery') },
+                      { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) }
+                    ]
+                  )
+                );
+
+                let result;
+                if (choice === 'camera') {
+                  const perm = await ImagePicker.requestCameraPermissionsAsync();
+                  if (!perm.granted) return;
+                  result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                } else if (choice === 'gallery') {
+                  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                  if (!perm.granted) return;
+                  result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                }
+
+                if (!result?.canceled && result.assets?.[0]?.uri) {
+                  setNewAvatar(result.assets[0].uri);
+                }
+              }}
+            >
+              <Image
+                source={{ uri: newAvatar }}
+                style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 10 }}
+              />
+            </Pressable>
+
+
+            <Pressable
+              style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, marginBottom: 6 }}
+              onPress={async () => {
+                const rawEmail = auth.currentUser?.email;
+                if (!rawEmail) return;
+                const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+                const profileRef = doc(db, 'users', userId, 'profile', 'data');
+
+                try {
+                  const allUsersSnap = await getDoc(doc(db, 'usernames', 'index'));
+                  const nameTaken =
+                    allUsersSnap.exists() &&
+                    Object.values(allUsersSnap.data()).some(
+                      v => v.toLowerCase() === newName.trim().toLowerCase() && v !== user.name
+                    );
+
+                  if (nameTaken) {
+                    setNameError('Name is already taken');
+                    return;
+                  } else {
+                    setNameError('');
+                  }
+
+                  await setDoc(profileRef, { name: newName, avatar: newAvatar }, { merge: true });
+
+                  setUser(prev => ({ ...prev, name: newName, avatar: newAvatar }));
+                  setEditModalVisible(false);
+                } catch (err) {
+                  Alert.alert('Error', 'Failed to update profile');
+                }
+              }}
+            >
+              <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Save</Text>
+            </Pressable>
+
+
+            <Pressable onPress={() => setEditModalVisible(false)}>
+              <Text style={{ color: '#888', textAlign: 'center' }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
