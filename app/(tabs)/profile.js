@@ -1,17 +1,18 @@
 import { auth, db } from '@/firebase';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collectionGroup, doc, getDoc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { useCallback, useState } from 'react';
 import { Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function ProfileScreen() {
   const nav = useNavigation();
+  const route = useRoute();
 
   const [user, setUser] = useState({
     name: '',
-    avatar: 'https://i.natgeofe.com/n/548467d8-c5f1-4551-9f58-6817a8d2c45e/NationalGeographic_2572187_16x9.jpg?w=1200',
+    avatar: 'https://i.pinimg.com/474x/e6/e4/df/e6e4df26ba752161b9fc6a17321fa286.jpg',
     level: 0,
     xp: 0,
     xpToNext: 1000,
@@ -23,7 +24,8 @@ export default function ProfileScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [newName, setNewName] = useState('');
   const [newAvatar, setNewAvatar] = useState('');
-  const [nameErrorm, setnameError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -34,73 +36,39 @@ export default function ProfileScreen() {
         const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
         const profileRef = doc(db, 'users', userId, 'profile', 'data');
         const statsRef = doc(db, 'users', userId, 'stats', 'data');
-        const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
-        const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
 
         try {
-          const cacheSnap = await getDoc(cacheRef);
-          const now = Date.now();
-          const lastUpdated = cacheSnap.exists() && cacheSnap.data().lastUpdated?.toMillis
-            ? cacheSnap.data().lastUpdated.toMillis()
-            : 0;
-
-          const TEN_MIN = 10 * 60 * 1000;
-
-          if (cacheSnap.exists() && now - lastUpdated < TEN_MIN) {
-            setUser(prev => ({
-              ...prev,
-              ...cacheSnap.data().userData
-            }));
-            return;
-          }
-
-          const [profileSnap, statsSnap, dailyStatsSnap] = await Promise.all([
+          const [profileSnap, statsSnap] = await Promise.all([
             getDoc(profileRef),
             getDoc(statsRef),
-            getDoc(dailyStatsRef)
           ]);
 
-          const name = profileSnap.exists() ? profileSnap.data().name || 'Anonymous' : 'Anonymous';
-          const studyHours = statsSnap.exists() ? statsSnap.data().totalHours || 0 : 0;
-          const tasksCompleted = dailyStatsSnap.exists() ? dailyStatsSnap.data().completed || 0 : 0;
-
-          const updatedUser = {
-            name,
-            studyHours,
-            tasksCompleted
-            // rank comes from cache
-          };
+          const profileData = profileSnap.exists() ? profileSnap.data() : {};
+          const statsData = statsSnap.exists() ? statsSnap.data() : {};
 
           setUser(prev => ({
             ...prev,
-            ...updatedUser
+            name: profileData.name || 'Anonymous',
+            avatar: profileData.avatar || prev.avatar,
+            studyHours: profileData.studyHours || 0,
+            tasksCompleted: profileData.tasksCompleted || 0,
           }));
-
-          const oldData = cacheSnap.data()?.userData || {};
-          if (JSON.stringify(updatedUser) !== JSON.stringify(oldData)) {
-            await setDoc(cacheRef, {
-              userData: updatedUser,
-              lastUpdated: new Date()
-            });
-          }
-
         } catch (err) {
           console.error('Error loading profile:', err);
         }
       };
+
       fetchUserData();
-    }, []));
-
-
-  const showBadge = ({ item }) => (
-    <View style={styles.badgeWrapper}>
-      <FontAwesome5 name={item.icon} size={24} color="#f4b400" />
-      <Text style={styles.badgeLabel}>{item.label}</Text>
-    </View>
+      
+      // Clear refresh param if it exists
+      if (route.params?.refresh) {
+        nav.setParams({ refresh: undefined });
+      }
+    }, [route.params?.refresh]) // Only re-run when refresh param changes
   );
 
   return (
-    <View style={{flex: 1}}>
+    <View style={{ flex: 1 }}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
@@ -120,67 +88,43 @@ export default function ProfileScreen() {
           <Stat label="Rank" value={`#${user.rank}`} icon="trophy" />
         </View>
 
-
         <View style={styles.actionColumn}>
-          <QuickBtn label="Edit Profile" icon="user-edit" onPress={() => { setNewName(user.name); setNewAvatar(user.avatar); setEditModalVisible(true);}} />
+          <QuickBtn
+            label="Edit Profile"
+            icon="user-edit"
+            onPress={() => {
+              setNewName(user.name);
+              setNewAvatar(user.avatar);
+              setEditModalVisible(true);
+            }}
+          />
           <QuickBtn label="Progress Chart" icon="chart-line" onPress={() => nav.navigate('progress')} />
           <QuickBtn label="Focus Settings" icon="eye-slash" onPress={() => nav.navigate('focusMode')} />
         </View>
       </ScrollView>
 
+      {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} transparent animationType="slide">
-        <View style={{
-          flex: 1, justifyContent: 'center', alignItems: 'center',
-          backgroundColor: 'rgba(0,0,0,0.5)'
-        }}>
-          <View style={{
-            backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%'
-          }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <View style={{ backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' }}>
             <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Edit Profile</Text>
 
-            <TextInput
-              placeholder="Enter new name"
-              value={newName}
-              onChangeText={setNewName}
-              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 10 }}
-            />
-
-            <Pressable
-              onPress={async () => {
-                const choice = await new Promise((resolve) =>
-                  Alert.alert(
-                    'Change Profile Picture',
-                    'Choose a method',
-                    [
-                      { text: 'Camera', onPress: () => resolve('camera') },
-                      { text: 'Gallery', onPress: () => resolve('gallery') },
-                      { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) }
-                    ]
-                  )
-                );
-
-                let result;
-                if (choice === 'camera') {
-                  const perm = await ImagePicker.requestCameraPermissionsAsync();
-                  if (!perm.granted) return;
-                  result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
-                } else if (choice === 'gallery') {
-                  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                  if (!perm.granted) return;
-                  result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
-                }
-
-                if (!result?.canceled && result.assets?.[0]?.uri) {
-                  setNewAvatar(result.assets[0].uri);
-                }
-              }}
-            >
+            <Pressable onPress={() => setPickerVisible(true)}>
               <Image
                 source={{ uri: newAvatar }}
                 style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 10 }}
               />
             </Pressable>
 
+            <TextInput
+              placeholder="Enter new name"
+              value={newName}
+              onChangeText={setNewName}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 6 }}
+            />
+            {nameError ? (
+              <Text style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{nameError}</Text>
+            ) : null}
 
             <Pressable
               style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, marginBottom: 6 }}
@@ -189,27 +133,44 @@ export default function ProfileScreen() {
                 if (!rawEmail) return;
                 const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
                 const profileRef = doc(db, 'users', userId, 'profile', 'data');
+                const usernameIndexRef = doc(db, 'usernames', 'index');
+
+                const trimmedName = newName.trim();
+                const lowerName = trimmedName.toLowerCase();
 
                 try {
-                  const allUsersSnap = await getDoc(doc(db, 'usernames', 'index'));
-                  const nameTaken =
-                    allUsersSnap.exists() &&
-                    Object.values(allUsersSnap.data()).some(
-                      v => v.toLowerCase() === newName.trim().toLowerCase() && v !== user.name
-                    );
-
-                  if (nameTaken) {
-                    setNameError('Name is already taken');
+                  if (trimmedName === user.name && newAvatar === user.avatar) {
+                    setEditModalVisible(false);
                     return;
-                  } else {
-                    setNameError('');
                   }
 
-                  await setDoc(profileRef, { name: newName, avatar: newAvatar }, { merge: true });
+                  const nameQuery = query(
+                    collectionGroup(db, 'profile'),
+                    where('name', '==', trimmedName)
+                  );
+                  const results = await getDocs(nameQuery);
 
-                  setUser(prev => ({ ...prev, name: newName, avatar: newAvatar }));
+                  const isTaken = results.docs.some(doc => doc.ref.path !== `users/${userId}/profile/data`);
+
+                  if (isTaken) {
+                    setNameError('Username already taken');
+                    return;
+                  }
+
+                  const updates = {};
+                  if (trimmedName !== user.name) updates.name = trimmedName;
+                  if (newAvatar !== user.avatar) updates.avatar = newAvatar;
+
+                  if (Object.keys(updates).length > 0) {
+                    await setDoc(profileRef, updates, { merge: true });
+                    await setDoc(usernameIndexRef, { [userId]: lowerName }, { merge: true });
+                  }
+
+                  setUser(prev => ({ ...prev, ...updates }));
+                  setNameError('');
                   setEditModalVisible(false);
                 } catch (err) {
+                  console.error('Failed to update profile:', err);
                   Alert.alert('Error', 'Failed to update profile');
                 }
               }}
@@ -217,9 +178,53 @@ export default function ProfileScreen() {
               <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Save</Text>
             </Pressable>
 
-
             <Pressable onPress={() => setEditModalVisible(false)}>
               <Text style={{ color: '#888', textAlign: 'center' }}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Image Picker Modal */}
+      <Modal visible={pickerVisible} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Change Profile Picture</Text>
+
+            <Pressable
+              onPress={async () => {
+                const perm = await ImagePicker.requestCameraPermissionsAsync();
+                if (!perm.granted) return;
+                const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                if (!result.canceled && result.assets?.[0]?.uri) {
+                  setNewAvatar(result.assets[0].uri);
+                }
+                setPickerVisible(false);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+            >
+              <FontAwesome5 name="camera" size={18} color="#0ea5e9" style={{ marginRight: 12 }} />
+              <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: '600' }}>Camera</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={async () => {
+                const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (!perm.granted) return;
+                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                if (!result.canceled && result.assets?.[0]?.uri) {
+                  setNewAvatar(result.assets[0].uri);
+                }
+                setPickerVisible(false);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+            >
+              <FontAwesome5 name="images" size={18} color="#0ea5e9" style={{ marginRight: 12 }} />
+              <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: '600' }}>Choose from Gallery</Text>
+            </Pressable>
+
+            <Pressable onPress={() => setPickerVisible(false)} style={{ marginTop: 16 }}>
+              <Text style={{ color: '#888', fontWeight: '600' }}>Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -251,34 +256,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa', paddingTop: 20 },
   content: { padding: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  headerTitle: { fontSize: 28, fontWeight: '700'},
+  headerTitle: { fontSize: 28, fontWeight: '700' },
   settingsBtn: { padding: 6 },
   topSection: { alignItems: 'center', marginBottom: 24 },
   avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 12 },
   displayName: { fontSize: 24, fontWeight: '600' },
-  levelCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
-    elevation: 2,
-    marginBottom: 24,
-  },
-  levelText: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  xpBarBg: { height: 10, backgroundColor: '#e0e0e0', borderRadius: 5, overflow: 'hidden' },
-  xpBarFill: { height: 10, backgroundColor: '#4b7bec' },
-  xpLabel: { marginTop: 6, fontSize: 12, color: '#555' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   statBox: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: '700', marginVertical: 4 },
   statLabel: { fontSize: 12, color: '#666' },
-  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
-  badgeRow: { justifyContent: 'space-between' },
-  badgeWrapper: { flex: 1, alignItems: 'center', marginBottom: 16 },
-  badgeLabel: { marginTop: 4, fontSize: 11, textAlign: 'center' },
   actionColumn: { flexDirection: 'column', marginTop: 32, marginBottom: 40, gap: 12 },
   actionChip: {
     flexDirection: 'row',

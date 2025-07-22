@@ -164,8 +164,6 @@ export default function TasksScreen() {
 
     const taskRef = doc(db, 'users', userId, 'tasks', id);
     const profileRef = doc(db, 'users', userId, 'profile', 'data');
-    const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
-    const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
 
     try {
       // First check if task exists and isn't already completed
@@ -181,21 +179,8 @@ export default function TasksScreen() {
       // Mark task as completed
       batch.update(taskRef, { completed: true });
       
-      // Increment tasksCompleted in dailyStats
-      batch.update(dailyStatsRef, { completed: increment(1) });
-      
-      // Update cache with new count
-      const cacheSnap = await getDoc(cacheRef);
-      const prevTasksCompleted = cacheSnap.exists() 
-        ? cacheSnap.data().userData?.tasksCompleted || 0 
-        : 0;
-      batch.set(cacheRef, {
-        userData: {
-          ...(cacheSnap.exists() ? cacheSnap.data().userData || {} : {}),
-          tasksCompleted: prevTasksCompleted + 1
-        },
-        lastUpdated: new Date()
-      });
+      batch.update(profileRef, { tasksCompleted: increment(1) });
+    
 
       await batch.commit();
       trackTaskEvent('completed');
@@ -251,8 +236,6 @@ const renderRightActions = (progress, dragX, task) => {
 
     const taskRef = doc(db, 'users', userId, 'tasks', id);
     const profileRef = doc(db, 'users', userId, 'profile', 'data');
-    const cacheRef = doc(db, 'users', userId, 'cache', 'profile');
-    const dailyStatsRef = doc(db, 'users', userId, 'dailyStats', 'data');
 
     try {
       // Optimistically update UI
@@ -264,23 +247,10 @@ const renderRightActions = (progress, dragX, task) => {
       // Mark task as not completed
       batch.update(taskRef, { completed: false });
       
-      // Decrement tasksCompleted in dailyStats
-      batch.update(dailyStatsRef, { completed: increment(-1) });
-      
-      // Update cache with new count
-      const cacheSnap = await getDoc(cacheRef);
-      const prevTasksCompleted = cacheSnap.exists() 
-        ? cacheSnap.data().userData?.tasksCompleted || 0 
-        : 0;
-      batch.set(cacheRef, {
-        userData: {
-          ...(cacheSnap.exists() ? cacheSnap.data().userData || {} : {}),
-          tasksCompleted: Math.max(0, prevTasksCompleted - 1) // Ensure it doesn't go negative
-        },
-        lastUpdated: new Date()
-      });
+      batch.update(profileRef, { tasksCompleted: increment(-1) });
 
       await batch.commit();
+      
     } catch (error) {
       console.error('Error marking task as incomplete:', error);
       // Rollback UI if error occurs

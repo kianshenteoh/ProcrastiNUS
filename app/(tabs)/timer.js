@@ -205,23 +205,14 @@ const recordStudySession = async (durationInMinutes) => {
   });
 
   // 2. Update stats
-  const statsRef = doc(db, 'users', userId, 'stats', 'data');
+  const profileRef = doc(db, 'users', userId, 'profile', 'data');
   const hoursToAdd = Math.floor(durationInMinutes / 30) * 0.5;
   
-  await updateDoc(statsRef, {
-    weeklyHours: increment(hoursToAdd),
-    totalHours: increment(hoursToAdd),
-    lastUpdated: serverTimestamp()
+  await updateDoc(profileRef, {
+    studyHours: increment(hoursToAdd)
   }, { merge: true });
 
   // 3. Update profile cache
-  const profileCacheRef = doc(db, 'users', userId, 'cache', 'profile');
-  const profileCacheSnap = await getDoc(profileCacheRef);
-  
-  const currentStudyHours = profileCacheSnap.exists() 
-    ? profileCacheSnap.data().userData?.studyHours || 0 
-    : 0;
-  
   await updateDoc(profileCacheRef, {
     'userData.studyHours': currentStudyHours + hoursToAdd,
     lastUpdated: serverTimestamp()
