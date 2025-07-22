@@ -1,7 +1,7 @@
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
-import { addDoc, collection, doc, getDoc, getDocs, increment, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -26,6 +26,8 @@ export default function PomodoroScreen() {
   const [totalHours, setTotalHours] = useState(0);
   const [lastStatsFetch, setLastStatsFetch] = useState(null);
   const intervalRef = useRef(null);
+  const [coins, setCoins] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const quotes = [
   "Stay focused—your future self is watching with popcorn.",
@@ -47,40 +49,57 @@ export default function PomodoroScreen() {
 
 
   useEffect(() => {
-    if (!running) return;
-
-    if (mode === 'stopwatch' && resetTimer) {
-      clearTimeout(resetTimer);
-      setResetTimer(null);
-      clearInterval(resetCountdownIntervalRef.current);
-      setResetCountdown(180);
-    }
-
-    intervalRef.current = setInterval(() => {
-      if (mode === 'timer') {
-        setSecondsLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalRef.current);
-            setRunning(false);
-            Vibration.vibrate(800);
-
-            const fullMinutes = Math.floor(initialTime / 60);
-            if (fullMinutes > 0) {
-              awardCoins(fullMinutes * 2);
-              recordStudySession(fullMinutes);
-              refreshStudyHours(); 
-            }
-            return 0;
-          }
-          return prev - 1;
-        });
-      } else {
-        setElapsed(prev => prev + 1);
+    if (running) {
+      if (mode === 'stopwatch' && resetTimer) {
+        clearTimeout(resetTimer);
+        setResetTimer(null);
+        clearInterval(resetCountdownIntervalRef.current);
+        setResetCountdown(180);
       }
-    }, 1000);
 
-    return () => clearInterval(intervalRef.current);
+      intervalRef.current = setInterval(() => {
+        if (mode === 'timer') {
+          setElapsedSeconds(prev => prev + 1);
+          setSecondsLeft(prev => {
+            if (prev <= 1) {
+              clearInterval(intervalRef.current);
+              setRunning(false);
+              Vibration.vibrate(800);
+
+              const fullMinutes = Math.floor(initialTime / 60);
+              if (fullMinutes > 0) {
+                awardCoins(fullMinutes * 2);
+                recordStudySession(fullMinutes);
+                refreshStudyHours(); 
+              }
+              return 0;
+            }
+            return prev - 1;
+          });
+        } else {
+          setElapsed(prev => prev + 1);
+        }
+      }, 1000);
+    }
+    const rawEmail = auth.currentUser?.email;
+    let unsubscribe;
+    if (rawEmail) {
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+      const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+
+      unsubscribe = onSnapshot(walletRef, (docSnap) => {
+        const data = docSnap.data();
+        if (data?.coins !== undefined) {
+          setCoins(data.coins);
+        }
+      });
+    }
+    return () => {
+      clearInterval(intervalRef.current);
+      if (unsubscribe) unsubscribe();
+    };
   }, [running, mode]);
+
 
   const startTimer = sec => {
     setSecondsLeft(sec);
@@ -108,11 +127,11 @@ export default function PomodoroScreen() {
           text: 'Give Up', style: 'destructive', onPress: async () => {
             const timeSpent = initialTime - secondsLeft;
             console.log('Time spent:', timeSpent, 'seconds');
-            const minutes = Math.floor(timeSpent / 60);
+            const minutes = Math.floor(elapsedSeconds / 60);
             if (minutes > 0) {
-              awardCoins(minutes / 2);
+              const coinsToGive = Math.max(1, Math.floor(minutes / 2)); 
+              awardCoins(coinsToGive);
               recordStudySession(minutes);
-              console.log('minutes awarded:', minutes);
             }
 
             setRunning(false);
@@ -336,7 +355,13 @@ const handleManualReset = () => {
 
   return (
     <View style={styles.container}>
-    
+
+      <View style={styles.headerRow}>
+         <View style={styles.wallet}>
+             <IconText icon="coins" text={coins} color="#ffd700" />
+        </View>
+      </View>
+
     <Pressable
   onPress={() => {
     setRunning(false); // pause current mode before switching
@@ -466,4 +491,6 @@ const styles = StyleSheet.create({
   startBtnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
   studyRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 40 },
   studyLbl: { fontSize:10, color: '#fff', marginHorizontal: 5, textAlign: 'center' },
+  wallet: { flexDirection: 'row' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 20 },
 });

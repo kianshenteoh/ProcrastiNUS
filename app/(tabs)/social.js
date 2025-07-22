@@ -3,7 +3,7 @@ import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
@@ -15,42 +15,47 @@ export default function SocialScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
 
-  useEffect(() => {
-    const loadData = async () => {
-      const rawEmail = auth.currentUser?.email;
-      if (!rawEmail) return;
+ useEffect(() => {
+  const rawEmail = auth.currentUser?.email;
+  if (!rawEmail) return;
 
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  const walletRef = doc(db, 'users', userId, 'wallet', 'data');
 
-      try {
-        // --- Load wallet ---
-        const walletRef = doc(db, 'users', userId, 'wallet', 'data');
-        const walletSnap = await getDoc(walletRef);
-        if (walletSnap.exists()) {
-          setWallet(walletSnap.data());
-        }
+  // 🔁 Realtime wallet updates
+  const unsubscribe = onSnapshot(walletRef, (walletSnap) => {
+    const data = walletSnap.data();
+    if (data?.coins !== undefined) {
+      setWallet(data);
+    }
+  });
 
-        // --- Load friends' pet data (cached internally in your fetchFriendsPets) ---
-        const friendsData = await fetchFriendsPets();
-        setFriendsPets(friendsData);
-        await updateFriendRanks();
-      } catch (err) {
-        console.error('Error loading wallet or friends data:', err);
-      }
+  // 🔁 One-time friend load
+  const loadFriends = async () => {
+    try {
+      const friendsData = await fetchFriendsPets();
+      setFriendsPets(friendsData);
+      await updateFriendRanks();
+    } catch (err) {
+      console.error('Error loading friends data:', err);
+    }
+  };
+
+  loadFriends();
+
+  return () => unsubscribe(); // cleanup listener on unmount
+}, []);
+
+useFocusEffect(
+  useCallback(() => {
+    const refreshFriendsPets = async () => {
+      const data = await fetchFriendsPets();
+      setFriendsPets(data);
     };
+    refreshFriendsPets();
+  }, [])
+);
 
-    loadData();
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      const refreshFriendsPets = async () => {
-        const data = await fetchFriendsPets();
-        setFriendsPets(data);
-      };
-      refreshFriendsPets();
-    }, [])
-  );
 
   const [friendsPets, setFriendsPets] = useState([]);
 
@@ -238,12 +243,8 @@ export default function SocialScreen() {
       // Update each user's rank in their profile cache
       await Promise.all(usersData.map(async (user, index) => {
         const rank = index + 1;
-        const userCacheRef = doc(db, 'users', user.id, 'cache', 'profile');
-        await setDoc(userCacheRef, {
-          userData: {
-            rank: rank
-          }
-        }, { merge: true });
+        const userProfileRef = doc(db, 'users', user.id, 'profile', 'data');
+        await setDoc(userProfileRef, { rank: rank }, { merge: true });
       }));
 
     } catch (error) {

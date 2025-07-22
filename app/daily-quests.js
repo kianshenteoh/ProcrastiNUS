@@ -1,30 +1,48 @@
 import { auth, db } from '@/firebase';
-import { FontAwesome6 } from '@expo/vector-icons';
+import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-
 export default function DailyQuestsScreen() {
   const nav = useNavigation();
-  const [claimed, setClaimed] = useState({});
+  const [claimedQuests, setClaimedQuests] = useState({});
   const [dailyStats, setDailyStats] = useState(null);
+  const [wallet, setWallet] = useState({ coins: 0 });
 
   useEffect(() => {
     const fetchStats = async () => {
       const rawEmail = auth.currentUser?.email;
       if (!rawEmail) return;
       const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      const ref = doc(db, 'users', userId, 'dailyStats', 'data');
-      const snap = await getDoc(ref);
-      const data = snap.exists() ? snap.data() : { created: 0, completed: 0, hasOverdue: false };
-      setDailyStats(data);
+      
+      // Fetch daily stats
+      const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+      const statsSnap = await getDoc(statsRef);
+      const statsData = statsSnap.exists() ? statsSnap.data() : { created: 0, completed: 0, hasOverdue: false };
+      setDailyStats(statsData);
+
+      // Fetch wallet data
+      const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+      const walletSnap = await getDoc(walletRef);
+      const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0, claimedQuests: {} };
+      setWallet(walletData);
+      
+      // Check if any quests were claimed today
+      const today = new Date().toDateString();
+      const claimedToday = {};
+      if (walletData.claimedQuests) {
+        Object.keys(walletData.claimedQuests).forEach(questId => {
+          claimedToday[questId] = walletData.claimedQuests[questId] === today;
+        });
+      }
+      setClaimedQuests(claimedToday);
     };
 
     fetchStats();
   }, []);
-    
+
   if (!dailyStats) {
     return <Text style={{ padding: 20 }}>Loading quests...</Text>;
   }
@@ -37,10 +55,26 @@ export default function DailyQuestsScreen() {
   const getProgressPct = (current, target) => Math.min(current / target, 1);
   const isComplete = quest => getProgressPct(quest.progress.current, quest.progress.target) >= 1;
 
-  const handleClaim = (id) => {
-    if (!claimed[id]) {
-      setClaimed(prev => ({ ...prev, [id]: true }));
-      // TODO: integrate reward to wallet in backend
+  const handleClaim = async (id, reward) => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const today = new Date().toDateString();
+
+    try {
+      // Update wallet and mark this quest as claimed
+      const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+      await updateDoc(walletRef, {
+        coins: increment(reward),
+        [`claimedQuests.${id}`]: today,
+        lastClaimDate: today
+      });
+
+      // Update local state
+      setClaimedQuests(prev => ({ ...prev, [id]: true }));
+      setWallet(prev => ({ ...prev, coins: prev.coins + reward }));
+    } catch (error) {
+      console.error("Error claiming reward:", error);
     }
   };
 
@@ -49,12 +83,12 @@ export default function DailyQuestsScreen() {
 
   const renderQuestCard = (quest) => {
     const pct = getProgressPct(quest.progress.current, quest.progress.target);
-    const isClaimed = claimed[quest.id];
+    const isClaimed = claimedQuests[quest.id];
     const complete = pct >= 1;
 
     return (
       <View key={quest.id} style={[styles.card, isClaimed && styles.cardClaimed]}>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1}}>
           <Text style={[styles.cardTitle, isClaimed && styles.completedText]}>{quest.title}</Text>
           <View style={styles.barBg}>
             <View style={[styles.barFill, { width: `${pct * 100}%` }]} />
@@ -67,7 +101,7 @@ export default function DailyQuestsScreen() {
             <Text style={styles.rewardText}>{quest.reward}</Text>
           </View>
           <Pressable
-            onPress={() => handleClaim(quest.id)}
+            onPress={() => handleClaim(quest.id, quest.reward)}
             disabled={!complete || isClaimed}
             style={[
               styles.claimBtn,
@@ -84,6 +118,13 @@ export default function DailyQuestsScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.coinDisplay}>
+          <FontAwesome5 name="coins" size={18} color="#ffd700" style={{ marginRight: 6 }} />
+          <Text style={styles.coinText}>{wallet.coins}</Text>
+        </View>
+      </View>
+      
       <ScrollView style={styles.list}>
         <Text style={styles.sectionTitle}>Incomplete</Text>
         {incompleteQuests.length ? incompleteQuests.map(renderQuestCard) : (
@@ -100,7 +141,21 @@ export default function DailyQuestsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa', paddingTop: 0 },
+  container: { flex: 1, backgroundColor: '#fefce8', paddingTop: 0 },
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  coinDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinText: {
+    color: '#ffd700',
+    fontWeight: '700',
+    fontSize: 16,
+  },
   list: { paddingHorizontal: 16, marginTop: 10 },
   sectionTitle: { fontSize: 18, fontWeight: '700', marginVertical: 10 },
   empty: { color: '#888', fontStyle: 'italic', textAlign: 'center', marginVertical: 8 },
@@ -117,5 +172,4 @@ const styles = StyleSheet.create({
   claimBtn: { backgroundColor: '#22c55e', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 6 },
   claimBtnDisabled: { backgroundColor: '#d1d5db' },
   claimTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  tasksBtn: { position: 'absolute', bottom: 30, right: 20, backgroundColor: '#3479DB', padding: 20, borderRadius: 25, elevation: 4, shadowColor: '#000', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 2 }, shadowRadius: 4 }
 });

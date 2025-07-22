@@ -1,6 +1,6 @@
 import { auth, db } from '@/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LoginScreen from '../../app/LoginScreen';
 import PetAndBadges from './my-pet-ui';
@@ -105,6 +105,13 @@ export default function PetAndBadgesBackend() {
 
         setPet(finalPet);
         setWallet(finalWallet);
+        onSnapshot(walletRef, (walletSnap) => {
+          const data = walletSnap.data();
+          if (data?.coins !== undefined) {
+            setWallet(data);
+          }
+        });
+
         setInventory(finalInventory);
         setLoading(false);
 
