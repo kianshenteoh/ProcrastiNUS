@@ -139,7 +139,7 @@ export default function SocialScreen() {
 
 
     // uncomment below to load groups from cache when ready
-    
+
     // const [groups, setGroups] = useState([]);
 
     // useEffect(() => {
@@ -487,7 +487,7 @@ export default function SocialScreen() {
         </View>
 
         <View style={styles.friendsTitle}>
-          <Text style={styles.title}>My Friends</Text>
+          <Text style={styles.title}>My Friends' Pets</Text>
         </View>
 
         <FlatList

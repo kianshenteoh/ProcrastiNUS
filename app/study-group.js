@@ -78,7 +78,7 @@ export default function StudyGroupScreen() {
       </Modal>
 
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Study Group Name</Text>
+        <Text style={styles.title}>Study Group Name <Text style={styles.groupId}>[group-id-123]</Text></Text>
         <Pressable style={styles.inviteBtn} onPress={() => setInviteModalVisible(true)}>
           <MaterialIcons name="person-add-alt" size={18} color="#fff" />
           <Text style={styles.inviteTxt}>Invite</Text>
@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: '#fffbe6', paddingTop: 30 },
   title: { fontSize: 21, fontWeight: '800', color: '#1e3a8a', alignSelf: 'center' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 20, marginBottom: 20 },
+  groupId: { fontSize: 14, fontWeight: '600', color: '#6b7280' },
   inviteBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3b82f6', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
   inviteTxt: { color: '#fff', fontWeight: '700', fontSize: 14, marginLeft: 6 },
   petScroll: { paddingHorizontal: 20, paddingBottom: 20 },
