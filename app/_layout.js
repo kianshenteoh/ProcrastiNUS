@@ -31,7 +31,17 @@ export default function RootLayout() {
 
         <Stack.Screen
           name="view-pet"
-          options={{ headerShown: true, title: 'View Pet' }}
+          options={{ headerShown: true, title: `Friend's Pet` }}
+        />
+
+        <Stack.Screen
+          name="study-group"
+          options={{ headerShown: true, title: 'Study Group' }}
+        />
+
+        <Stack.Screen
+          name="activity-log"
+          options={{ headerShown: true, title: 'Activity Log' }}
         />
       </Stack>
     </UserProvider>

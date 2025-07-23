@@ -371,7 +371,7 @@ useFocusEffect(
               </View>
             ))}
 
-            <Pressable onPress={() => router.push(`/study-group/${group.id}`)} style={styles.viewGroupBtn}>
+            <Pressable onPress={() => router.push(`/study-group`)} style={styles.viewGroupBtn}>
               <Text style={styles.viewGroupBtnTxt}>View Group</Text>
             </Pressable>
           </View>
@@ -426,6 +426,6 @@ const styles = StyleSheet.create({
   cancelText: { color: '#374151', fontWeight: '600' },
   addText: { color: '#fff', fontWeight: '600' },
   ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
-  viewGroupBtn: { marginTop: 12, backgroundColor: '#3b82f6', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, alignSelf: 'flex-start' },
+  viewGroupBtn: { marginTop: 12, backgroundColor: '#3b82f6', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, alignSelf: 'center' },
   viewGroupBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
