@@ -360,16 +360,22 @@ export default function SocialScreen() {
         <Text style={styles.studyGroupTitle}>My Study Groups</Text>
         {groups.map((group) => (
           <View key={group.id} style={styles.groupCard}>
-            <Text style={styles.groupName}>{group.name}</Text> 
+            <Text style={styles.groupName}>{group.name}</Text>
+
             {group.members.map((m, idx) => (
-              <View key={idx} style={styles.memberRow}> 
+              <View key={idx} style={styles.memberRow}>
                 <FontAwesome5 name="user" size={14} color="#0ea5e9" style={{ marginRight: 6 }} />
                 <Text style={styles.memberName}>{m.name}</Text>
                 <Text style={styles.memberHours}>{m.hoursWeek} hours this week</Text>
               </View>
             ))}
+
+            <Pressable onPress={() => router.push(`/study-group/${group.id}`)} style={styles.viewGroupBtn}>
+              <Text style={styles.viewGroupBtnTxt}>View Group</Text>
+            </Pressable>
           </View>
         ))}
+
       </ScrollView>
     </MenuProvider>
   );
@@ -419,4 +425,6 @@ const styles = StyleSheet.create({
   cancelText: { color: '#374151', fontWeight: '600' },
   addText: { color: '#fff', fontWeight: '600' },
   ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
+  viewGroupBtn: { marginTop: 12, backgroundColor: '#3b82f6', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, alignSelf: 'flex-start' },
+  viewGroupBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
 });
