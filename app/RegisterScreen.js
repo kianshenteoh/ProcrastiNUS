@@ -3,7 +3,7 @@ import { Link, useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { auth, db } from '../firebase';
 
 export default function RegisterScreen() {
@@ -22,8 +22,9 @@ export default function RegisterScreen() {
         setDoc(doc(db, 'users', userId, 'friends', 'list'), {}),
         setDoc(doc(db, 'users', userId, 'profile', 'data'), { name: name.trim() })
       ]);
-
-      router.replace('./LoginScreen');
+      Alert.alert('Registration Successful', 'You can now log in with your new account.', [
+        { text: 'OK', onPress: () => router.replace('./LoginScreen') }
+      ]);
     } catch (err) {
       alert(err.message);
     }
