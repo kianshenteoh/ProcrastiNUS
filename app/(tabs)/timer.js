@@ -118,6 +118,25 @@ export default function PomodoroScreen() {
   const resume = () => setRunning(true);
 
   const giveUp = () => {
+    if (elapsedSeconds < 300) {
+      Alert.alert(
+        'Session too short',
+        'Only sessions longer than 5 minutes will be recorded and rewarded. Keep going or give up?',
+        [
+          { text: 'Continue', style: 'cancel' },
+          {
+            text: 'Give Up', style: 'destructive', onPress: () => {
+              setRunning(false);
+              setSecondsLeft(0);
+              setInitialTime(0);
+              setElapsedSeconds(0);
+            }
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert(
       'Don\'t Give Up!',
       'If you give up now, you will only get half the coins (based on elapsed time).',
@@ -147,7 +166,20 @@ export default function PomodoroScreen() {
 
   const handleCustomStart = () => {
     const m = parseInt(customMinutes, 10);
-    if (!isNaN(m) && m > 0) startTimer(m * 60);
+    if (isNaN(m) || m <= 0) return;
+
+    if (m < 5) {
+      Alert.alert(
+        'Session too short',
+        'Only sessions longer than 5 minutes will be recorded and rewarded. Continue with short session?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Start Anyway', style: 'destructive', onPress: () => startTimer(m * 60) }
+        ]
+      );
+    } else {
+      startTimer(m * 60);
+    }
   };
 
   const displayTime = () => {
@@ -159,43 +191,45 @@ export default function PomodoroScreen() {
   };
 
   const resetCountdownIntervalRef = useRef(null);
+
   const handleStopwatchStop = () => {
-  setRunning(false);
-  if (resetCountdownIntervalRef.current) {
-    clearInterval(resetCountdownIntervalRef.current);
-    resetCountdownIntervalRef.current = null;
-  }
-
-  setResetCountdown(180);
-  resetCountdownIntervalRef.current = setInterval(() => {
-    setResetCountdown(prev => {
-      if (prev <= 1) {
-        clearInterval(resetCountdownIntervalRef.current);
-        resetCountdownIntervalRef.current = null;
-        return 0;
-      }
-      return prev - 1;
-    });
-  }, 1000);
-
-  const timeoutId = setTimeout(() => {
-    setElapsed(0);
-    setResetCountdown(180);
-    setResetTimer(null);
+    setRunning(false);
     if (resetCountdownIntervalRef.current) {
       clearInterval(resetCountdownIntervalRef.current);
       resetCountdownIntervalRef.current = null;
     }
-  }, 180000); 
 
-  const minutes = Math.floor(elapsed / 60);
-  if (minutes > 0) {
-    awardCoins(minutes); 
-    recordStudySession(minutes);
-    refreshStudyHours();
-  }
-  setResetTimer(timeoutId);
-};
+    setResetCountdown(180);
+    resetCountdownIntervalRef.current = setInterval(() => {
+      setResetCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(resetCountdownIntervalRef.current);
+          resetCountdownIntervalRef.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    const timeoutId = setTimeout(() => {
+      setElapsed(0);
+      setResetCountdown(180);
+      setResetTimer(null);
+      if (resetCountdownIntervalRef.current) {
+        clearInterval(resetCountdownIntervalRef.current);
+        resetCountdownIntervalRef.current = null;
+      }
+    }, 180000); 
+
+    const minutes = Math.floor(elapsed / 60);
+    if (minutes > 0) {
+      awardCoins(minutes); 
+      recordStudySession(minutes);
+      refreshStudyHours();
+    }
+    setResetTimer(timeoutId);
+  };
+
 
 const awardCoins = async (amount) => {
   const rawEmail = auth.currentUser?.email;
@@ -212,6 +246,8 @@ const awardCoins = async (amount) => {
 };
 
 const recordStudySession = async (durationInMinutes) => {
+  if (durationInMinutes < 5) return; // Ignore very short sessions to prevent spamming the database
+
   const rawEmail = auth.currentUser?.email;
   if (!rawEmail) return;
   const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
@@ -331,6 +367,26 @@ const refreshStudyHours = async () => {
 };
 
 const handleManualReset = () => {
+  if (elapsed < 300) {
+    Alert.alert(
+      'Session too short',
+      'Only sessions longer than 5 minutes will be recorded and rewarded. Continue or reset anyway?',
+      [
+        { text: 'Continue', style: 'cancel' },
+        {
+          text: 'Reset Anyway', style: 'destructive', onPress: () => {
+            forceResetManual();
+          }
+        }
+      ]
+    );
+    return;
+  }
+
+  forceResetManual();
+};
+
+const forceResetManual = async () => {
   setRunning(false);
   clearInterval(intervalRef.current);
 
@@ -344,12 +400,16 @@ const handleManualReset = () => {
     resetCountdownIntervalRef.current = null;
   }
 
-  recordStudySession(elapsed);
-  refreshStudyHours();
+  const minutes = Math.floor(elapsed / 60);
+  if (minutes >= 5) {
+    await recordStudySession(minutes);
+    await refreshStudyHours();
+  }
 
   setElapsed(0);
   setResetCountdown(180);
 };
+
 
   const progress = mode === 'timer' && initialTime ? (1 - secondsLeft / initialTime) * CIRCUMFERENCE : 0;
 
