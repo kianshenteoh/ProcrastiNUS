@@ -127,19 +127,11 @@ useFocusEffect(
     }
   };
 
+    const [groups, setGroups] = useState([
+      { id: 'g1', name: 'CS Sufferers', lastActivity: 'Alice completed task `CS2040S Problem Set 3` at 10.02am on 16 July' },
+      { id: 'g2', name: 'SOC Victims', lastActivity: null },
+    ]);
 
-
-  const [groups, setGroups] = useState([
-    {
-      id: 'g1',
-      name: 'CS Sufferers',
-      members: [
-        { name: 'Dan', hoursWeek: 14 },
-        { name: 'Ton', hoursWeek: 12 },
-        { name: 'TKS', hoursWeek: 10 },
-      ],
-    },
-  ]);
 
   const handleAddFriend = async () => {
     if (!friendEmail) return alert("Please enter a friend's email");
@@ -359,24 +351,25 @@ useFocusEffect(
         />
 
         <Text style={styles.studyGroupTitle}>My Study Groups</Text>
-        {groups.map((group) => (
-          <View key={group.id} style={styles.groupCard}>
-            <Text style={styles.groupName}>{group.name}</Text>
-
-            {group.members.map((m, idx) => (
-              <View key={idx} style={styles.memberRow}>
-                <FontAwesome5 name="user" size={14} color="#0ea5e9" style={{ marginRight: 6 }} />
-                <Text style={styles.memberName}>{m.name}</Text>
-                <Text style={styles.memberHours}>{m.hoursWeek} hours this week</Text>
+          {groups.map((group) => (
+            <View key={group.id} style={styles.groupCard}>
+              <View style={styles.groupTopRow}>
+                <View style={styles.groupInfo}>
+                  <FontAwesome5 name="users" size={16} color="#2563eb" style={{ marginRight: 8 }} />
+                  <View style={{marginLeft: 4}}>
+                    <Text style={styles.groupName}>{group.name}</Text>
+                    <Text style={styles.groupId}>ID: {group.id}</Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => router.push(`/study-group`)} style={styles.groupViewBtn}>
+                  <Text style={styles.groupViewBtnTxt}>View</Text>
+                </Pressable>
               </View>
-            ))}
-
-            <Pressable onPress={() => router.push(`/study-group`)} style={styles.viewGroupBtn}>
-              <Text style={styles.viewGroupBtnTxt}>View Group</Text>
-            </Pressable>
-          </View>
-        ))}
-
+              <Text style={styles.groupActivity}>
+                Last activity: { group.lastActivity || 'No activity yet'}
+              </Text>
+            </View>
+          ))}
       </ScrollView>
     </MenuProvider>
   );
@@ -409,8 +402,14 @@ const styles = StyleSheet.create({
   feedTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
   friendsTitle: { fontSize: 22, fontWeight: '800', marginTop: 24, marginHorizontal: 20, color: '#1e3a8a' },
   studyGroupTitle: { fontSize: 22, fontWeight: '800', marginTop: 24, marginHorizontal: 20, color: '#1e3a8a' },
-  groupCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginHorizontal: 20, marginTop: 16, elevation: 2 },
-  groupName: { fontSize: 18, fontWeight: '700', marginBottom: 10, color: '#1e3a8a' },
+  groupCard: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 18, marginHorizontal: 20, marginVertical: 10, elevation: 2 },
+  groupTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  groupInfo: { flexDirection: 'row', alignItems: 'center' },
+  groupName: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 0 },
+  groupId: { fontSize: 12, color: '#9ca3af' },
+  groupViewBtn: { backgroundColor: '#2563eb', paddingVertical: 6, paddingHorizontal: 14, borderRadius: 16 },
+  groupViewBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  groupActivity: { fontSize: 13, color: '#4b5563', fontStyle: 'italic', marginTop: 4 },
   memberRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   memberName: { fontSize: 14, fontWeight: '600', color: '#0f172a', flex: 1 },
   memberHours: { fontSize: 12, color: '#6b7280' },
