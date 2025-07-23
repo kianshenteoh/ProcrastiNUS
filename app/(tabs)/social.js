@@ -12,8 +12,13 @@ import { computePetStats } from '../../components/my-pet/my-pet-backend';
 export default function SocialScreen() {
   const router = useRouter();
   const [wallet, setWallet] = useState({ coins: 0 });
-  const [modalVisible, setModalVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
+  const [joinModalVisible, setJoinModalVisible] = useState(false);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [joinGroupId, setJoinGroupId] = useState('');
+  const [newGroupId, setNewGroupId] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
 
  useEffect(() => {
   const rawEmail = auth.currentUser?.email;
@@ -22,7 +27,7 @@ export default function SocialScreen() {
   const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
   const walletRef = doc(db, 'users', userId, 'wallet', 'data');
 
-  // 🔁 Realtime wallet updates
+  // realtime wallet updates
   const unsubscribe = onSnapshot(walletRef, (walletSnap) => {
     const data = walletSnap.data();
     if (data?.coins !== undefined) {
@@ -30,7 +35,7 @@ export default function SocialScreen() {
     }
   });
 
-  // 🔁 One-time friend load
+  // one-time friend load
   const loadFriends = async () => {
     try {
       const friendsData = await fetchFriendsPets();
@@ -46,16 +51,15 @@ export default function SocialScreen() {
   return () => unsubscribe(); // cleanup listener on unmount
 }, []);
 
-useFocusEffect(
-  useCallback(() => {
-    const refreshFriendsPets = async () => {
-      const data = await fetchFriendsPets();
-      setFriendsPets(data);
-    };
-    refreshFriendsPets();
-  }, [])
-);
-
+  useFocusEffect(
+    useCallback(() => {
+      const refreshFriendsPets = async () => {
+        const data = await fetchFriendsPets();
+        setFriendsPets(data);
+      };
+      refreshFriendsPets();
+    }, [])
+  );
 
   const [friendsPets, setFriendsPets] = useState([]);
 
@@ -127,11 +131,33 @@ useFocusEffect(
     }
   };
 
+    // dummy data
     const [groups, setGroups] = useState([
       { id: 'g1', name: 'CS Sufferers', lastActivity: 'Alice completed task `CS2040S Problem Set 3` at 10.02am on 16 July' },
       { id: 'g2', name: 'SOC Victims', lastActivity: null },
     ]);
 
+
+    // uncomment below to load groups from cache when ready
+    
+    // const [groups, setGroups] = useState([]);
+
+    // useEffect(() => {
+    //   const loadGroupsFromCache = async () => {
+    //     const rawEmail = auth.currentUser?.email;
+    //     if (!rawEmail) return;
+
+    //     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    //     const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+    //     const cacheSnap = await getDoc(cacheRef);
+    //     if (!cacheSnap.exists()) return;
+
+    //     const groupList = cacheSnap.data()?.groups || [];
+    //     setGroups(groupList);
+    //   };
+
+    //   loadGroupsFromCache();
+    // }, []);
 
   const handleAddFriend = async () => {
     if (!friendEmail) return alert("Please enter a friend's email");
@@ -174,17 +200,125 @@ useFocusEffect(
       ]);
 
       // 4. Refresh friends list
-      const data = await fetchFriendsPets();
+      const data = await fetchFriendsPets(true);
       setFriendsPets(data);
 
       alert('Friend added!');
-      setModalVisible(false);
+      setAddModalVisible(false);
       setFriendEmail('');
     } catch (error) {
       console.error('Error adding friend:', error);
       alert('Failed to add friend. Please try again.');
     }
   };
+
+  const handleJoinGroup = async () => {
+    const user = auth.currentUser;
+    if (!user || !joinGroupId.trim()) return alert('Missing info');
+
+    try {
+      const userId = user.email.replace(/[.#$/[\]]/g, '_');
+      const groupId = joinGroupId.trim();
+
+      const groupRef = doc(db, 'studyGroups', groupId);
+      const groupSnap = await getDoc(groupRef);
+
+      if (!groupSnap.exists()) {
+        alert('Group not found');
+        return;
+      }
+
+      const membershipRef = doc(db, 'studyGroups', groupId, 'members', userId);
+      const membershipSnap = await getDoc(membershipRef);
+
+      if (membershipSnap.exists()) {
+        alert('You are already in this group!');
+        return;
+      }
+
+      // Add user to the group
+      await setDoc(membershipRef, { joinedAt: new Date() });
+      await setDoc(doc(db, 'users', userId, 'groups', groupId), { joinedAt: new Date() });
+
+      // Get group metadata
+      const groupDocSnap = await getDoc(doc(db, 'studyGroups', groupId));
+      if (!groupDocSnap.exists()) return;
+
+      const groupData = groupDocSnap.data();
+
+      // Read user's cached groups
+      const userGroupsCacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      const cacheSnap = await getDoc(userGroupsCacheRef);
+      let currentGroups = [];
+      if (cacheSnap.exists()) {
+        currentGroups = cacheSnap.data()?.groups || [];
+      }
+
+      // Update cache
+      const updatedGroups = [...currentGroups.filter(g => g.id !== groupId), { id: groupId, name: groupData.name }];
+      await setDoc(userGroupsCacheRef, {
+        groups: updatedGroups,
+        lastUpdated: new Date()
+      });
+
+      alert('Joined group!');
+      setJoinModalVisible(false);
+      setJoinGroupId('');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to join group.');
+    }
+  };
+
+
+  const handleCreateGroup = async () => {
+    const user = auth.currentUser;
+    if (!user || !newGroupId.trim() || !newGroupName.trim()) return alert('Missing info');
+
+    try {
+      const groupRef = doc(db, 'studyGroups', newGroupId.trim());
+      const groupSnap = await getDoc(groupRef);
+
+      if (groupSnap.exists()) {
+        alert('Group ID already taken');
+        return;
+      }
+
+      const userId = user.email.replace(/[.#$/[\]]/g, '_');
+
+      await setDoc(groupRef, {
+        name: newGroupName.trim(),
+        createdAt: new Date(),
+        createdBy: userId,
+      });
+
+      await setDoc(doc(db, 'studyGroups', newGroupId.trim(), 'members', userId), { joinedAt: new Date() });
+      await setDoc(doc(db, 'users', userId, 'groups', newGroupId.trim()), { joinedAt: new Date() });
+
+      // Cache the new group
+      const userGroupsCacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      const cacheSnap = await getDoc(userGroupsCacheRef);
+      let currentGroups = [];
+      if (cacheSnap.exists()) {
+        currentGroups = cacheSnap.data()?.groups || [];
+      }
+
+      const updatedGroups = [...currentGroups.filter(g => g.id !== newGroupId), { id: newGroupId.trim(), name: newGroupName.trim() }];
+      await setDoc(userGroupsCacheRef, {
+        groups: updatedGroups,
+        lastUpdated: new Date()
+      });
+
+      alert('Study group created!');
+      setCreateModalVisible(false);
+      setNewGroupId('');
+      setNewGroupName('');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to create group.');
+    }
+  };
+
 
   const updateFriendRanks = async () => {
     const rawEmail = auth.currentUser?.email;
@@ -247,11 +381,13 @@ useFocusEffect(
   return (
     <MenuProvider>
       <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 40 }}>
+
+        {/* add friend modal */}
         <Modal
-          visible={modalVisible}
+          visible={addModalVisible}
           transparent
           animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
+          onRequestClose={() => setAddModalVisible(false)}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
@@ -267,13 +403,42 @@ useFocusEffect(
               />
 
               <View style={styles.modalButtons}>
-                <Pressable onPress={() => setModalVisible(false)} style={styles.cancelBtn}>
+                <Pressable onPress={() => setAddModalVisible(false)} style={styles.cancelBtn}>
                   <Text style={styles.cancelText}>Cancel</Text>
                 </Pressable>
 
                 <Pressable onPress={handleAddFriend} style={styles.addBtn}>
                   <Text style={styles.addText}>Add</Text>
                 </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* join modal */}
+        <Modal visible={joinModalVisible} transparent animationType="slide" onRequestClose={() => setJoinModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Join Study Group</Text>
+              <TextInput placeholder="Enter Group ID" value={joinGroupId} onChangeText={setJoinGroupId} style={styles.input} autoCapitalize="none" />
+              <View style={styles.modalButtons}>
+                <Pressable onPress={() => setJoinModalVisible(false)} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancel</Text></Pressable>
+                <Pressable onPress={handleJoinGroup} style={styles.addBtn}><Text style={styles.addText}>Join</Text></Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* creat group modal */}
+        <Modal visible={createModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Create Study Group</Text>
+              <TextInput placeholder="Group ID (unique)" value={newGroupId} onChangeText={setNewGroupId} style={styles.input} autoCapitalize="none" />
+              <TextInput placeholder="Group Name" value={newGroupName} onChangeText={setNewGroupName} style={styles.input} />
+              <View style={styles.modalButtons}>
+                <Pressable onPress={() => setCreateModalVisible(false)} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancel</Text></Pressable>
+                <Pressable onPress={handleCreateGroup} style={styles.addBtn}><Text style={styles.addText}>Create</Text></Pressable>
               </View>
             </View>
           </View>
@@ -294,19 +459,19 @@ useFocusEffect(
                   <MaterialIcons name="add" size={22} color="#fff" />
                 </MenuTrigger>
                 <MenuOptions customStyles={styles.menuOptionsStyles}>
-                  <MenuOption onSelect={() => setModalVisible(true)}>
+                  <MenuOption onSelect={() => setAddModalVisible(true)}>
                     <View style={styles.menuItem}>
                       <MaterialIcons name="person-add" size={18} color="#3b82f6" />
                       <Text style={styles.menuText}>Add Friend</Text>
                     </View>
                   </MenuOption>
-                  <MenuOption onSelect={() => alert('Join Study Group')}>
+                  <MenuOption onSelect={() => setJoinModalVisible(true)}>
                     <View style={styles.menuItem}>
                       <MaterialIcons name="group" size={18} color="#10b981" />
                       <Text style={styles.menuText}>Join Study Group</Text>
                     </View>
                   </MenuOption>
-                  <MenuOption onSelect={() => alert('Create Study Group')}>
+                  <MenuOption onSelect={() => setCreateModalVisible(true)}>
                     <View style={styles.menuItem}>
                       <MaterialIcons name="group-add" size={18} color="#eab308" />
                       <Text style={styles.menuText}>Create Study Group</Text>

@@ -2,10 +2,12 @@ import petImages from '@/assets/pet-images';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function StudyGroupScreen() {
   const router = useRouter();
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const [members, setMembers] = useState([
     { id: '1', name: 'Alice', image: 7, totalXp: 1200, hunger: 84, ownerId: '1' },
@@ -31,7 +33,6 @@ export default function StudyGroupScreen() {
     { id: '5', user: 'Carol', action: 'studied for 1.5h', time: '2025-07-20T09:00:00Z' },
   ];
 
-
   const badgeColors = {
     fire: '#f97316',
     tasks: '#3b82f6',
@@ -40,10 +41,49 @@ export default function StudyGroupScreen() {
     bolt: '#10b981',
     moon: '#8b5cf6',
   };
+  
+  const handleInviteMember = () => {setInviteModalVisible(false);}
 
   return (
     <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 80 }}>
-      <Text style={styles.title}>Study Group Name</Text>
+      <Modal
+        visible={inviteModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setInviteModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Invite Member</Text>
+            <TextInput
+              placeholder="Invite member email"
+              value={inviteEmail}
+              onChangeText={setInviteEmail}
+              style={styles.input}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setInviteModalVisible(false)} style={styles.cancelBtn}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable onPress={handleInviteMember} style={styles.addBtn}>
+                <Text style={styles.addText}>Invite</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Study Group Name</Text>
+        <Pressable style={styles.inviteBtn} onPress={() => setInviteModalVisible(true)}>
+          <MaterialIcons name="person-add-alt" size={18} color="#fff" />
+          <Text style={styles.inviteTxt}>Invite</Text>
+        </Pressable>
+      </View>
 
       <FlatList
         data={members}
@@ -122,7 +162,10 @@ export default function StudyGroupScreen() {
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: '#fffbe6', paddingTop: 30 },
-  title: { fontSize: 24, fontWeight: '800', color: '#1e3a8a', alignSelf: 'center', marginBottom: 20 },
+  title: { fontSize: 21, fontWeight: '800', color: '#1e3a8a', alignSelf: 'center' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 20, marginBottom: 20 },
+  inviteBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#3b82f6', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
+  inviteTxt: { color: '#fff', fontWeight: '700', fontSize: 14, marginLeft: 6 },
   petScroll: { paddingHorizontal: 20, paddingBottom: 20 },
   friendCard: { width: 160, backgroundColor: '#fff', borderRadius: 16, padding: 12, marginRight: 12, alignItems: 'center', elevation: 2 },
   petImage: { width: 80, height: 80, resizeMode: 'contain' },
@@ -132,6 +175,16 @@ const styles = StyleSheet.create({
   ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
   feedBtn: { marginTop: 8, backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
   feedTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
+
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, marginLeft: 4 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 12 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
+  cancelBtn: { paddingVertical: 8, paddingHorizontal: 12, marginRight: 8, backgroundColor: '#e5e7eb', borderRadius: 6 },
+  addBtn: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 6 },
+  cancelText: { color: '#374151', fontWeight: '600' },
+  addText: { color: '#fff', fontWeight: '600' },
 
   sectionBox: { marginHorizontal: 20, marginBottom: 24, backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 1 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1f2937', marginBottom: 12 },
