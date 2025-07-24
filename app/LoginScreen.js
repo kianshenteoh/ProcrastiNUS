@@ -21,7 +21,8 @@ export default function LoginScreen() {
     }
   };
 
-  const handleQuickLogin = () => handleLogin({ email: 'b@gmail.com', password: '123456' });
+  const handleQuickLogin1 = () => handleLogin({ email: 'b@gmail.com', password: '123456' });
+  const handleQuickLogin2 = () => handleLogin({ email: 'e@gmail.com', password: '123456' });
 
   return (
     <View style={styles.wrapper}>
@@ -59,8 +60,12 @@ export default function LoginScreen() {
           <Link href="/RegisterScreen"><Text style={styles.registerLink}>Register</Text></Link>
         </View>
 
-        <Pressable style={styles.quickBtn} onPress={handleQuickLogin}>
-          <Text style={styles.quickTxt}>Quick Login (Developer)</Text>
+        <Pressable style={styles.quickBtn} onPress={handleQuickLogin1}>
+          <Text style={styles.quickTxt}>Quick Login Account 1 (Developer)</Text>
+        </Pressable>
+
+        <Pressable style={styles.quickBtn} onPress={handleQuickLogin2}>
+          <Text style={styles.quickTxt}>Quick Login Account 2 (Developer)</Text>
         </Pressable>
       
       </View>
@@ -81,6 +86,6 @@ const styles = StyleSheet.create({
   registerRow:{flexDirection:'row',justifyContent:'center',marginTop:16},
   registerTxt:{fontSize:14,color:'#475569'},
   registerLink:{fontSize:14,color:'#2563eb',marginLeft:4,fontWeight:'700'},
-  quickBtn:{alignSelf:'center',marginTop:24,paddingHorizontal:24,paddingVertical:10,borderRadius:14,backgroundColor:'#f43f5e'},
+  quickBtn:{alignSelf:'center',marginTop:16,paddingHorizontal:24,paddingVertical:10,borderRadius:14,backgroundColor:'#f43f5e'},
   quickTxt:{color:'#fff',fontWeight:'700',fontSize:14},
 });

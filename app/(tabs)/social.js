@@ -3,7 +3,7 @@ import { auth, db } from '@/firebase';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc } from 'firebase/firestore';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
@@ -19,6 +19,7 @@ export default function SocialScreen() {
   const [joinGroupId, setJoinGroupId] = useState('');
   const [newGroupId, setNewGroupId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
+  const [groups, setGroups] = useState([]);
 
  useEffect(() => {
   const rawEmail = auth.currentUser?.email;
@@ -58,6 +59,12 @@ export default function SocialScreen() {
         setFriendsPets(data);
       };
       refreshFriendsPets();
+    }, [])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      loadGroupsFromCache();
     }, [])
   );
 
@@ -132,32 +139,48 @@ export default function SocialScreen() {
   };
 
     // dummy data
-    const [groups, setGroups] = useState([
-      { id: 'g1', name: 'CS Sufferers', lastActivity: 'Alice completed task `CS2040S Problem Set 3` at 10.02am on 16 July' },
-      { id: 'g2', name: 'SOC Victims', lastActivity: null },
-    ]);
+    // const [groups, setGroups] = useState([
+    //   { id: 'g1', name: 'CS Sufferers', lastActivity: 'Alice completed task `CS2040S Problem Set 3` at 10.02am on 16 July' },
+    //   { id: 'g2', name: 'SOC Victims', lastActivity: null },
+    // ]);
 
+    const loadGroupsFromCache = async () => {
+      const rawEmail = auth.currentUser?.email;
+      if (!rawEmail) return;
 
-    // uncomment below to load groups from cache when ready
+      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+      const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      const cacheSnap = await getDoc(cacheRef);
 
-    // const [groups, setGroups] = useState([]);
+      if (cacheSnap.exists()) {
+        const groupList = cacheSnap.data()?.groups || [];
 
-    // useEffect(() => {
-    //   const loadGroupsFromCache = async () => {
-    //     const rawEmail = auth.currentUser?.email;
-    //     if (!rawEmail) return;
+        // Fetch last activity for each group
+        const groupData = await Promise.all(groupList.map(async (g) => {
+          const logQuery = await getDocs(query(
+            collection(db, 'studyGroups', g.id, 'activityLog'),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+          ));
 
-    //     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-    //     const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-    //     const cacheSnap = await getDoc(cacheRef);
-    //     if (!cacheSnap.exists()) return;
+          const lastEntry = logQuery.docs[0]?.data();
+          let activityString = null;
 
-    //     const groupList = cacheSnap.data()?.groups || [];
-    //     setGroups(groupList);
-    //   };
+          if (lastEntry) {
+            const date = lastEntry.timestamp.toDate();
+            activityString = `${lastEntry.actor} ${lastEntry.action}${lastEntry.target ? ` ${lastEntry.target}` : ''} at ${date.toLocaleTimeString()} on ${date.toDateString()}`;
+          }
 
-    //   loadGroupsFromCache();
-    // }, []);
+          return {
+            ...g,
+            lastActivity: activityString
+          };
+        }));
+
+        setGroups(groupData);
+      }
+    };
+
 
   const handleAddFriend = async () => {
     if (!friendEmail) return alert("Please enter a friend's email");
@@ -222,44 +245,42 @@ export default function SocialScreen() {
 
       const groupRef = doc(db, 'studyGroups', groupId);
       const groupSnap = await getDoc(groupRef);
-
-      if (!groupSnap.exists()) {
-        alert('Group not found');
-        return;
-      }
+      if (!groupSnap.exists()) return alert('Group not found');
 
       const membershipRef = doc(db, 'studyGroups', groupId, 'members', userId);
       const membershipSnap = await getDoc(membershipRef);
+      if (membershipSnap.exists()) return alert('You are already in this group!');
 
-      if (membershipSnap.exists()) {
-        alert('You are already in this group!');
-        return;
-      }
+      // get user name
+      const profileSnap = await getDoc(doc(db, 'users', userId, 'profile', 'data'));
+      const userName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
 
-      // Add user to the group
-      await setDoc(membershipRef, { joinedAt: new Date() });
-      await setDoc(doc(db, 'users', userId, 'groups', groupId), { joinedAt: new Date() });
+      const now = new Date();
 
-      // Get group metadata
-      const groupDocSnap = await getDoc(doc(db, 'studyGroups', groupId));
-      if (!groupDocSnap.exists()) return;
+      await Promise.all([
+        setDoc(membershipRef, { joinedAt: now }),
+        setDoc(doc(db, 'users', userId, 'groups', groupId), { joinedAt: now }),
+        addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
+          actor: userName,
+          action: 'joined group',
+          target: '',
+          timestamp: now
+        })
+      ]);
 
-      const groupData = groupDocSnap.data();
+      // Cache update
+      const groupData = groupSnap.data();
+      const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      const cacheSnap = await getDoc(cacheRef);
+      const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
 
-      // Read user's cached groups
-      const userGroupsCacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-      const cacheSnap = await getDoc(userGroupsCacheRef);
-      let currentGroups = [];
-      if (cacheSnap.exists()) {
-        currentGroups = cacheSnap.data()?.groups || [];
-      }
-
-      // Update cache
-      const updatedGroups = [...currentGroups.filter(g => g.id !== groupId), { id: groupId, name: groupData.name }];
-      await setDoc(userGroupsCacheRef, {
+      const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupData.name }];
+      await setDoc(cacheRef, {
         groups: updatedGroups,
-        lastUpdated: new Date()
+        lastUpdated: now
       });
+
+      await loadGroupsFromCache();
 
       alert('Joined group!');
       setJoinModalVisible(false);
@@ -270,44 +291,56 @@ export default function SocialScreen() {
     }
   };
 
-
   const handleCreateGroup = async () => {
     const user = auth.currentUser;
     if (!user || !newGroupId.trim() || !newGroupName.trim()) return alert('Missing info');
 
     try {
-      const groupRef = doc(db, 'studyGroups', newGroupId.trim());
-      const groupSnap = await getDoc(groupRef);
+      const groupId = newGroupId.trim();
+      const groupName = newGroupName.trim();
+      const userId = user.email.replace(/[.#$/[\]]/g, '_');
+      const groupRef = doc(db, 'studyGroups', groupId);
 
+      const groupSnap = await getDoc(groupRef);
       if (groupSnap.exists()) {
         alert('Group ID already taken');
         return;
       }
 
-      const userId = user.email.replace(/[.#$/[\]]/g, '_');
+      // Get user name
+      const profileSnap = await getDoc(doc(db, 'users', userId, 'profile', 'data'));
+      const userName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
 
-      await setDoc(groupRef, {
-        name: newGroupName.trim(),
-        createdAt: new Date(),
-        createdBy: userId,
-      });
+      const now = new Date();
 
-      await setDoc(doc(db, 'studyGroups', newGroupId.trim(), 'members', userId), { joinedAt: new Date() });
-      await setDoc(doc(db, 'users', userId, 'groups', newGroupId.trim()), { joinedAt: new Date() });
+      // Create group and add user
+      await Promise.all([
+        setDoc(groupRef, {
+          name: groupName,
+          createdAt: now,
+          createdBy: userId,
+        }),
+        setDoc(doc(db, 'studyGroups', groupId, 'members', userId), { joinedAt: now }),
+        setDoc(doc(db, 'users', userId, 'groups', groupId), { joinedAt: now }),
+        addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
+          actor: userName,
+          action: 'created group',
+          target: '',
+          timestamp: now
+        })
+      ]);
 
-      // Cache the new group
-      const userGroupsCacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-      const cacheSnap = await getDoc(userGroupsCacheRef);
-      let currentGroups = [];
-      if (cacheSnap.exists()) {
-        currentGroups = cacheSnap.data()?.groups || [];
-      }
-
-      const updatedGroups = [...currentGroups.filter(g => g.id !== newGroupId), { id: newGroupId.trim(), name: newGroupName.trim() }];
-      await setDoc(userGroupsCacheRef, {
+      // Update cache
+      const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      const cacheSnap = await getDoc(cacheRef);
+      const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
+      const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupName }];
+      await setDoc(cacheRef, {
         groups: updatedGroups,
-        lastUpdated: new Date()
+        lastUpdated: now
       });
+
+      await loadGroupsFromCache();
 
       alert('Study group created!');
       setCreateModalVisible(false);
@@ -318,7 +351,6 @@ export default function SocialScreen() {
       alert('Failed to create group.');
     }
   };
-
 
   const updateFriendRanks = async () => {
     const rawEmail = auth.currentUser?.email;
