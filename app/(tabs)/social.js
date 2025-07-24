@@ -251,6 +251,12 @@ export default function SocialScreen() {
       const membershipSnap = await getDoc(membershipRef);
       if (membershipSnap.exists()) return alert('You are already in this group!');
 
+      // limit the max number of members to 10
+      const membersSnap = await getDocs(collection(db, 'studyGroups', groupId, 'members'));
+      if (membersSnap.size >= 10) {
+        return alert('This group is full (max 10 members).');
+      }
+
       // get user name
       const profileSnap = await getDoc(doc(db, 'users', userId, 'profile', 'data'));
       const userName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
@@ -558,7 +564,7 @@ export default function SocialScreen() {
                     <Text style={styles.groupId}>ID: {group.id}</Text>
                   </View>
                 </View>
-                <Pressable onPress={() => router.push(`/study-group`)} style={styles.groupViewBtn}>
+                <Pressable onPress={() => router.push({pathname: '/study-group', params: { groupId: group.id, groupName: group.name }})} style={styles.groupViewBtn}>
                   <Text style={styles.groupViewBtnTxt}>View</Text>
                 </Pressable>
               </View>

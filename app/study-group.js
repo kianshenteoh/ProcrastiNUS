@@ -1,21 +1,28 @@
 import petImages from '@/assets/pet-images';
+import { computePetStats } from '@/components/my-pet/my-pet-backend';
+import { auth, db } from '@/firebase';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { addDoc, arrayUnion, collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
+import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function StudyGroupScreen() {
   const router = useRouter();
+  const { groupId, groupName } = useLocalSearchParams();
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
 
-  const [members, setMembers] = useState([
-    { id: '1', name: 'Alice', image: 7, totalXp: 1200, hunger: 84, ownerId: '1' },
-    { id: '2', name: 'Bob', image: 45, totalXp: 800, hunger: 72, ownerId: '2' },
-    { id: '3', name: 'Carol', image: 77, totalXp: 400, hunger: 65, ownerId: '3' },
-    { id: '4', name: 'Dan', image: 126, totalXp: 1500, hunger: 90, ownerId: '4' },
-    { id: '5', name: 'Eve', image: 182, totalXp: 600, hunger: 78, ownerId: '5' },
-  ]);
+  // dummy data
+  // const [members, setMembers] = useState([
+  //   { id: '1', name: 'Alice', image: 7, totalXp: 1200, hunger: 84, ownerId: '1' },
+  //   { id: '2', name: 'Bob', image: 45, totalXp: 800, hunger: 72, ownerId: '2' },
+  //   { id: '3', name: 'Carol', image: 77, totalXp: 400, hunger: 65, ownerId: '3' },
+  //   { id: '4', name: 'Dan', image: 126, totalXp: 1500, hunger: 90, ownerId: '4' },
+  //   { id: '5', name: 'Eve', image: 182, totalXp: 600, hunger: 78, ownerId: '5' },
+  // ]);
+
+  const [members, setMembers] = useState([]);
 
   const leaderboard = [
     { id: '1', name: 'Alice', hours: 12.5 },
@@ -33,16 +40,129 @@ export default function StudyGroupScreen() {
     { id: '5', user: 'Carol', action: 'studied for 1.5h', time: '2025-07-20T09:00:00Z' },
   ];
 
-  const badgeColors = {
-    fire: '#f97316',
-    tasks: '#3b82f6',
-    sun: '#facc15',
-    trophy: '#eab308',
-    bolt: '#10b981',
-    moon: '#8b5cf6',
+  const handleInviteMember = async () => {
+    setInviteModalVisible(false);
+    const currentUser = auth.currentUser;
+    if (!currentUser || !inviteEmail.trim()) {
+      alert('Missing required fields');
+      return;
+    }
+
+    try {
+      const inviterId = currentUser.email.replace(/[.#$/[\]]/g, '_');
+      const inviteeId = inviteEmail.trim().replace(/[.#$/[\]]/g, '_');
+
+      if (inviterId === inviteeId) {
+        alert('You cannot invite yourself');
+        return;
+      }
+
+      // check if user exists
+      const inviteeProfileRef = doc(db, 'users', inviteeId, 'profile', 'data');
+      const inviteeProfileSnap = await getDoc(inviteeProfileRef);
+      if (!inviteeProfileSnap.exists()) {
+        alert('User not found');
+        return;
+      }
+
+      const groupRef = doc(db, 'studyGroups', groupId);
+      const groupSnap = await getDoc(groupRef);
+      if (!groupSnap.exists()) {
+        alert('Group not found');
+        return;
+      }
+
+      const groupData = groupSnap.data();
+      const existingMembers = groupData.members || [];
+      if (existingMembers.includes(inviteeId)) {
+        alert('User is already in this group');
+        return;
+      }
+
+      if (existingMembers.length >= 10) {
+        alert('Group is full (max 10 members)');
+        return;
+      }
+
+      // update group document
+      await updateDoc(groupRef, {
+        members: arrayUnion(inviteeId),
+      });
+
+      // update user's groups subcollection
+      const now = new Date();
+      await setDoc(doc(db, 'users', inviteeId, 'groups', groupId), {
+        joinedAt: now,
+      });
+
+      // write to group logg
+      const inviterProfileSnap = await getDoc(doc(db, 'users', inviterId, 'profile', 'data'));
+      const inviterName = inviterProfileSnap.exists() ? inviterProfileSnap.data().name : 'Unknown';
+
+      await setDoc(doc(db, 'studyGroups', groupId, 'members', inviteeId), {
+        joinedAt: now,
+      });
+
+      await addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
+        actor: inviterName,
+        action: 'invited',
+        target: inviteeProfileSnap.data()?.name || inviteeId,
+        timestamp: Timestamp.fromDate(now),
+      });
+
+      alert('Member added!');
+      setInviteEmail('');
+    } catch (err) {
+      console.error(err);
+      setInviteEmail('');
+      alert('Failed to add member');
+    }
   };
-  
-  const handleInviteMember = () => {setInviteModalVisible(false);}
+
+  const fetchGroupPets = async (groupId) => {
+    const groupRef = doc(db, 'studyGroups', groupId);
+    const groupSnap = await getDoc(groupRef);
+    if (!groupSnap.exists()) return [];
+
+    const groupData = groupSnap.data();
+    const memberIds = groupData.members || [];
+
+    const petPromises = memberIds.map(async (uid) => {
+      try {
+        const [petSnap, profileSnap] = await Promise.all([
+          getDoc(doc(db, 'users', uid, 'pet', 'data')),
+          getDoc(doc(db, 'users', uid, 'profile', 'data')),
+        ]);
+
+        if (!petSnap.exists()) return null;
+
+        const petData = petSnap.data();
+        const { updatedPet } = computePetStats(petData, 30, 20, 2);
+        const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
+
+        return {
+          id: uid,
+          ...updatedPet,
+          ownerName,
+          ownerId: uid,
+        };
+      } catch {
+        return null;
+      }
+    });
+
+    const result = (await Promise.all(petPromises)).filter(Boolean);
+    return result;
+  };
+
+  useEffect(() => {
+    const loadGroupPets = async () => {
+      const pets = await fetchGroupPets(groupId);
+      setMembers(pets);
+    };
+
+    loadGroupPets();
+  }, []);
 
   return (
     <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 80 }}>
@@ -54,9 +174,9 @@ export default function StudyGroupScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Invite Member</Text>
+            <Text style={styles.modalTitle}>Add Member</Text>
             <TextInput
-              placeholder="Invite member email"
+              placeholder="Enter user email"
               value={inviteEmail}
               onChangeText={setInviteEmail}
               style={styles.input}
@@ -70,7 +190,7 @@ export default function StudyGroupScreen() {
               </Pressable>
 
               <Pressable onPress={handleInviteMember} style={styles.addBtn}>
-                <Text style={styles.addText}>Invite</Text>
+                <Text style={styles.addText}>Add</Text>
               </Pressable>
             </View>
           </View>
@@ -78,7 +198,7 @@ export default function StudyGroupScreen() {
       </Modal>
 
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Study Group Name <Text style={styles.groupId}>[group-id-123]</Text></Text>
+        <Text style={styles.title}>{groupName} <Text style={styles.groupId}>ID: {groupId}</Text></Text>
         <Pressable style={styles.inviteBtn} onPress={() => setInviteModalVisible(true)}>
           <MaterialIcons name="person-add-alt" size={18} color="#fff" />
           <Text style={styles.inviteTxt}>Invite</Text>
