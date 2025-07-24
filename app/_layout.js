@@ -43,6 +43,11 @@ export default function RootLayout() {
           name="activity-log"
           options={{ headerShown: true, title: 'Activity Log' }}
         />
+
+        <Stack.Screen
+          name="group-leaderboard"
+          options={{ headerShown: true, title: 'Group Leaderboard' }}
+        />
       </Stack>
     </UserProvider>
   );
