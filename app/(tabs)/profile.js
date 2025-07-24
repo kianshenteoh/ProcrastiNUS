@@ -111,7 +111,9 @@ export default function ProfileScreen() {
                 <View style={styles.badgeGrid}>
                   {badges.map(b => (
                     <View key={b.id} style={[styles.badgeCard, { backgroundColor: b.color + '55' }]}>
-                      <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}> <FontAwesome5 name={b.icon} size={24} color="#fff" /> </View>
+                      <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}>
+                        <FontAwesome5 name={b.icon} size={24} color="#fff" />
+                      </View>
                       <Text style={styles.badgeLabel}>{b.name}</Text>
                     </View>
                   ))}

@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.kianshenteoh.procrastinus",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -21,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kianshenteoh.procrastinus"
+      "package": "com.kianshenteoh.procrastinus",
+      "permissions": ["RECEIVE_BOOT_COMPLETED"]
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +41,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/sounds/notification.wav"],
+          "mode": "production"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
