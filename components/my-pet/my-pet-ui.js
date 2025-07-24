@@ -11,9 +11,9 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
   const [newName, setNewName] = useState('');
 
   const foods = [
-    { id: 'biscuit', label: 'Biscuit', cost: 5, hunger: 20, icon: 'cookie-bite' },
-    { id: 'snack', label: 'Snack', cost: 3, hunger: 15, icon: 'bone' },
-    { id: 'premium', label: 'Big Mac', cost: 10, hunger: 40, icon: 'hamburger' },
+    { id: 'biscuit', label: 'Biscuit (+10%)', cost: 3, hunger: 10, icon: 'cookie-bite' },
+    { id: 'snack', label: 'Snack (+20%)', cost: 5, hunger: 20, icon: 'bone' },
+    { id: 'premium', label: 'Big Mac (+50%)', cost: 10, hunger: 50, icon: 'hamburger' },
   ]; 
 
   const badges = [

@@ -415,7 +415,7 @@ export default function SocialScreen() {
           </View>
         </Modal>
 
-        {/* join modal */}
+        {/* join group modal */}
         <Modal visible={joinModalVisible} transparent animationType="slide" onRequestClose={() => setJoinModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
@@ -566,8 +566,8 @@ const styles = StyleSheet.create({
   feedBtn: { marginTop: 8, backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
   feedTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
   friendsTitle: { fontSize: 22, fontWeight: '800', marginTop: 24, marginHorizontal: 20, color: '#1e3a8a' },
-  studyGroupTitle: { fontSize: 22, fontWeight: '800', marginTop: 24, marginHorizontal: 20, color: '#1e3a8a' },
-  groupCard: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 18, marginHorizontal: 20, marginVertical: 10, elevation: 2 },
+  studyGroupTitle: { fontSize: 22, fontWeight: '800', marginTop: 24, marginBottom: 6, marginHorizontal: 20, color: '#1e3a8a' },
+  groupCard: { backgroundColor: '#fff', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 18, marginHorizontal: 20, marginVertical: 8, elevation: 2 },
   groupTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   groupInfo: { flexDirection: 'row', alignItems: 'center' },
   groupName: { fontSize: 16, fontWeight: '700', color: '#1f2937', marginBottom: 0 },

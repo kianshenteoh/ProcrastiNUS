@@ -67,7 +67,7 @@ export default function PetAndBadgesBackend() {
           const newPet = {
             ownerId: userId,
             ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
-            name: 'Danny',
+            name: 'No Name Yet :(',
             hunger: 100,
             totalXp: 1000,
             lastUpdated: Date.now(),
@@ -304,6 +304,16 @@ export default function PetAndBadgesBackend() {
     const updatedPet = { ...pet, name: newName.trim() };
     await updateDoc(petDocRef, { name: newName.trim() });
     setPet(updatedPet);
+
+    // when pet is renamed, also update the pet cache for friends
+    const friendListSnap = await getDoc(doc(db, 'users', currentUserId, 'friends', 'list'));
+    if (friendListSnap.exists()) {
+      const friendIds = Object.keys(friendListSnap.data());
+      for (const fid of friendIds) {
+        const cacheRef = doc(db, 'users', fid, 'friends', 'petsCache');
+        await setDoc(cacheRef, { lastUpdated: 0 }, { merge: true }); // force re-fetch next time
+      }
+    }
   };
 
   return (
