@@ -7,7 +7,7 @@ import { Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text,
 export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet, simulateTimePassed, isFeeding}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
-  const [nameModal, setNameModal] = useState(pet.name === 'Danny');
+  const [nameModal, setNameModal] = useState(pet.name === 'No Name Yet :(');
   const [newName, setNewName] = useState('');
 
   const foods = [
@@ -48,7 +48,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         <View style={styles.wallet}>
           <IconText icon="coins" text={wallet.coins} color="#ffd700" />
         </View>
-        <Pressable style={styles.leaderboardBtn} onPress={() => router.push('/pet-settings')}>
+        <Pressable style={styles.leaderboardBtn} onPress={() => {setNameModal(true);}}>
           <MaterialIcons name="settings" size={22} color="#fff" />
         </Pressable> 
       </View>
@@ -135,7 +135,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Name Your Pet</Text>
             <Text style={{ marginBottom: 12, textAlign: 'center', color: '#4b5563' }}>
-              What would you like to name your new companion?
+              What would you like to name your companion?
             </Text>
             <View style={styles.inputBox}>
               <TextInput
