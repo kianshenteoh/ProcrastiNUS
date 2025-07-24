@@ -1,9 +1,10 @@
 import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { auth, db } from '@/firebase';
+import { logToPersonalAndGroupLog } from '@/lib/logActivity';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { addDoc, arrayUnion, collection, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
+import { arrayUnion, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -95,20 +96,8 @@ export default function StudyGroupScreen() {
         joinedAt: now,
       });
 
-      // write to group logg
-      const inviterProfileSnap = await getDoc(doc(db, 'users', inviterId, 'profile', 'data'));
-      const inviterName = inviterProfileSnap.exists() ? inviterProfileSnap.data().name : 'Unknown';
-
-      await setDoc(doc(db, 'studyGroups', groupId, 'members', inviteeId), {
-        joinedAt: now,
-      });
-
-      await addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
-        actor: inviterName,
-        action: 'invited',
-        target: inviteeProfileSnap.data()?.name || inviteeId,
-        timestamp: Timestamp.fromDate(now),
-      });
+      // write to personal group log
+      await logToPersonalAndGroupLog(inviterId, groupId, 'added', inviteeProfileSnap.data()?.name || inviteeId)
 
       alert('Member added!');
       setInviteEmail('');
