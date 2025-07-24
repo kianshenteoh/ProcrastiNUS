@@ -4,7 +4,7 @@ import { auth, db } from '@/firebase';
 import { logToPersonalAndGroupLog } from '@/lib/logActivity';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { arrayUnion, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -24,14 +24,7 @@ export default function StudyGroupScreen() {
   // ]);
 
   const [members, setMembers] = useState([]);
-
-  const activityLog = [
-    { id: '1', user: 'Alice', action: 'studied for 2h', time: '2025-07-21T14:30:00Z' },
-    { id: '2', user: 'Dan', action: 'fed Carol’s pet', time: '2025-07-21T13:45:00Z' },
-    { id: '3', user: 'Eve', action: 'created task “CS Project”', time: '2025-07-20T18:10:00Z' },
-    { id: '4', user: 'Bob', action: 'completed “Review Notes”', time: '2025-07-20T15:00:00Z' },
-    { id: '5', user: 'Carol', action: 'studied for 1.5h', time: '2025-07-20T09:00:00Z' },
-  ];
+  const [activityLog, setActivityLog] = useState([]);
 
   const handleInviteMember = async () => {
     setInviteModalVisible(false);
@@ -142,15 +135,33 @@ export default function StudyGroupScreen() {
     return (await Promise.all(petPromises)).filter(Boolean);
   };
 
+  const fetchGroupActivityLog = async (groupId) => {
+    const q = query(
+      collection(db, 'studyGroups', groupId, 'activityLog'),
+      orderBy('timestamp', 'desc'),
+      limit(10)
+    );
+
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  };
 
   useEffect(() => {
-    const loadGroupPets = async () => {
-      const pets = await fetchGroupPets(groupId);
+    const loadGroupData = async () => {
+      const [pets, logs] = await Promise.all([
+        fetchGroupPets(groupId),
+        fetchGroupActivityLog(groupId),
+      ]);
       setMembers(pets);
+      setActivityLog(logs);
     };
 
-    loadGroupPets();
+    loadGroupData();
   }, []);
+
 
   return (
     <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 80 }}>
@@ -243,7 +254,7 @@ export default function StudyGroupScreen() {
               </View>
             ))}
           {members.length > 5 && (
-            <Pressable onPress={() => router.push({ pathname: '/group-leaderboard', params: { groupId: groupId, groupName: groupName } })} style={styles.viewFullLbBtn}>
+            <Pressable onPress={() => router.push({ pathname: '/group-leaderboard', params: { groupId, groupName } })} style={styles.viewFullLbBtn}>
               <Text style={styles.viewFullLbTxt}>View Full Group Leaderboard</Text>
             </Pressable>
           )}
@@ -251,18 +262,23 @@ export default function StudyGroupScreen() {
 
         <View style={styles.sectionBox}>
           <Text style={styles.sectionTitle}>Activity Log</Text>
-          {activityLog.slice(0, 10).map((log, i) => (
+          {activityLog.map((log, i) => (
             <View key={i} style={styles.logRow}>
               <MaterialIcons name="chevron-right" size={18} color="#3b82f6" style={{ marginRight: 8 }} />
               <View style={styles.logTextContainer}>
-                <Text style={styles.logText}><Text style={styles.logUser}>{log.user}</Text> {log.action}</Text>
+                <Text style={styles.logText}>
+                  <Text style={styles.logUser}>{log.actor}</Text> {log.action} <Text style={styles.logUser}>{log.target}</Text>
+                </Text>
                 <Text style={styles.logTimestamp}>
-                  {new Date(log.time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                  {new Date(log.timestamp?.toDate?.() || log.timestamp).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  })}
                 </Text>
               </View>
             </View>
           ))}
-          <Pressable onPress={() => router.push('/activity-log')} style={styles.viewFullLogBtn}>
+          <Pressable onPress={() => router.push({pathname: '/activity-log', params: {groupId, groupName}})} style={styles.viewFullLogBtn}>
             <Text style={styles.viewFullLogTxt}>View Full Activity Log</Text>
           </Pressable>
         </View>
