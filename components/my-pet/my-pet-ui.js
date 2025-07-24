@@ -16,15 +16,6 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
     { id: 'premium', label: 'Big Mac (+50%)', cost: 10, hunger: 50, icon: 'hamburger' },
   ]; 
 
-  const badges = [
-    { id: 'early', name: 'Early Bird', icon: 'sun', color: '#ffbf00' },
-    { id: 'streak', name: '7-Day Streak', icon: 'fire', color: '#ff7a00' },
-    { id: 'tasks100', name: '100 Tasks', icon: 'tasks', color: '#3b82f6' },
-    { id: 'owl', name: 'Night Owl', icon: 'moon', color: '#8e44ad' },
-    { id: 'focus', name: 'Focus Champ', icon: 'bolt', color: '#10b981' },
-    { id: 'veteran', name: '30-Day Vet', icon: 'trophy', color: '#eab308' },
-  ];
-
   const canAfford = f => wallet.coins >= f.cost;
   const alertFullness = () => {
     Alert.alert('Your pet is already full!', 'But I will be hungry again soon. Visit me later!', [{ text: 'OK', style: 'cancel' }]);

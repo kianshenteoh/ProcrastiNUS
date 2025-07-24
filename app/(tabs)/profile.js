@@ -26,14 +26,18 @@ export default function ProfileScreen() {
   const [newAvatar, setNewAvatar] = useState('');
   const [nameError, setNameError] = useState('');
   const [pickerVisible, setPickerVisible] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState([]);
 
   const badges = [
-    { id: 'early', name: 'Early Bird', icon: 'sun', color: '#ffbf00' },
-    { id: 'streak', name: '7-Day Streak', icon: 'fire', color: '#ff7a00' },
-    { id: 'tasks100', name: '100 Tasks', icon: 'tasks', color: '#3b82f6' },
-    { id: 'owl', name: 'Night Owl', icon: 'moon', color: '#8e44ad' },
-    { id: 'focus', name: 'Focus Champ', icon: 'bolt', color: '#10b981' },
-    { id: 'veteran', name: '30-Day Vet', icon: 'trophy', color: '#eab308' },
+    { id: 'firstTask', name: 'First Task', icon: 'star', color: '#ffbf00' },
+    { id: 'taskMaster', name: 'Task Master', icon: 'tasks', color: '#3b82f6' },
+    { id: 'productivityPro', name: 'Productivity Pro', icon: 'bolt', color: '#10b981' },
+    { id: 'firstFriend', name: 'First Friend', icon: 'user-friends', color: '#ffbf00' },
+    { id: 'socialButterfly', name: 'Social Butterfly', icon: 'users', color: '#3b82f6' },
+    { id: 'studyBuddy', name: 'Study Buddy', icon: 'book', color: '#10b981' },
+    { id: 'firstSession', name: 'First Session', icon: 'star', color: '#ffbf00' },
+    { id: 'studyStreak', name: 'Study Streak', icon: 'fire', color: '#ff5e00' },
+    { id: 'longSession', name: 'Focused Learner', icon: 'brain', color: '#3b82f6' }
   ];
 
   useFocusEffect(
@@ -45,15 +49,18 @@ export default function ProfileScreen() {
         const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
         const profileRef = doc(db, 'users', userId, 'profile', 'data');
         const statsRef = doc(db, 'users', userId, 'stats', 'data');
+        const badgesRef = doc(db, 'users', userId, 'badges', 'data');
 
         try {
-          const [profileSnap, statsSnap] = await Promise.all([
+          const [profileSnap, statsSnap, badgesSnap] = await Promise.all([
             getDoc(profileRef),
             getDoc(statsRef),
+            getDoc(badgesRef),
           ]);
 
           const profileData = profileSnap.exists() ? profileSnap.data() : {};
           const statsData = statsSnap.exists() ? statsSnap.data() : {};
+          const badgesData = badgesSnap.exists() ? badgesSnap.data() : {};
 
           setUser(prev => ({
             ...prev,
@@ -62,6 +69,8 @@ export default function ProfileScreen() {
             studyHours: profileData.studyHours || 0,
             tasksCompleted: profileData.tasksCompleted || 0,
           }));
+
+          setEarnedBadges(badgesData.earned || []);
         } catch (err) {
           console.error('Error loading profile:', err);
         }
@@ -69,12 +78,10 @@ export default function ProfileScreen() {
 
       fetchUserData();
       
-      // Clear refresh param if it exists
       if (route.params?.refresh) {
         nav.setParams({ refresh: undefined });
       }
-    }, [route.params?.refresh]) // Only re-run when refresh param changes
-  );
+    }, [route.params?.refresh]));
 
   return (
     <View style={{ flex: 1 }}>
@@ -108,16 +115,24 @@ export default function ProfileScreen() {
             }}
           />
           <Text style={styles.badgesTitle}>Badges</Text>
-                <View style={styles.badgeGrid}>
-                  {badges.map(b => (
-                    <View key={b.id} style={[styles.badgeCard, { backgroundColor: b.color + '55' }]}>
-                      <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}>
-                        <FontAwesome5 name={b.icon} size={24} color="#fff" />
+            <View style={styles.badgeGrid}>
+              {earnedBadges.length > 0 ? (
+                earnedBadges.map(badgeId => {
+                  const badge = badges.find(b => b.id === badgeId);
+                  if (!badge) return null;
+                  return (
+                    <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color + '55' }]}>
+                      <View style={[styles.badgeIconWrap, { backgroundColor: badge.color }]}>
+                        <FontAwesome5 name={badge.icon} size={24} color="#fff" />
                       </View>
-                      <Text style={styles.badgeLabel}>{b.name}</Text>
+                      <Text style={styles.badgeLabel}>{badge.name}</Text>
                     </View>
-                  ))}
-                </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.noBadgesText}>No badges earned yet</Text>
+              )}
+            </View>
         </View>
       </ScrollView>
 
@@ -298,4 +313,11 @@ const styles = StyleSheet.create({
   badgeCard: { width: '45%', alignItems: 'center', marginBottom: 14, paddingVertical: 12, borderRadius: 16 },
   badgeIconWrap: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
   badgeLabel: { color: '#1f2937', fontWeight: '600', textAlign: 'center', fontSize: 10 },
+  noBadgesText: {
+  color: '#666',
+  fontStyle: 'italic',
+  textAlign: 'center',
+  width: '100%',
+  marginTop: 20,
+},
 });

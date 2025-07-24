@@ -1,4 +1,4 @@
-import { FontAwesome6 } from '@expo/vector-icons';
+import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -21,6 +21,9 @@ export default function TasksScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState(null);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [newBadge, setNewBadge] = useState(null);
+
 
   useEffect(() => {
     const loadAndCleanTasks = async () => {
@@ -124,6 +127,13 @@ export default function TasksScreen() {
         const ref = await addDoc(collection(db, 'users', userId, 'tasks'), task);
         setTasks(t => [{ id: ref.id, ...task }, ...t]);
         trackTaskEvent('created');
+        
+        // Check for badges after creating a task
+        const badge = await checkForBadges();
+        if (badge) {
+          setNewBadge(badge);
+          setShowBadgeModal(true);
+        }
       }
     } catch (error) {
       console.error('Error saving task:', error);
@@ -179,18 +189,24 @@ export default function TasksScreen() {
       // Mark task as completed
       batch.update(taskRef, { completed: true });
       
+      // Increment tasksCompleted in profile
       batch.update(profileRef, { tasksCompleted: increment(1) });
-    
 
       await batch.commit();
       trackTaskEvent('completed');
+      
+      // Check for badges after completing a task
+      const badge = await checkForBadges();
+      if (badge) {
+        setNewBadge(badge);
+        setShowBadgeModal(true);
+      }
     } catch (error) {
       console.error('Error completing task:', error);
       // Rollback UI if error occurs
       setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: false } : t)));
     }
   };
-
 
   const groupTasks = () => {
     const priorities = ['High', 'Medium', 'Low'];
@@ -247,6 +263,7 @@ const renderRightActions = (progress, dragX, task) => {
       // Mark task as not completed
       batch.update(taskRef, { completed: false });
       
+      // Decrement tasksCompleted in profile
       batch.update(profileRef, { tasksCompleted: increment(-1) });
 
       await batch.commit();
@@ -257,6 +274,66 @@ const renderRightActions = (progress, dragX, task) => {
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
     }
   };
+
+  const checkForBadges = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    
+    try {
+      // Get current tasks count from profile
+      const profileRef = doc(db, 'users', userId, 'profile', 'data');
+      const profileSnap = await getDoc(profileRef);
+      const tasksCompleted = profileSnap.exists() ? profileSnap.data().tasksCompleted || 0 : 0;
+
+      // Get current badges
+      const badgesRef = doc(db, 'users', userId, 'badges', 'data');
+      const badgesSnap = await getDoc(badgesRef);
+      const currentBadges = badgesSnap.exists() ? badgesSnap.data().earned || [] : [];
+      const newBadges = [...currentBadges];
+      let badgeAwarded = null;
+
+      // Check for First Task badge
+      if (tasksCompleted === 1 && !currentBadges.includes('firstTask')) {
+        newBadges.push('firstTask');
+        badgeAwarded = {
+          id: 'firstTask',
+          name: 'First Task',
+          icon: 'star',
+          color: '#ffbf00'
+        };
+      }
+      // Check for Task Master badge (5 tasks)
+      else if (tasksCompleted === 5 && !currentBadges.includes('taskMaster')) {
+        newBadges.push('taskMaster');
+        badgeAwarded = {
+          id: 'taskMaster',
+          name: 'Task Master',
+          icon: 'tasks',
+          color: '#3b82f6'
+        };
+      }
+      // Check for Productivity Pro badge (10 tasks)
+      else if (tasksCompleted === 10 && !currentBadges.includes('productivityPro')) {
+        newBadges.push('productivityPro');
+        badgeAwarded = {
+          id: 'productivityPro',
+          name: 'Productivity Pro',
+          icon: 'bolt',
+          color: '#10b981'
+        };
+      }
+
+      if (badgeAwarded) {
+        await setDoc(badgesRef, { earned: newBadges }, { merge: true });
+        return badgeAwarded;
+      }
+    } catch (error) {
+      console.error('Error updating badges:', error);
+    }
+    return null;
+  };
+
 
 
 
@@ -373,6 +450,34 @@ const renderRightActions = (progress, dragX, task) => {
             </View>
           </View>
         </Modal>
+
+        <Modal visible={showBadgeModal} transparent animationType="fade">
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+    <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
+      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>🎉 New Badge Unlocked!</Text>
+      
+      {newBadge && (
+        <View style={[styles.badgeCard, { backgroundColor: newBadge.color + '55', marginBottom: 16 }]}>
+          <View style={[styles.badgeIconWrap, { backgroundColor: newBadge.color }]}>
+            <FontAwesome5 name={newBadge.icon} size={24} color="#fff" />
+          </View>
+          <Text style={styles.badgeLabel}>{newBadge.name}</Text>
+        </View>
+      )}
+      
+      <Text style={{ textAlign: 'center', marginBottom: 16 }}>
+        You've earned a new badge for your achievements!
+      </Text>
+      
+      <Pressable 
+        onPress={() => setShowBadgeModal(false)}
+        style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, width: '100%' }}
+      >
+        <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Awesome!</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
       </View>
     </GestureHandlerRootView>
   );
@@ -414,5 +519,25 @@ const styles = StyleSheet.create({
   switchLabel: { fontSize: 16 },
   completeAction: { backgroundColor: 'green', justifyContent: 'center', alignItems: 'center', width: 100, borderRadius: 10, marginBottom: 12 },
   completeText: { color: '#fff', fontWeight: '700', fontSize: 16 },
-  calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:20,borderRadius:25,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4}
+  calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:20,borderRadius:25,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4},
+  badgeCard: {
+  width: 120,
+  alignItems: 'center',
+  paddingVertical: 12,
+  borderRadius: 16,
+},
+badgeIconWrap: {
+  width: 50,
+  height: 50,
+  borderRadius: 25,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 6,
+},
+badgeLabel: {
+  color: '#1f2937',
+  fontWeight: '600',
+  textAlign: 'center',
+  fontSize: 12,
+},
 });

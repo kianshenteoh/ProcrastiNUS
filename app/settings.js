@@ -61,12 +61,6 @@ export default function SettingsScreen() {
           onValueChange={setNotificationsEnabled}
         />
       </View>
-      <Pressable
-        style={styles.button}
-        onPress={() => router.push("/focus-settings")}
-      >
-        <Text style={styles.buttonText}>Focus Mode Settings</Text>
-      </Pressable>
       <Pressable style={styles.button} onPress={() => router.push("/about")}>
         <Text style={styles.buttonText}>About This App</Text>
       </Pressable>

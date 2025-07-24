@@ -20,6 +20,30 @@ export default function SocialScreen() {
   const [newGroupId, setNewGroupId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [groups, setGroups] = useState([]);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [newBadge, setNewBadge] = useState(null);
+
+  const badges = {
+    firstFriend: {
+      id: 'firstFriend',
+      name: 'First Friend',
+      icon: 'user-friends',
+      color: '#ffbf00'
+    },
+    socialButterfly: {
+      id: 'socialButterfly',
+      name: 'Social Butterfly',
+      icon: 'users',
+      color: '#3b82f6'
+    },
+    studyBuddy: {
+      id: 'studyBuddy',
+      name: 'Study Buddy',
+      icon: 'book',
+      color: '#10b981'
+    }
+  };
+
 
  useEffect(() => {
   const rawEmail = auth.currentUser?.email;
@@ -86,7 +110,6 @@ export default function SocialScreen() {
         const now = Date.now();
 
         if (!shouldBypassCache && now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
-          console.log("Using cached pets data");
           return cachedData.pets;
         }
       }
@@ -222,7 +245,18 @@ export default function SocialScreen() {
         ),
       ]);
 
-      // 4. Refresh friends list
+      // 4. Get updated friends count
+      const updatedFriendsSnap = await getDoc(myFriendsRef);
+      const friendsCount = updatedFriendsSnap.exists() ? Object.keys(updatedFriendsSnap.data()).length : 0;
+
+      // 5. Check for badges
+      const badge = await checkSocialBadges('friend', friendsCount);
+      if (badge) {
+        setNewBadge(badge);
+        setShowBadgeModal(true);
+      }
+
+      // 6. Refresh friends list
       const data = await fetchFriendsPets(true);
       setFriendsPets(data);
 
@@ -273,6 +307,17 @@ export default function SocialScreen() {
           timestamp: now
         })
       ]);
+
+      // Check if this is the first group joined
+      const groupsSnap = await getDocs(collection(db, 'users', userId, 'groups'));
+      const groupsCount = groupsSnap.size;
+      
+      // Check for badges
+      const badge = await checkSocialBadges('group', groupsCount);
+      if (badge) {
+        setNewBadge(badge);
+        setShowBadgeModal(true);
+      }
 
       // Cache update
       const groupData = groupSnap.data();
@@ -416,6 +461,41 @@ export default function SocialScreen() {
     }
   };
 
+  const checkSocialBadges = async (type, count) => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const badgesRef = doc(db, 'users', userId, 'badges', 'data');
+
+    try {
+      const badgesSnap = await getDoc(badgesRef);
+      const currentBadges = badgesSnap.exists() ? badgesSnap.data().earned || [] : [];
+      const newBadges = [...currentBadges];
+      let badgeAwarded = null;
+
+      if (type === 'friend') {
+        if (count === 1 && !currentBadges.includes('firstFriend')) {
+          newBadges.push('firstFriend');
+          badgeAwarded = badges.firstFriend;
+        } else if (count === 5 && !currentBadges.includes('socialButterfly')) {
+          newBadges.push('socialButterfly');
+          badgeAwarded = badges.socialButterfly;
+        }
+      } else if (type === 'group' && count === 1 && !currentBadges.includes('studyBuddy')) {
+        newBadges.push('studyBuddy');
+        badgeAwarded = badges.studyBuddy;
+      }
+
+      if (badgeAwarded) {
+        await setDoc(badgesRef, { earned: newBadges }, { merge: true });
+        return badgeAwarded;
+      }
+    } catch (error) {
+      console.error('Error updating social badges:', error);
+    }
+    return null;
+  };
+
   return (
     <MenuProvider>
       <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 40 }}>
@@ -478,6 +558,34 @@ export default function SocialScreen() {
                 <Pressable onPress={() => setCreateModalVisible(false)} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancel</Text></Pressable>
                 <Pressable onPress={handleCreateGroup} style={styles.addBtn}><Text style={styles.addText}>Create</Text></Pressable>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        <Modal visible={showBadgeModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>🎉 New Badge Unlocked!</Text>
+              
+              {newBadge && (
+                <View style={[styles.badgeCard, { backgroundColor: newBadge.color + '55', marginBottom: 16 }]}>
+                  <View style={[styles.badgeIconWrap, { backgroundColor: newBadge.color }]}>
+                    <FontAwesome5 name={newBadge.icon} size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.badgeLabel}>{newBadge.name}</Text>
+                </View>
+              )}
+              
+              <Text style={{ textAlign: 'center', marginBottom: 16 }}>
+                You've earned a new badge for your social achievements!
+              </Text>
+              
+              <Pressable 
+                onPress={() => setShowBadgeModal(false)}
+                style={styles.addBtn}
+              >
+                <Text style={styles.addText}>Awesome!</Text>
+              </Pressable>
             </View>
           </View>
         </Modal>
@@ -630,4 +738,24 @@ const styles = StyleSheet.create({
   ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
   viewGroupBtn: { marginTop: 12, backgroundColor: '#3b82f6', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, alignSelf: 'center' },
   viewGroupBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  badgeCard: {
+    width: 120,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  badgeIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  badgeLabel: {
+    color: '#1f2937',
+    fontWeight: '600',
+    textAlign: 'center',
+    fontSize: 12,
+  },
 });

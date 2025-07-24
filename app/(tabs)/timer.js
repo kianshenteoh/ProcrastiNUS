@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
 import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
+import { Alert, Dimensions, Modal, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { auth, db } from '../../firebase';
 
@@ -28,6 +28,9 @@ export default function PomodoroScreen() {
   const intervalRef = useRef(null);
   const [coins, setCoins] = useState(0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [newBadge, setNewBadge] = useState(null);
+
 
   const quotes = [
   "Stay focused—your future self is watching with popcorn.",
@@ -108,6 +111,28 @@ export default function PomodoroScreen() {
     setRunning(true);
     setCustomMinutes('');
   };
+
+  const STUDY_BADGES = {
+    firstSession: {
+      id: 'firstSession',
+      name: 'First Session',
+      icon: 'star',
+      color: '#ffbf00'
+    },
+    studyStreak: {
+      id: 'studyStreak',
+      name: 'Study Streak',
+      icon: 'fire',
+      color: '#ff5e00'
+    },
+    longSession: {
+      id: 'longSession',
+      name: 'Focused Learner',
+      icon: 'brain',
+      color: '#3b82f6'
+    }
+  };
+
 
   const getRandomQuote = () => {
     const randomIndex = Math.floor(Math.random() * quotes.length);
@@ -246,7 +271,7 @@ const awardCoins = async (amount) => {
 };
 
 const recordStudySession = async (durationInMinutes) => {
-  if (durationInMinutes < 5) return; // Ignore very short sessions to prevent spamming the database
+  if (durationInMinutes < 5) return; // Ignore very short sessions
 
   const rawEmail = auth.currentUser?.email;
   if (!rawEmail) return;
@@ -267,11 +292,12 @@ const recordStudySession = async (durationInMinutes) => {
     studyHours: increment(hoursToAdd)
   }, { merge: true });
 
-  // 3. Update profile cache
-  await updateDoc(profileCacheRef, {
-    'userData.studyHours': currentStudyHours + hoursToAdd,
-    lastUpdated: serverTimestamp()
-  }, { merge: true });
+  // 3. Check for badges
+  const badge = await checkStudyBadges(durationInMinutes);
+  if (badge) {
+    setNewBadge(badge);
+    setShowBadgeModal(true);
+  }
 };
 
 const getWeeklyStudySessions = async () => {
@@ -365,6 +391,53 @@ const refreshStudyHours = async () => {
     console.error('Error refreshing study hours:', err);
   }
 };
+
+  const checkStudyBadges = async (durationInMinutes) => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return null;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const badgesRef = doc(db, 'users', userId, 'badges', 'data');
+
+    try {
+      // Get current badges
+      const badgesSnap = await getDoc(badgesRef);
+      const currentBadges = badgesSnap.exists() ? badgesSnap.data().earned || [] : [];
+      const newBadges = [...currentBadges];
+      let badgeAwarded = null;
+
+      // Check if this is the first session
+      const sessionsRef = collection(db, 'users', userId, 'StudySessions');
+      const sessionsQuery = query(sessionsRef);
+      const sessionsSnap = await getDocs(sessionsQuery);
+      const totalSessions = sessionsSnap.size;
+
+      if (totalSessions === 1 && !currentBadges.includes('firstSession')) {
+        newBadges.push('firstSession');
+        badgeAwarded = STUDY_BADGES.firstSession;
+      }
+
+      // Check for long session (30+ minutes)
+      if (durationInMinutes >= 30 && !currentBadges.includes('longSession')) {
+        newBadges.push('longSession');
+        badgeAwarded = STUDY_BADGES.longSession;
+      }
+
+      // Check for study streak (3+ sessions in a week)
+      const weeklySessions = await getWeeklyStudySessions();
+      if (weeklySessions.length >= 3 && !currentBadges.includes('studyStreak')) {
+        newBadges.push('studyStreak');
+        badgeAwarded = STUDY_BADGES.studyStreak;
+      }
+
+      if (badgeAwarded) {
+        await setDoc(badgesRef, { earned: newBadges }, { merge: true });
+        return badgeAwarded;
+      }
+    } catch (error) {
+      console.error('Error checking study badges:', error);
+    }
+    return null;
+  };
 
 const handleManualReset = () => {
   if (elapsed < 300) {
@@ -514,6 +587,36 @@ const forceResetManual = async () => {
           <Pressable style={styles.resetBtn} onPress={giveUp}><FontAwesome5 name="times" size={28} color="#fff" /></Pressable>
         </View>
       )}
+
+      <View style={styles.container}>
+    <Modal visible={showBadgeModal} transparent animationType="fade">
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
+          <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>🎉 New Badge Unlocked!</Text>
+          
+          {newBadge && (
+            <View style={[styles.badgeCard, { backgroundColor: newBadge.color + '55', marginBottom: 16 }]}>
+              <View style={[styles.badgeIconWrap, { backgroundColor: newBadge.color }]}>
+                <FontAwesome5 name={newBadge.icon} size={24} color="#fff" />
+              </View>
+              <Text style={styles.badgeLabel}>{newBadge.name}</Text>
+            </View>
+          )}
+          
+          <Text style={{ textAlign: 'center', marginBottom: 16 }}>
+            You've earned a new badge for your study achievements!
+          </Text>
+          
+          <Pressable 
+            onPress={() => setShowBadgeModal(false)}
+            style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, width: '100%' }}
+          >
+            <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Awesome!</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  </View>
     </View>
   );
 }
@@ -553,4 +656,24 @@ const styles = StyleSheet.create({
   studyLbl: { fontSize:10, color: '#fff', marginHorizontal: 5, textAlign: 'center' },
   wallet: { flexDirection: 'row' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 20 },
+  badgeCard: {
+  width: 120,
+  alignItems: 'center',
+  paddingVertical: 12,
+  borderRadius: 16,
+},
+badgeIconWrap: {
+  width: 50,
+  height: 50,
+  borderRadius: 25,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 6,
+},
+badgeLabel: {
+  color: '#1f2937',
+  fontWeight: '600',
+  textAlign: 'center',
+  fontSize: 12,
+},
 });
