@@ -303,7 +303,7 @@ export default function SocialScreen() {
         addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
           actor: userName,
           action: 'joined group',
-          target: '',
+          target: `${groupSnap.data().name}`,
           timestamp: now
         })
       ]);
@@ -376,7 +376,7 @@ export default function SocialScreen() {
         addDoc(collection(db, 'studyGroups', groupId, 'activityLog'), {
           actor: userName,
           action: 'created group',
-          target: '',
+          target: `${groupName}`,
           timestamp: now
         })
       ]);
@@ -552,8 +552,10 @@ export default function SocialScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
               <Text style={styles.modalTitle}>Create Study Group</Text>
-              <TextInput placeholder="Group ID (unique)" value={newGroupId} onChangeText={setNewGroupId} style={styles.input} autoCapitalize="none" />
-              <TextInput placeholder="Group Name" value={newGroupName} onChangeText={setNewGroupName} style={styles.input} />
+              <Text style={{ fontWeight: '600', marginBottom: 4 }}>Group ID (Unique)</Text>
+              <TextInput value={newGroupId} onChangeText={setNewGroupId} style={styles.input} autoCapitalize="none" />
+              <Text style={{ fontWeight: '600', marginBottom: 4, marginTop: 12 }}>Group Name</Text>
+              <TextInput value={newGroupName} onChangeText={setNewGroupName} style={styles.input} />
               <View style={styles.modalButtons}>
                 <Pressable onPress={() => setCreateModalVisible(false)} style={styles.cancelBtn}><Text style={styles.cancelText}>Cancel</Text></Pressable>
                 <Pressable onPress={handleCreateGroup} style={styles.addBtn}><Text style={styles.addText}>Create</Text></Pressable>

@@ -343,5 +343,8 @@ const styles = StyleSheet.create({
   logUser: { fontWeight: '700', color: '#0f172a' },
   logTimestamp: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   viewFullLogBtn: { marginTop: 12, alignSelf: 'flex-end' },
-  viewFullLogTxt: { fontWeight: '700', color: '#3b82f6' }
+  viewFullLogTxt: { fontWeight: '700', color: '#3b82f6' },
+
+  withdrawBtn: { marginTop: 10, alignSelf: 'center', paddingHorizontal: 20, paddingVertical: 10, backgroundColor: '#ef4444', borderRadius: 8 },
+  withdrawTxt: { color: '#fff', fontWeight: '700' },
   });
