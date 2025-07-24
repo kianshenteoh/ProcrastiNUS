@@ -219,7 +219,7 @@ export default function StudyGroupScreen() {
             <Text style={styles.ownerName}>Owner: {item.name}</Text>
             <Pressable
               onPress={() =>
-                router.push({ pathname: '/view-pet', params: { friendId: item.ownerId } })
+                router.push({ pathname: '/view-pet', params: { friendId: item.ownerId, groupId } })
               }
               style={styles.feedBtn}
             >

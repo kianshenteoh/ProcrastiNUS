@@ -295,7 +295,7 @@ export default function PetAndBadgesBackend() {
       const oldLevel = Math.floor(pet.totalXp / 1000);
       const newLevel = Math.floor(finalPet.totalXp / 1000);
       if (newLevel > oldLevel) {
-        await logToAllGroupLogs(userId, `'s pet leveled up to `, `Level ${newLevel}`);
+        await logToAllGroupLogs(userId, `'s pet leveled up to`, `Level ${newLevel}`);
       }
 
       setPet({

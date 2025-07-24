@@ -1,6 +1,6 @@
 import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
-import { logToAllGroupLogs } from '@/lib/logActivity';
+import { logToPersonalAndGroupLog, logToPersonalLog } from '@/lib/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
@@ -10,7 +10,7 @@ import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, Toucha
 import { computePetStats } from '../components/my-pet/my-pet-backend';
 
 export default function ViewPetScreen() {
-  const { friendId } = useLocalSearchParams();
+  const { friendId, groupId } = useLocalSearchParams();
   const [pet, setPet] = useState(null);
   const [wallet, setWallet] = useState({ coins: 0 });
   const [inventory, setInventory] = useState([]);
@@ -22,11 +22,10 @@ export default function ViewPetScreen() {
   const petRef = useRef(null);
 
   const foods = [
-    { id: 'biscuit', label: 'Biscuit', cost: 5, hunger: 20, icon: 'cookie-bite' },
-    { id: 'snack', label: 'Snack', cost: 3, hunger: 15, icon: 'bone' },
-    { id: 'premium', label: 'Big Mac', cost: 10, hunger: 40, icon: 'hamburger' },
-  ];
-
+    { id: 'biscuit', label: 'Biscuit (+10%)', cost: 3, hunger: 10, icon: 'cookie-bite' },
+    { id: 'snack', label: 'Snack (+20%)', cost: 5, hunger: 20, icon: 'bone' },
+    { id: 'premium', label: 'Big Mac (+50%)', cost: 10, hunger: 50, icon: 'hamburger' },
+  ]; 
 
   const loadData = async () => {
     setLoading(true);
@@ -204,8 +203,12 @@ export default function ViewPetScreen() {
               { pets: patched, lastUpdated: new Date() },
               { merge: true }
             );
-
-            await logToAllGroupLogs(userId, `fed ${pet.ownerName || 'a friend'}'s pet`, pet.name);
+            
+            if (groupId) {
+              await logToPersonalAndGroupLog(userId, groupId, `fed ${food.label} to ${pet.ownerName || 'a friend'}'s pet`, pet.name);
+            } else {
+              await logToPersonalLog(userId, `fed ${pet.ownerName || 'a friend'}'s pet`, pet.name);
+            }
           }
         }
 
