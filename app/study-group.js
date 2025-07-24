@@ -190,7 +190,7 @@ export default function StudyGroupScreen() {
               </Pressable>
 
               <Pressable onPress={handleInviteMember} style={styles.addBtn}>
-                <Text style={styles.addText}>Add</Text>
+                <Text style={styles.addText}>Add Member</Text>
               </Pressable>
             </View>
           </View>
@@ -201,7 +201,7 @@ export default function StudyGroupScreen() {
         <Text style={styles.title}>{groupName} <Text style={styles.groupId}>ID: {groupId}</Text></Text>
         <Pressable style={styles.inviteBtn} onPress={() => setInviteModalVisible(true)}>
           <MaterialIcons name="person-add-alt" size={18} color="#fff" />
-          <Text style={styles.inviteTxt}>Invite</Text>
+          <Text style={styles.inviteTxt}>Add</Text>
         </Pressable>
       </View>
 
