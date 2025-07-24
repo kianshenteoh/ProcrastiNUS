@@ -27,6 +27,15 @@ export default function ProfileScreen() {
   const [nameError, setNameError] = useState('');
   const [pickerVisible, setPickerVisible] = useState(false);
 
+  const badges = [
+    { id: 'early', name: 'Early Bird', icon: 'sun', color: '#ffbf00' },
+    { id: 'streak', name: '7-Day Streak', icon: 'fire', color: '#ff7a00' },
+    { id: 'tasks100', name: '100 Tasks', icon: 'tasks', color: '#3b82f6' },
+    { id: 'owl', name: 'Night Owl', icon: 'moon', color: '#8e44ad' },
+    { id: 'focus', name: 'Focus Champ', icon: 'bolt', color: '#10b981' },
+    { id: 'veteran', name: '30-Day Vet', icon: 'trophy', color: '#eab308' },
+  ];
+
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
@@ -98,8 +107,15 @@ export default function ProfileScreen() {
               setEditModalVisible(true);
             }}
           />
-          <QuickBtn label="Progress Chart" icon="chart-line" onPress={() => nav.navigate('progress')} />
-          <QuickBtn label="Focus Settings" icon="eye-slash" onPress={() => nav.navigate('focusMode')} />
+          <Text style={styles.badgesTitle}>Badges</Text>
+                <View style={styles.badgeGrid}>
+                  {badges.map(b => (
+                    <View key={b.id} style={[styles.badgeCard, { backgroundColor: b.color + '55' }]}>
+                      <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}> <FontAwesome5 name={b.icon} size={24} color="#fff" /> </View>
+                      <Text style={styles.badgeLabel}>{b.name}</Text>
+                    </View>
+                  ))}
+                </View>
         </View>
       </ScrollView>
 
@@ -254,7 +270,7 @@ function QuickBtn({ label, icon, onPress }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fafafa', paddingTop: 20 },
-  content: { padding: 20 },
+  content: { padding: 20, flexGrow: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   headerTitle: { fontSize: 28, fontWeight: '700' },
   settingsBtn: { padding: 6 },
@@ -275,4 +291,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   actionLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  badgesTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
+  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
+  badgeCard: { width: '45%', alignItems: 'center', marginBottom: 14, paddingVertical: 12, borderRadius: 16 },
+  badgeIconWrap: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
+  badgeLabel: { color: '#1f2937', fontWeight: '600', textAlign: 'center', fontSize: 10 },
 });

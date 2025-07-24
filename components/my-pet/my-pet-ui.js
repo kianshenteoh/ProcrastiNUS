@@ -43,7 +43,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       : '#ef4444'; // red
 
   return (
-    <ScrollView contentContainerStyle={styles.wrapper}>
+    <ScrollView style = {styles.screen} contentContainerStyle={styles.wrapper}>
       <View style={styles.headerRow}>
         <View style={styles.wallet}>
           <IconText icon="coins" text={wallet.coins} color="#ffd700" />
@@ -96,16 +96,6 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       ) : (
         <Text style={styles.invEmpty}>No food yet – visit the shop!</Text>
       )}
-
-      <Text style={styles.badgesTitle}>Badges</Text>
-      <View style={styles.badgeGrid}>
-        {badges.map(b => (
-          <View key={b.id} style={[styles.badgeCard, { backgroundColor: b.color + '55' }]}>
-            <View style={[styles.badgeIconWrap, { backgroundColor: b.color }]}> <FontAwesome5 name={b.icon} size={24} color="#fff" /> </View>
-            <Text style={styles.badgeLabel}>{b.name}</Text>
-          </View>
-        ))}
-      </View>
 
       <Modal visible={feedModal} animationType="fade" transparent>
         <View style={styles.overlay}>
@@ -186,7 +176,8 @@ function Bar({ label, val, color, displayText}) {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { alignItems: 'center', backgroundColor: '#fffbe6', paddingVertical: 40 },
+  screen: { flex: 1, backgroundColor: '#fffbe6'},
+  wrapper: { alignItems: 'center', flexGrow: 1, justifyContent: 'flex-start', paddingVertical: 40},
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '90%' },
   wallet: { flexDirection: 'row' },
   leaderboardBtn: { padding: 8, borderRadius: 16, backgroundColor: '#eab308' },
@@ -203,7 +194,7 @@ const styles = StyleSheet.create({
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
   invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
-  invCard: { width: 90, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
+  invCard: { width: 100, maxWidth: 100, minWidth: 90, height: 60, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
   invLabel: { fontSize: 12, marginTop: 4, color: '#374151', fontWeight: '600' },
   invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 4 },
 
@@ -212,12 +203,6 @@ const styles = StyleSheet.create({
 
   studyRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   studyLbl: { fontSize: 12, color: '#374151', marginHorizontal: 8 },
-
-  badgesTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
-  badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 12 },
-  badgeCard: { width: '45%', alignItems: 'center', marginBottom: 14, paddingVertical: 12, borderRadius: 16 },
-  badgeIconWrap: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
-  badgeLabel: { color: '#1f2937', fontWeight: '600', textAlign: 'center', fontSize: 10 },
 
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalCard: { width: '80%', backgroundColor: '#ffffff', borderRadius: 16, padding: 24 },

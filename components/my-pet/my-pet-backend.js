@@ -129,49 +129,49 @@ export default function PetAndBadgesBackend() {
     fetchOrCreatePet();
   }, [userId, petDocRef, walletRef, inventoryRef, profileRef]);
 
-  useEffect(() => {
-    if (!petDocRef || !userId) return;
+  // useEffect(() => {
+  //   if (!petDocRef || !userId) return;
 
-    let lastSaveTime = Date.now();
-    const interval = setInterval(() => {
-      if (isUpdatingRef.current || !petRef.current) return;
+  //   let lastSaveTime = Date.now();
+  //   const interval = setInterval(() => {
+  //     if (isUpdatingRef.current || !petRef.current) return;
 
-      const currentPet = petRef.current;
-      const { updatedPet } = computePetStats(
-        currentPet,
-        HUNGER_THRESHOLD,
-        XP_GAIN_RATE,
-        HUNGER_DROP_RATE,
-        false
-      );
+  //     const currentPet = petRef.current;
+  //     const { updatedPet } = computePetStats(
+  //       currentPet,
+  //       HUNGER_THRESHOLD,
+  //       XP_GAIN_RATE,
+  //       HUNGER_DROP_RATE,
+  //       false
+  //     );
 
-      if (
-        updatedPet.hunger !== currentPet.hunger ||
-        updatedPet.totalXp !== currentPet.totalXp
-      ) {
-        setPet(prev => ({
-          ...prev,
-          ...updatedPet,
-          level: Math.floor(updatedPet.totalXp / 1000),
-          xp: updatedPet.totalXp % 1000,
-        }));
-      }
+  //     if (
+  //       updatedPet.hunger !== currentPet.hunger ||
+  //       updatedPet.totalXp !== currentPet.totalXp
+  //     ) {
+  //       setPet(prev => ({
+  //         ...prev,
+  //         ...updatedPet,
+  //         level: Math.floor(updatedPet.totalXp / 1000),
+  //         xp: updatedPet.totalXp % 1000,
+  //       }));
+  //     }
 
-      if (Date.now() - lastSaveTime > 60 * 60 * 1000) {
-        const { updatedPet: savePet } = computePetStats(
-          currentPet,
-          HUNGER_THRESHOLD,
-          XP_GAIN_RATE,
-          HUNGER_DROP_RATE,
-          true
-        );
-        updateDoc(petDocRef, savePet);
-        lastSaveTime = Date.now();
-      }
-    }, 1000);
+  //     if (Date.now() - lastSaveTime > 60 * 60 * 1000) {
+  //       const { updatedPet: savePet } = computePetStats(
+  //         currentPet,
+  //         HUNGER_THRESHOLD,
+  //         XP_GAIN_RATE,
+  //         HUNGER_DROP_RATE,
+  //         true
+  //       );
+  //       updateDoc(petDocRef, savePet);
+  //       lastSaveTime = Date.now();
+  //     }
+  //   }, 1000);
 
-    return () => clearInterval(interval);
-  }, [userId, petDocRef]);
+  //   return () => clearInterval(interval);
+  // }, [userId, petDocRef]);
 
   useEffect(() => {
     if (pet) petRef.current = pet;
