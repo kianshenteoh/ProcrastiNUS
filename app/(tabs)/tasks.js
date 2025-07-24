@@ -1,3 +1,4 @@
+import { logToAllGroupLogs } from '@/lib/logActivity';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
@@ -127,6 +128,7 @@ export default function TasksScreen() {
         const ref = await addDoc(collection(db, 'users', userId, 'tasks'), task);
         setTasks(t => [{ id: ref.id, ...task }, ...t]);
         trackTaskEvent('created');
+        await logToAllGroupLogs(userId, 'created task', title.trim());
         
         // Check for badges after creating a task
         const badge = await checkForBadges();
@@ -194,6 +196,8 @@ export default function TasksScreen() {
 
       await batch.commit();
       trackTaskEvent('completed');
+
+      await logToAllGroupLogs(userId, 'completed task', taskSnap.data().title);
       
       // Check for badges after completing a task
       const badge = await checkForBadges();

@@ -1,4 +1,5 @@
 import { auth, db } from '@/firebase';
+import { logToAllGroupLogs } from '@/lib/logActivity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -254,6 +255,7 @@ export default function PetAndBadgesBackend() {
       });
 
       setInventory(newInventory);
+      await logToAllGroupLogs(userId, 'fed his/her own pet', pet.name || 'Unnamed');
     });
   };
 
@@ -289,6 +291,12 @@ export default function PetAndBadgesBackend() {
         totalXp: finalPet.totalXp,
         lastUpdated: finalPet.lastUpdated
       });
+
+      const oldLevel = Math.floor(pet.totalXp / 1000);
+      const newLevel = Math.floor(finalPet.totalXp / 1000);
+      if (newLevel > oldLevel) {
+        await logToAllGroupLogs(userId, `'s pet leveled up to `, `Level ${newLevel}`);
+      }
 
       setPet({
         ...finalPet,

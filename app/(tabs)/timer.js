@@ -1,7 +1,9 @@
+import { STUDY_BADGES } from '@/constants/study-badges';
+import { logToAllGroupLogs } from '@/lib/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
-import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Modal, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -111,28 +113,6 @@ export default function PomodoroScreen() {
     setRunning(true);
     setCustomMinutes('');
   };
-
-  const STUDY_BADGES = {
-    firstSession: {
-      id: 'firstSession',
-      name: 'First Session',
-      icon: 'star',
-      color: '#ffbf00'
-    },
-    studyStreak: {
-      id: 'studyStreak',
-      name: 'Study Streak',
-      icon: 'fire',
-      color: '#ff5e00'
-    },
-    longSession: {
-      id: 'longSession',
-      name: 'Focused Learner',
-      icon: 'brain',
-      color: '#3b82f6'
-    }
-  };
-
 
   const getRandomQuote = () => {
     const randomIndex = Math.floor(Math.random() * quotes.length);
@@ -292,6 +272,8 @@ const recordStudySession = async (durationInMinutes) => {
     studyHours: increment(hoursToAdd)
   }, { merge: true });
 
+  await logToAllGroupLogs(userId, `studied for`, `${durationInMinutes} minutes`);
+
   // 3. Check for badges
   const badge = await checkStudyBadges(durationInMinutes);
   if (badge) {
@@ -431,6 +413,7 @@ const refreshStudyHours = async () => {
 
       if (badgeAwarded) {
         await setDoc(badgesRef, { earned: newBadges }, { merge: true });
+        await logToAllGroupLogs(userId, 'earned a badge', badgeAwarded.name);
         return badgeAwarded;
       }
     } catch (error) {
@@ -473,12 +456,14 @@ const forceResetManual = async () => {
     resetCountdownIntervalRef.current = null;
   }
 
-  const minutes = Math.floor(elapsed / 60);
+  const minutes = Math.floor(elapsed * 17171 / 60);
+  console.log('Manual reset - elapsed minutes:', minutes);
   if (minutes >= 5) {
+    setElapsed(0);
     await recordStudySession(minutes);
     await refreshStudyHours();
+    await awardCoins(minutes); // Award coins for the elapsed time
   }
-
   setElapsed(0);
   setResetCountdown(180);
 };

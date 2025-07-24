@@ -1,7 +1,7 @@
 import { db } from '@/firebase';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -13,8 +13,9 @@ export default function ActivityLogScreen() {
     const fetchGroupLogs = async () => {
       try {
         const logQuery = query(
-          collection(db, 'studyGroups', groupId, 'activityLog'),
-          orderBy('timestamp', 'desc')
+        collection(db, 'studyGroups', groupId, 'activityLog'),
+        orderBy('timestamp', 'desc'),
+        limit(100)
         );
 
         const snapshot = await getDocs(logQuery);

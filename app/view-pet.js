@@ -1,5 +1,6 @@
 import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
+import { logToAllGroupLogs } from '@/lib/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
@@ -141,8 +142,6 @@ export default function ViewPetScreen() {
     loadEverything();
   }, [friendId]);
 
-
-
     const buyFood = async (food) => {
     if (wallet.coins < food.cost) return;
 
@@ -180,7 +179,7 @@ export default function ViewPetScreen() {
         const updatedInventory = [...inventory];
         updatedInventory.splice(idx, 1);
 
-        // 🔥 FIX: Persist both hunger and lastUpdated
+        // persist both hunger and lastUpdated
         await updateDoc(petRef.current, {
           hunger: newHunger,
           lastUpdated: now,
@@ -205,6 +204,8 @@ export default function ViewPetScreen() {
               { pets: patched, lastUpdated: new Date() },
               { merge: true }
             );
+
+            await logToAllGroupLogs(userId, `fed ${pet.ownerName || 'a friend'}'s pet`, pet.name);
           }
         }
 
