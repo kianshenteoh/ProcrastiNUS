@@ -25,14 +25,6 @@ export default function StudyGroupScreen() {
 
   const [members, setMembers] = useState([]);
 
-  const leaderboard = [
-    { id: '1', name: 'Alice', hours: 12.5 },
-    { id: '2', name: 'Dan', hours: 10 },
-    { id: '3', name: 'Eve', hours: 9 },
-    { id: '4', name: 'Carol', hours: 6.5 },
-    { id: '5', name: 'Bob', hours: 5.5 },
-  ];
-
   const activityLog = [
     { id: '1', user: 'Alice', action: 'studied for 2h', time: '2025-07-21T14:30:00Z' },
     { id: '2', user: 'Dan', action: 'fed Carol’s pet', time: '2025-07-21T13:45:00Z' },
@@ -101,6 +93,8 @@ export default function StudyGroupScreen() {
 
       alert('Member added!');
       setInviteEmail('');
+      const pets = await fetchGroupPets(groupId);
+      setMembers(pets);
     } catch (err) {
       console.error(err);
       setInviteEmail('');
@@ -118,31 +112,36 @@ export default function StudyGroupScreen() {
 
     const petPromises = memberIds.map(async (uid) => {
       try {
-        const [petSnap, profileSnap] = await Promise.all([
+        const [petSnap, profileSnap, statsSnap] = await Promise.all([
           getDoc(doc(db, 'users', uid, 'pet', 'data')),
           getDoc(doc(db, 'users', uid, 'profile', 'data')),
+          getDoc(doc(db, 'users', uid, 'stats', 'data')),
         ]);
 
         if (!petSnap.exists()) return null;
 
         const petData = petSnap.data();
         const { updatedPet } = computePetStats(petData, 30, 20, 2);
-        const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
+
+        const weeklyMinutes = statsSnap.exists() ? statsSnap.data().weeklyMinutes || 0 : 0;
+        const totalMinutes = statsSnap.exists() ? statsSnap.data().totalMinutes || 0 : 0;
 
         return {
           id: uid,
           ...updatedPet,
-          ownerName,
+          ownerName: profileSnap.exists() ? profileSnap.data().name : 'Unknown',
           ownerId: uid,
+          hoursWeek: Math.floor(weeklyMinutes / 30) * 0.5,
+          hoursTotal: Math.floor(totalMinutes / 30) * 0.5,
         };
       } catch {
         return null;
       }
     });
 
-    const result = (await Promise.all(petPromises)).filter(Boolean);
-    return result;
+    return (await Promise.all(petPromises)).filter(Boolean);
   };
+
 
   useEffect(() => {
     const loadGroupPets = async () => {
@@ -220,32 +219,35 @@ export default function StudyGroupScreen() {
       />
 
         <View style={styles.sectionBox}>
-          <Text style={styles.sectionTitle}> 🏆 Weekly Top 5 Grinders</Text>
-          {leaderboard.slice(0, 5).map((item, index) => (
-            <View key={item.id} style={[styles.lbCard, index < 3 && { borderColor: '#facc15', borderWidth: 2 }]}>
-              <View style={styles.lbRank}><Text style={styles.lbRankTxt}>{index + 1}</Text></View>
-              <Image source={petImages[members.find(m => m.id === item.id)?.image]} style={styles.lbAvatar} />
-              <View style={styles.lbInfoCol}>
-                <Text style={styles.lbPetName}>{members.find(m => m.id === item.id)?.name || 'Unknown'}</Text>
-                <Text style={styles.lbOwnerName}>Owner: {members.find(m => m.id === item.id)?.name || 'Unknown'}</Text>
-                <Text style={styles.lbLevel}>Lvl {Math.floor(members.find(m => m.id === item.id)?.totalXp / 1000)}</Text>
-
-              </View>
-              <View style={styles.lbHoursCol}>
-                <View style={styles.lbHourRow}>
-                  <MaterialIcons name="query-builder" size={16} color="#60a5fa" />
-                  <Text style={styles.lbHourVal}>{item.hours}h</Text>
+          <Text style={styles.sectionTitle}>🏆 Weekly Top Grinders</Text>
+          {members
+            .sort((a, b) => b.hoursWeek - a.hoursWeek)
+            .slice(0, 5)
+            .map((item, index) => (
+              <View key={item.id} style={[styles.lbCard, index < 3 && { borderColor: '#facc15', borderWidth: 2 }]}>
+                <View style={styles.lbRank}><Text style={styles.lbRankTxt}>{index + 1}</Text></View>
+                <Image source={petImages[item.image]} style={styles.lbAvatar} />
+                <View style={styles.lbInfoCol}>
+                  <Text style={styles.lbPetName}>{item.name}</Text>
+                  <Text style={styles.lbOwnerName}>Owner: {item.ownerName}</Text>
+                  <Text style={styles.lbLevel}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
                 </View>
-                <Text style={styles.lbWeekLbl}>this week</Text>
-                <Text style={styles.lbTotalLbl}>~ total</Text>
+                <View style={styles.lbHoursCol}>
+                  <View style={styles.lbHourRow}>
+                    <MaterialIcons name="query-builder" size={16} color="#60a5fa" />
+                    <Text style={styles.lbHourVal}>{item.hoursWeek}h</Text>
+                  </View>
+                  <Text style={styles.lbWeekLbl}>this week</Text>
+                  <Text style={styles.lbTotalLbl}>{item.hoursTotal}h total</Text>
+                </View>
               </View>
-            </View>
-          ))}
-          <Pressable onPress={() => router.push('/leaderboard')} style={styles.viewFullLbBtn}>
-            <Text style={styles.viewFullLbTxt}>View Full Group Leaderboard</Text>
-          </Pressable>
+            ))}
+          {members.length > 5 && (
+            <Pressable onPress={() => router.push({ pathname: '/group-leaderboard', params: { groupId: groupId, groupName: groupName } })} style={styles.viewFullLbBtn}>
+              <Text style={styles.viewFullLbTxt}>View Full Group Leaderboard</Text>
+            </Pressable>
+          )}
         </View>
-
 
         <View style={styles.sectionBox}>
           <Text style={styles.sectionTitle}>Activity Log</Text>
