@@ -3,7 +3,7 @@ import { logToAllGroupLogs } from '@/lib/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
-import { addDoc, collection, doc, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Dimensions, Modal, Pressable, StyleSheet, Text, TextInput, Vibration, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
@@ -73,7 +73,7 @@ export default function PomodoroScreen() {
 
               const fullMinutes = Math.floor(initialTime / 60);
               if (fullMinutes > 0) {
-                awardCoins(fullMinutes * 2);
+                awardCoins(fullMinutes);
                 recordStudySession(fullMinutes);
                 refreshStudyHours(); 
               }
@@ -105,6 +105,10 @@ export default function PomodoroScreen() {
     };
   }, [running, mode]);
 
+  // fetch stats on mount
+  useEffect(() => {
+    refreshStudyHours();
+  }, []);
 
   const startTimer = sec => {
     setSecondsLeft(sec);
@@ -265,12 +269,41 @@ const recordStudySession = async (durationInMinutes) => {
   });
 
   // 2. Update stats
-  const profileRef = doc(db, 'users', userId, 'profile', 'data');
-  const hoursToAdd = Math.floor(durationInMinutes / 30) * 0.5;
-  
-  await updateDoc(profileRef, {
-    studyHours: increment(hoursToAdd)
-  }, { merge: true });
+  const statsRef = doc(db, 'users', userId, 'stats', 'data');
+  const statsSnap = await getDoc(statsRef);
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+
+  /*
+    Each user has a lastStudied, weeklyMinutes and totalMinutes field.
+    Write: When a user studies, perform a check:
+    - increment totalMinutes by durationInMinutes
+    - if within the week, increment durationInMinutes to weeklyMinutes
+    - if lastStudied is not within the week, set weeklyMinutes to 0 and increment
+    Fetch: Say we have user A and user B. Then when user B fetches weeklyMinutes from user A, perform a check at A's lastStudied attribute:
+    - if lastStudied is within the week, then fetch A's weeklyMinutes field.
+    - if lastStudied is NOT within the week, display the hours studied this week for A to be 0
+  */
+
+  let newWeekly = durationInMinutes;
+  let newTotal = durationInMinutes;
+
+  if (statsSnap.exists()) {
+    const stats = statsSnap.data();
+    const lastStudiedTS = stats.lastStudied;
+    const lastStudied = lastStudiedTS?.toDate?.() || new Date(0);
+
+    // If lastStudied is in same week as now, preserve weeklyMinutes
+    const isSameWeek = lastStudied >= weekStart;
+    newWeekly = durationInMinutes + (isSameWeek ? (stats.weeklyMinutes || 0) : 0);
+    newTotal = durationInMinutes + (stats.totalMinutes || 0);
+  }
+
+  await updateDoc(statsRef, {
+    weeklyMinutes: newWeekly,
+    totalMinutes: newTotal,
+    lastStudied: serverTimestamp(),
+  });
 
   await logToAllGroupLogs(userId, `studied for`, `${durationInMinutes} minutes`);
 
@@ -281,6 +314,7 @@ const recordStudySession = async (durationInMinutes) => {
     setShowBadgeModal(true);
   }
 };
+
 
 const getWeeklyStudySessions = async () => {
   const rawEmail = auth.currentUser?.email;
@@ -322,8 +356,16 @@ const getWeeklyHours = async () => {
   
   // Use stats document instead of querying all sessions
   const statsRef = doc(db, 'users', userId, 'stats', 'data');
-  const snap = await getDoc(statsRef);
-  return snap.exists() ? snap.data().weeklyHours || 0 : 0;
+  const statsSnap = await getDoc(statsRef);
+  if (!statsSnap.exists()) return 0;
+  const stats = statsSnap.data();
+  const lastStudied = stats.lastStudied?.toDate?.() || new Date(0);
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const isSameWeek = lastStudied >= weekStart;
+  const weeklyHours = isSameWeek ? (Math.floor(stats.weeklyMinutes / 30) * 0.5 || 0) : 0;
+
+  return weeklyHours;
 };
 
 const getTotalHours = async () => {
@@ -333,7 +375,7 @@ const getTotalHours = async () => {
   
   const statsRef = doc(db, 'users', userId, 'stats', 'data');
   const snap = await getDoc(statsRef);
-  return snap.exists() ? snap.data().totalHours || 0 : 0;
+  return snap.exists() ? Math.floor(snap.data().totalMinutes / 30) * 0.5 || 0 : 0;
 };
 
 
@@ -474,32 +516,28 @@ const forceResetManual = async () => {
   return (
     <View style={styles.container}>
 
-      <View style={styles.headerRow}>
-         <View style={styles.wallet}>
-             <IconText icon="coins" text={coins} color="#ffd700" />
-        </View>
-      </View>
-
     <Pressable
-  onPress={() => {
-    setRunning(false); // pause current mode before switching
-    setMode(prev => (prev === 'timer' ? 'stopwatch' : 'timer'));
-  }}
-  disabled={running}
-  style={{
-    backgroundColor: running ? '#ccc' : '#fff',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 10,
-    opacity: running ? 0.6 : 1,
-  }}
->
-  <Text style={{ fontWeight: 'bold', color: 'rgb(29, 114, 89)' }}>
-    Switch to {mode === 'timer' ? 'Stopwatch' : 'Timer'}
-  </Text>
-</Pressable>
+      onPress={() => {
+        setRunning(false); // pause current mode before switching
+        setMode(prev => (prev === 'timer' ? 'stopwatch' : 'timer'));
+      }}
+      disabled={running}
+      style={{
+        backgroundColor: running ? '#ccc' : '#fff',
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 0,
+        marginTop: 60,
+        opacity: running ? 0.6 : 1,
+      }}
+    >
+      <Text style={{ fontWeight: 'bold', color: 'rgb(29, 114, 89)' }}>
+        Switch to {mode === 'timer' ? 'Stopwatch' : 'Timer'}
+      </Text>
+    </Pressable>
 
     <View style={styles.studyRow}>
+        <IconText icon="coins" text={coins} color="#ffd700" />
         <IconText icon="hourglass-half" text={`${weeklyHours} h`} color="rgb(46, 192, 245)" header="  Week" />
         <IconText icon="clock" text={`${totalHours} h`} color="#f59e0b" header="  Total" />
     </View>
@@ -518,9 +556,9 @@ const forceResetManual = async () => {
           : mode === 'stopwatch' && !running && resetTimer
             ? `${Math.floor(resetCountdown / 60)} minutes and ${resetCountdown % 60} seconds until stopwatch resets`
             : mode === 'stopwatch'
-              ? "Start the stopwatch and stay focused!"
+              ? "Start the stopwatch and stay focused! Reward: 1 coin per minute studied."
               : initialTime === 0
-                ? "Start the timer and put down your phone!"
+                ? "Start the timer and put down your phone! Reward: 1 coin per minute studied."
                 : quote}
       </Text>
 

@@ -1,4 +1,5 @@
 import { auth, db } from '@/firebase';
+import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,7 +17,8 @@ export default function ProfileScreen() {
     level: 0,
     xp: 0,
     xpToNext: 1000,
-    studyHours: 0,
+    weeklyHours: 0,
+    totalHours: 0,
     tasksCompleted: 80,
     rank: 2,
     badges: [],
@@ -62,13 +64,19 @@ export default function ProfileScreen() {
           const statsData = statsSnap.exists() ? statsSnap.data() : {};
           const badgesData = badgesSnap.exists() ? badgesSnap.data() : {};
 
-          setUser(prev => ({
-            ...prev,
-            name: profileData.name || 'Anonymous',
-            avatar: profileData.avatar || prev.avatar,
-            studyHours: profileData.studyHours || 0,
-            tasksCompleted: profileData.tasksCompleted || 0,
-          }));
+        const [weeklyHours, totalHours] = await Promise.all([
+          getWeeklyHours(userId),
+          getTotalHours(userId)
+        ]);
+
+        setUser(prev => ({
+          ...prev,
+          name: profileData.name || 'Anonymous',
+          avatar: profileData.avatar || prev.avatar,
+          totalHours: totalHours || 0,
+          weeklyHours: weeklyHours || 0,
+          tasksCompleted: profileData.tasksCompleted || 0,
+        }));
 
           setEarnedBadges(badgesData.earned || []);
         } catch (err) {
@@ -93,27 +101,27 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.topSection}>
-          <Image source={{ uri: user.avatar }} style={styles.avatar} />
-          <Text style={styles.displayName}>{user.name}</Text>
-        </View>
+      <View style={styles.topSection}>
+        <Image source={{ uri: user.avatar }} style={styles.avatar} />
+        <Text style={styles.displayName}>{user.name}</Text>
+        <Pressable onPress={() => {
+          setNewName(user.name);
+          setNewAvatar(user.avatar);
+          setEditModalVisible(true);
+        }}>
+          <Text style={styles.editProfileBtn}>Edit Profile</Text>
+        </Pressable>
+      </View>
 
-        <View style={styles.statsRow}>
-          <Stat label="Study hrs" value={user.studyHours} icon="clock" />
-          <Stat label="Tasks" value={user.tasksCompleted} icon="tasks" />
-          <Stat label="Rank" value={`#${user.rank}`} icon="trophy" />
-        </View>
 
         <View style={styles.actionColumn}>
-          <QuickBtn
-            label="Edit Profile"
-            icon="user-edit"
-            onPress={() => {
-              setNewName(user.name);
-              setNewAvatar(user.avatar);
-              setEditModalVisible(true);
-            }}
-          />
+
+        <View style={styles.statsRow}>
+          <Stat label="Weekly Study hrs" value={user.weeklyHours} icon="hourglass" />
+          <Stat label="Total Study hrs" value={user.totalHours} icon="clock" />
+          <Stat label="Tasks Completed" value={user.tasksCompleted} icon="tasks" />
+        </View>
+
           <Text style={styles.badgesTitle}>Badges</Text>
             <View style={styles.badgeGrid}>
               {earnedBadges.length > 0 ? (
@@ -140,12 +148,12 @@ export default function ProfileScreen() {
       <Modal visible={editModalVisible} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Edit Profile</Text>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 15 }}>Edit Profile</Text>
 
             <Pressable onPress={() => setPickerVisible(true)}>
               <Image
                 source={{ uri: newAvatar }}
-                style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 10 }}
+                style={{ width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 20 }}
               />
             </Pressable>
 
@@ -153,14 +161,14 @@ export default function ProfileScreen() {
               placeholder="Enter new name"
               value={newName}
               onChangeText={setNewName}
-              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 6 }}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 20 }}
             />
             {nameError ? (
               <Text style={{ color: 'red', fontSize: 12, marginBottom: 8 }}>{nameError}</Text>
             ) : null}
 
             <Pressable
-              style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, marginBottom: 6 }}
+              style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, marginBottom: 8 }}
               onPress={async () => {
                 const rawEmail = auth.currentUser?.email;
                 if (!rawEmail) return;
@@ -293,12 +301,13 @@ const styles = StyleSheet.create({
   settingsBtn: { padding: 6 },
   topSection: { alignItems: 'center', marginBottom: 24 },
   avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 12 },
+  editProfileBtn: { color: '#2563eb', fontSize: 16, fontWeight: '600', marginTop: 6 },
   displayName: { fontSize: 24, fontWeight: '600' },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   statBox: { flex: 1, alignItems: 'center' },
   statValue: { fontSize: 20, fontWeight: '700', marginVertical: 4 },
   statLabel: { fontSize: 12, color: '#666' },
-  actionColumn: { flexDirection: 'column', marginTop: 32, marginBottom: 40, gap: 12 },
+  actionColumn: { flexDirection: 'column', marginTop: 10, marginBottom: 10, gap: 12 },
   actionChip: {
     flexDirection: 'row',
     alignItems: 'center',

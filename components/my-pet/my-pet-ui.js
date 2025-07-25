@@ -8,12 +8,12 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
   const [nameModal, setNameModal] = useState(pet.name === 'No Name Yet :(');
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState(pet.name);
 
   const foods = [
-    { id: 'biscuit', label: 'Biscuit (+10%)', cost: 3, hunger: 10, icon: 'cookie-bite' },
-    { id: 'snack', label: 'Snack (+20%)', cost: 5, hunger: 20, icon: 'bone' },
-    { id: 'premium', label: 'Big Mac (+50%)', cost: 10, hunger: 50, icon: 'hamburger' },
+    { id: 'biscuit', label: 'Biscuit (+10%)', cost: 30, hunger: 10, icon: 'cookie-bite' },
+    { id: 'snack', label: 'Snack (+20%)', cost: 50, hunger: 20, icon: 'bone' },
+    { id: 'premium', label: 'Big Mac (+50%)', cost: 100, hunger: 50, icon: 'hamburger' },
   ]; 
 
   const canAfford = f => wallet.coins >= f.cost;

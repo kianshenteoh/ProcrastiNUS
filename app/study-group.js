@@ -1,10 +1,11 @@
 import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { auth, db } from '@/firebase';
+import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
 import { logToPersonalAndGroupLog } from '@/lib/logActivity';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { arrayUnion, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -43,7 +44,7 @@ export default function StudyGroupScreen() {
         return;
       }
 
-      // check if user exists
+      // Check if user exists
       const inviteeProfileRef = doc(db, 'users', inviteeId, 'profile', 'data');
       const inviteeProfileSnap = await getDoc(inviteeProfileRef);
       if (!inviteeProfileSnap.exists()) {
@@ -58,36 +59,37 @@ export default function StudyGroupScreen() {
         return;
       }
 
-      const groupData = groupSnap.data();
-      const existingMembers = groupData.members || [];
-      if (existingMembers.includes(inviteeId)) {
+      const membershipRef = doc(db, 'studyGroups', groupId, 'members', inviteeId);
+      const membershipSnap = await getDoc(membershipRef);
+      if (membershipSnap.exists()) {
         alert('User is already in this group');
         return;
       }
 
-      if (existingMembers.length >= 10) {
+      // Limit to 10 members
+      const membersSnap = await getDocs(collection(db, 'studyGroups', groupId, 'members'));
+      if (membersSnap.size >= 10) {
         alert('Group is full (max 10 members)');
         return;
       }
 
-      // update group document
-      await updateDoc(groupRef, {
-        members: arrayUnion(inviteeId),
-      });
-
-      // update user's groups subcollection
       const now = new Date();
-      await setDoc(doc(db, 'users', inviteeId, 'groups', groupId), {
-        joinedAt: now,
-      });
 
-      // write to personal group log
-      await logToPersonalAndGroupLog(inviterId, groupId, 'added', inviteeProfileSnap.data()?.name || inviteeId)
+      // Add to group subcollection and user's group list
+      await Promise.all([
+        setDoc(membershipRef, { joinedAt: now }),
+        setDoc(doc(db, 'users', inviteeId, 'groups', groupId), { joinedAt: now }),
+        logToPersonalAndGroupLog(inviterId, groupId, 'added', inviteeProfileSnap.data()?.name || inviteeId)
+      ]);
 
       alert('Member added!');
       setInviteEmail('');
+
       const pets = await fetchGroupPets(groupId);
       setMembers(pets);
+
+      const logs = await fetchGroupActivityLog(groupId);
+      setActivityLog(logs);
     } catch (err) {
       console.error(err);
       setInviteEmail('');
@@ -100,8 +102,8 @@ export default function StudyGroupScreen() {
     const groupSnap = await getDoc(groupRef);
     if (!groupSnap.exists()) return [];
 
-    const groupData = groupSnap.data();
-    const memberIds = groupData.members || [];
+    const membersSnap = await getDocs(collection(db, 'studyGroups', groupId, 'members'));
+    const memberIds = membersSnap.docs.map(doc => doc.id);
 
     const petPromises = memberIds.map(async (uid) => {
       try {
@@ -116,16 +118,18 @@ export default function StudyGroupScreen() {
         const petData = petSnap.data();
         const { updatedPet } = computePetStats(petData, 30, 20, 2);
 
-        const weeklyMinutes = statsSnap.exists() ? statsSnap.data().weeklyMinutes || 0 : 0;
-        const totalMinutes = statsSnap.exists() ? statsSnap.data().totalMinutes || 0 : 0;
+        const [hoursWeek, hoursTotal] = await Promise.all([
+          getWeeklyHours(uid),
+          getTotalHours(uid)
+        ]);
 
         return {
           id: uid,
           ...updatedPet,
           ownerName: profileSnap.exists() ? profileSnap.data().name : 'Unknown',
           ownerId: uid,
-          hoursWeek: Math.floor(weeklyMinutes / 30) * 0.5,
-          hoursTotal: Math.floor(totalMinutes / 30) * 0.5,
+          hoursWeek,
+          hoursTotal,
         };
       } catch {
         return null;

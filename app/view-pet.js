@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   invEmpty: { fontSize: 12, color: '#6b7280', textAlign: 'center', marginTop: 8 },
   shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20, marginHorizontal: 100, justifyContent: 'center' },
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6 },
-  invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 6, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
+  invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 6, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 0 },
   invCard: { width: 90, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2, marginVertical: 10 },
   invLabel: { fontSize: 12, marginTop: 4, color: '#374151', fontWeight: '600' },
   invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 4 },

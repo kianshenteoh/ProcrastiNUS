@@ -1,9 +1,10 @@
 import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { db } from '@/firebase';
+import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -18,7 +19,8 @@ export default function GroupLeaderboardScreen() {
 
     if (!groupSnap.exists()) return [];
 
-    const memberIds = groupSnap.data().members || [];
+    const membersSnap = await getDocs(collection(db, 'studyGroups', groupId, 'members'));
+    const memberIds = membersSnap.docs.map(doc => doc.id);
 
     const memberData = await Promise.all(
       memberIds.map(async (uid) => {
@@ -34,16 +36,18 @@ export default function GroupLeaderboardScreen() {
           const petData = petSnap.data();
           const { updatedPet } = computePetStats(petData, 30, 20, 2);
 
-          const weeklyMinutes = statsSnap.exists() ? statsSnap.data().weeklyMinutes || 0 : 0;
-          const totalMinutes = statsSnap.exists() ? statsSnap.data().totalMinutes || 0 : 0;
+            const [hoursWeek, hoursTotal] = await Promise.all([
+                getWeeklyHours(uid),
+                getTotalHours(uid)
+            ]);
 
           return {
             id: uid,
             petName: updatedPet.name || 'Unknown',
             ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
             level: Math.floor(updatedPet.totalXp / 1000),
-            hoursWeek: Math.floor(weeklyMinutes / 30) * 0.5,
-            hoursTotal: Math.floor(totalMinutes / 30) * 0.5,
+            hoursWeek,
+            hoursTotal,
             pet: petImages[updatedPet.image] || petImages.default,
           };
         } catch {

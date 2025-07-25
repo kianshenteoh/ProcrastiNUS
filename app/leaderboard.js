@@ -1,6 +1,7 @@
 import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { auth, db } from '@/firebase';
+import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
@@ -40,7 +41,7 @@ export default function LeaderboardScreen() {
       const friendsListSnap = await getDoc(friendsListRef);
       if (!friendsListSnap.exists()) return [];
 
-      const friendIds = Object.keys(friendsListSnap.data());
+      const friendIds = [...Object.keys(friendsListSnap.data()), safeId];
 
       const friendsData = await Promise.all(
         friendIds.map(async (friendId) => {
@@ -56,16 +57,18 @@ export default function LeaderboardScreen() {
             const petData = petSnap.data();
             const { updatedPet } = computePetStats(petData, 30, 20, 2);
 
-            const weeklyMinutes = statsSnap.exists() ? statsSnap.data().weeklyMinutes || 0 : 0;
-            const totalMinutes = statsSnap.exists() ? statsSnap.data().totalMinutes || 0 : 0;
+            const [hoursWeek, hoursTotal] = await Promise.all([
+              getWeeklyHours(friendId),
+              getTotalHours(friendId)
+            ]);
 
             return {
               id: friendId,
               petName: updatedPet.name || 'Unknown',
               ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
               level: Math.floor(updatedPet.totalXp / 1000),
-              hoursWeek: Math.floor(weeklyMinutes / 30) * 0.5,
-              hoursTotal: Math.floor(totalMinutes / 30) * 0.5,
+              hoursWeek,
+              hoursTotal,
               badgeIcons: ['fire', 'tasks', 'sun'],
               totalBadges: 3,
               pet: petImages[updatedPet.image] || petImages.default,
