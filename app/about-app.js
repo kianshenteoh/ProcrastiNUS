@@ -17,6 +17,8 @@ export default function AboutAppScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Features</Text>
         <Text style={styles.bullet}>• Log study sessions to feed and level up your pet</Text>
+        <Text style={styles.bullet}>• Tasks Management</Text>
+        <Text style={styles.bullet}>• Built-in Calendar</Text>
         <Text style={styles.bullet}>• Pomodoro timer</Text>
         <Text style={styles.bullet}>• Earn coins and badges as rewards</Text>
         <Text style={styles.bullet}>• Compete on weekly leaderboards</Text>
