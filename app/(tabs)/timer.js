@@ -75,7 +75,7 @@ export default function PomodoroScreen() {
               if (fullMinutes > 0) {
                 awardCoins(fullMinutes);
                 recordStudySession(fullMinutes);
-                refreshStudyHours(); 
+                //refreshStudyHours(); 
               }
               return 0;
             }
@@ -107,7 +107,18 @@ export default function PomodoroScreen() {
 
   // fetch stats on mount
   useEffect(() => {
-    refreshStudyHours();
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+    const fetchStats = async () => {
+      const weekly = await getWeeklyHours(userId);
+      const total = await getTotalHours(userId);
+      setWeeklyHours(weekly);
+      setTotalHours(total);
+    };
+
+    fetchStats();
   }, []);
 
   const startTimer = sec => {
@@ -166,7 +177,7 @@ export default function PomodoroScreen() {
             setSecondsLeft(0);
             setInitialTime(0);
 
-            refreshStudyHours();
+            //refreshStudyHours();
           }
         },
       ]
@@ -234,7 +245,7 @@ export default function PomodoroScreen() {
     if (minutes > 0) {
       awardCoins(minutes); 
       recordStudySession(minutes);
-      refreshStudyHours();
+      //refreshStudyHours();
     }
     setResetTimer(timeoutId);
   };
@@ -299,11 +310,11 @@ const recordStudySession = async (durationInMinutes) => {
     newTotal = durationInMinutes + (stats.totalMinutes || 0);
   }
 
-  await updateDoc(statsRef, {
+  await setDoc(statsRef, {
     weeklyMinutes: newWeekly,
     totalMinutes: newTotal,
     lastStudied: serverTimestamp(),
-  });
+  }, { merge: true });
 
   await logToAllGroupLogs(userId, `studied for`, `${durationInMinutes} minutes`);
 
@@ -313,6 +324,11 @@ const recordStudySession = async (durationInMinutes) => {
     setNewBadge(badge);
     setShowBadgeModal(true);
   }
+
+  const weekly = await getWeeklyHours(userId);
+  const total = await getTotalHours(userId);
+  setWeeklyHours(weekly);
+  setTotalHours(total);
 };
 
 
@@ -498,12 +514,12 @@ const forceResetManual = async () => {
     resetCountdownIntervalRef.current = null;
   }
 
-  const minutes = Math.floor(elapsed * 17171 / 60);
+  const minutes = Math.floor(elapsed * 3000 / 60);
   console.log('Manual reset - elapsed minutes:', minutes);
   if (minutes >= 5) {
     setElapsed(0);
     await recordStudySession(minutes);
-    await refreshStudyHours();
+    //await refreshStudyHours();
     await awardCoins(minutes); // Award coins for the elapsed time
   }
   setElapsed(0);
@@ -537,7 +553,7 @@ const forceResetManual = async () => {
     </Pressable>
 
     <View style={styles.studyRow}>
-        <IconText icon="coins" text={coins} color="#ffd700" />
+        <IconText icon="coins" text={coins} color="#ffd700" header="  Coins" />
         <IconText icon="hourglass-half" text={`${weeklyHours} h`} color="rgb(46, 192, 245)" header="  Week" />
         <IconText icon="clock" text={`${totalHours} h`} color="#f59e0b" header="  Total" />
     </View>

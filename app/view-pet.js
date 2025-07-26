@@ -244,6 +244,7 @@ export default function ViewPetScreen() {
         <Image source={petImages[typeof pet?.image === 'number' ? pet.image : 0]} style={styles.petImage}/>
         <Text style={styles.petName}>{typeof pet?.name === 'string' ? pet.name : 'Unnamed Pet'}</Text>
         <Text style={styles.level}>Lvl {typeof pet?.level === 'number' ? pet.level : 1}</Text>
+        <Text style={styles.hunger}>XP: {typeof pet?.xp === 'number' ? pet.xp % 1000 : 0}/1000</Text>
         <Text style={styles.hunger}>Hunger: {typeof pet?.hunger === 'number' ? pet.hunger : 0}%</Text>
       </View>
 
@@ -307,13 +308,13 @@ function IconText({ icon, color, text, small }) {
 
 
 const styles = StyleSheet.create({
-  wrapper: { padding: 20, backgroundColor: '#fefce8' },
+  wrapper: { padding: 20, backgroundColor: '#fefce8', paddingBottom: 300 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   wallet: { flexDirection: 'row' },
   petCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 20 },
   petImage: { width: 120, height: 120, resizeMode: 'contain' },
   petName: { fontSize: 20, fontWeight: '700', marginTop: 6, color: '#374151' },
-  level: { fontSize: 16, color: '#f87171', marginTop: 4 },
+  level: { fontSize: 16, fontWeight: '800', color: '#f87171', marginTop: 4, marginBottom: 8 },
   hunger: { fontSize: 14, color: '#6b7280', marginTop: 2 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#1e3a8a', marginTop: 0, marginBottom: 0 },
   foodRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderColor: '#e5e7eb' },

@@ -8,8 +8,8 @@ import PetAndBadges from './my-pet-ui';
 
 export default function PetAndBadgesBackend() {
   const HUNGER_THRESHOLD = 30;
-  const HUNGER_DROP_RATE = 2;
-  const XP_GAIN_RATE = 20;
+  const HUNGER_DROP_RATE = 3;
+  const XP_GAIN_RATE = 10;
 
   const [pet, setPet] = useState(null);
   const [wallet, setWallet] = useState({ coins: 100000 });

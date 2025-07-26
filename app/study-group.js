@@ -259,7 +259,7 @@ export default function StudyGroupScreen() {
             ))}
           {members.length > 5 && (
             <Pressable onPress={() => router.push({ pathname: '/group-leaderboard', params: { groupId, groupName } })} style={styles.viewFullLbBtn}>
-              <Text style={styles.viewFullLbTxt}>View Full Group Leaderboard</Text>
+              <Text style={styles.viewFullLbTxt}>View full group leaderboard</Text>
             </Pressable>
           )}
         </View>
@@ -283,7 +283,7 @@ export default function StudyGroupScreen() {
             </View>
           ))}
           <Pressable onPress={() => router.push({pathname: '/activity-log', params: {groupId, groupName}})} style={styles.viewFullLogBtn}>
-            <Text style={styles.viewFullLogTxt}>View Full Activity Log</Text>
+            <Text style={styles.viewFullLogTxt}>View all recent activity log</Text>
           </Pressable>
         </View>
 

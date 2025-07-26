@@ -7,6 +7,7 @@ import { Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text,
 export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood, HUNGER_THRESHOLD, renamePet, setPet, simulateTimePassed, isFeeding}) {
   const router = useRouter();
   const [feedModal, setFeedModal] = useState(false);
+  const [infoModal, setInfoModal] = useState(false);
   const [nameModal, setNameModal] = useState(pet.name === 'No Name Yet :(');
   const [newName, setNewName] = useState(pet.name);
 
@@ -39,9 +40,14 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         <View style={styles.wallet}>
           <IconText icon="coins" text={wallet.coins} color="#ffd700" />
         </View>
-        <Pressable style={styles.leaderboardBtn} onPress={() => {setNameModal(true);}}>
-          <MaterialIcons name="settings" size={22} color="#fff" />
-        </Pressable> 
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable style={styles.infoBtn} onPress={() => setInfoModal(true)}>
+            <FontAwesome5 name="info-circle" size={20} color="#fff" />
+          </Pressable>
+          <Pressable style={styles.leaderboardBtn} onPress={() => setNameModal(true)}>
+            <MaterialIcons name="settings" size={22} color="#fff" />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.petBox}>
@@ -140,6 +146,22 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         </View>
       </Modal>
 
+      <Modal visible={infoModal} animationType="slide" transparent>
+        <View style={styles.overlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Pet Rules</Text>
+            <Text style={{ marginBottom: 12, color: '#4b5563', lineHeight: 20 }}>
+              • Hunger drops by <Text style={{ fontWeight: 'bold' }}>3%</Text> every hour.
+              {'\n'}• Your pet gains <Text style={{ fontWeight: 'bold' }}>10 XP</Text> per hour only when hunger is above <Text style={{ fontWeight: 'bold' }}>30%</Text>.
+              {'\n'}• If hunger is too low, your pet won't gain XP.
+            </Text>
+            <Pressable style={styles.closeBtn} onPress={() => setInfoModal(false)}>
+              <Text style={styles.closeTxt}>Got it</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
     </ScrollView>
   );
 }
@@ -172,6 +194,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '90%' },
   wallet: { flexDirection: 'row' },
   leaderboardBtn: { padding: 8, borderRadius: 16, backgroundColor: '#eab308' },
+  infoBtn: {padding: 8, borderRadius: 14,backgroundColor: '#3b82f6'},
 
   petBox: { alignItems: 'center', marginVertical: 12 },
   img: { width: 180, height: 180, resizeMode: 'contain' },

@@ -34,7 +34,7 @@ export default function ActivityLogScreen() {
 
   return (
     <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 60 }}>
-      <Text style={styles.title}>{groupName}'s Full Activity Log</Text>
+      <Text style={styles.title}>{groupName}'s Recent Activity Log</Text>
 
       <View style={styles.sectionBox}>
         {logEntries.length === 0 ? (
