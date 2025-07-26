@@ -370,7 +370,7 @@ const renderRightActions = (progress, dragX, task) => {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cardTitle}>{item.title}</Text>
                         <Text style={styles.cardSubtitle}>
-                          {item.dueDate ? `Due: ${item.dueDate.toDate().toLocaleString()}` : 'No due date'}
+                          {item.dueDate ? `Due: ${item.dueDate.toDate().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'No due date'}
                         </Text>
                       </View>
                       <View style={styles.cardActions}>
