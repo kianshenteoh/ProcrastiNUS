@@ -88,7 +88,7 @@ export default function SocialScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadGroupsFromCache();
+      loadGroups();
     }, [])
   );
 
@@ -167,43 +167,82 @@ export default function SocialScreen() {
     //   { id: 'g2', name: 'SOC Victims', lastActivity: null },
     // ]);
 
-    const loadGroupsFromCache = async () => {
-      const rawEmail = auth.currentUser?.email;
-      if (!rawEmail) return;
+    // const loadGroupsFromCache = async () => {
+    //   const rawEmail = auth.currentUser?.email;
+    //   if (!rawEmail) return;
 
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-      const cacheSnap = await getDoc(cacheRef);
+    //   const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    //   const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+    //   const cacheSnap = await getDoc(cacheRef);
 
-      if (cacheSnap.exists()) {
-        const groupList = cacheSnap.data()?.groups || [];
+    //   if (cacheSnap.exists()) {
+    //     const groupList = cacheSnap.data()?.groups || [];
 
-        // Fetch last activity for each group
-        const groupData = await Promise.all(groupList.map(async (g) => {
-          const logQuery = await getDocs(query(
-            collection(db, 'studyGroups', g.id, 'activityLog'),
-            orderBy('timestamp', 'desc'),
-            limit(1)
-          ));
+    //     // Fetch last activity for each group
+    //     const groupData = await Promise.all(groupList.map(async (g) => {
+    //       const logQuery = await getDocs(query(
+    //         collection(db, 'studyGroups', g.id, 'activityLog'),
+    //         orderBy('timestamp', 'desc'),
+    //         limit(1)
+    //       ));
 
-          const lastEntry = logQuery.docs[0]?.data();
-          let activityString = null;
+    //       const lastEntry = logQuery.docs[0]?.data();
+    //       let activityString = null;
 
-          if (lastEntry) {
-            const date = lastEntry.timestamp.toDate();
-            activityString = `${lastEntry.actor} ${lastEntry.action}${lastEntry.target ? ` ${lastEntry.target}` : ''} at ${date.toLocaleTimeString()} on ${date.toDateString()}`;
-          }
+    //       if (lastEntry) {
+    //         const date = lastEntry.timestamp.toDate();
+    //         activityString = `${lastEntry.actor} ${lastEntry.action}${lastEntry.target ? ` ${lastEntry.target}` : ''} at ${date.toLocaleTimeString()} on ${date.toDateString()}`;
+    //       }
 
-          return {
-            ...g,
-            lastActivity: activityString
-          };
-        }));
+    //       return {
+    //         ...g,
+    //         lastActivity: activityString
+    //       };
+    //     }));
 
-        setGroups(groupData);
+    //     setGroups(groupData);
+    //   }
+    // };
+
+  const loadGroups = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+
+    const userGroupsSnap = await getDocs(collection(db, 'users', userId, 'groups'));
+    const groupIds = userGroupsSnap.docs.map(doc => doc.id);
+
+    const groupData = await Promise.all(groupIds.map(async (groupId) => {
+      const groupRef = doc(db, 'studyGroups', groupId);
+      const groupSnap = await getDoc(groupRef);
+      if (!groupSnap.exists()) return null;
+
+      const groupName = groupSnap.data().name;
+
+      const logQuery = await getDocs(query(
+        collection(db, 'studyGroups', groupId, 'activityLog'),
+        orderBy('timestamp', 'desc'),
+        limit(1)
+      ));
+
+      const lastEntry = logQuery.docs[0]?.data();
+      let activityString = null;
+
+      if (lastEntry) {
+        const date = lastEntry.timestamp.toDate();
+        activityString = `${lastEntry.actor} ${lastEntry.action}${lastEntry.target ? ` ${lastEntry.target}` : ''} at ${date.toLocaleTimeString()} on ${date.toDateString()}`;
       }
-    };
 
+      return {
+        id: groupId,
+        name: groupName,
+        lastActivity: activityString
+      };
+    }));
+
+    setGroups(groupData.filter(Boolean));
+  };
 
   const handleAddFriend = async () => {
     if (!friendEmail) return alert("Please enter a friend's email");
@@ -321,17 +360,17 @@ export default function SocialScreen() {
 
       // Cache update
       const groupData = groupSnap.data();
-      const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-      const cacheSnap = await getDoc(cacheRef);
-      const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
+      // const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
+      // const cacheSnap = await getDoc(cacheRef);
+      // const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
 
-      const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupData.name }];
-      await setDoc(cacheRef, {
-        groups: updatedGroups,
-        lastUpdated: now
-      });
+      // const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupData.name }];
+      // await setDoc(cacheRef, {
+      //   groups: updatedGroups,
+      //   lastUpdated: now
+      // });
 
-      await loadGroupsFromCache();
+      await loadGroups();
 
       alert('Joined group!');
       setJoinModalVisible(false);
@@ -383,15 +422,15 @@ export default function SocialScreen() {
 
       // Update cache
       const cacheRef = doc(db, 'users', userId, 'groupsCache', 'data');
-      const cacheSnap = await getDoc(cacheRef);
-      const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
-      const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupName }];
-      await setDoc(cacheRef, {
-        groups: updatedGroups,
-        lastUpdated: now
-      });
+      // const cacheSnap = await getDoc(cacheRef);
+      // const existing = cacheSnap.exists() ? cacheSnap.data().groups || [] : [];
+      // const updatedGroups = [...existing.filter(g => g.id !== groupId), { id: groupId, name: groupName }];
+      // await setDoc(cacheRef, {
+      //   groups: updatedGroups,
+      //   lastUpdated: now
+      // });
 
-      await loadGroupsFromCache();
+      await loadGroups();
 
       alert('Study group created!');
       setCreateModalVisible(false);
@@ -729,14 +768,14 @@ const styles = StyleSheet.create({
   wallet: { flexDirection: 'row' },
   leaderboardBtn: { padding: 8, borderRadius: 16, backgroundColor: '#eab308' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' },
+  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 8 },
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
   cancelBtn: { paddingVertical: 8, paddingHorizontal: 12, marginRight: 8, backgroundColor: '#e5e7eb', borderRadius: 6 },
   addBtn: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 6 },
   cancelText: { color: '#374151', fontWeight: '600' },
-  addText: { color: '#fff', fontWeight: '600' },
+  addText: { color: '#fff', fontWeight: '600', justifyContent: 'center', textAlign: 'center' },
   ownerName: { fontSize: 12, color: '#9ca3af', marginVertical: 6 },
   viewGroupBtn: { marginTop: 12, backgroundColor: '#3b82f6', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, alignSelf: 'center' },
   viewGroupBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 14 },
