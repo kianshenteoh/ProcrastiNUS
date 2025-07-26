@@ -605,7 +605,7 @@ export default function SocialScreen() {
 
         <Modal visible={showBadgeModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
+            <View style={styles.badgeModalContainer}>
               <Text style={styles.modalTitle}>🎉 New Badge Unlocked!</Text>
               
               {newBadge && (
@@ -768,7 +768,8 @@ const styles = StyleSheet.create({
   wallet: { flexDirection: 'row' },
   leaderboardBtn: { padding: 8, borderRadius: 16, backgroundColor: '#eab308' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%', alignItems: 'center' },
+  modalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' },
+  badgeModalContainer: { backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%', alignItems: 'center' },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 20 },
   input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 8 },
   modalButtons: { flexDirection: 'row', justifyContent: 'flex-end' },
