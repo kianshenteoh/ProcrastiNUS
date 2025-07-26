@@ -48,6 +48,11 @@ export default function RootLayout() {
           name="group-leaderboard"
           options={{ headerShown: true, title: 'Group Leaderboard' }}
         />
+
+        <Stack.Screen
+          name="about-app"
+          options={{ headerShown: true, title: 'About This App' }}
+        />
       </Stack>
     </UserProvider>
   );

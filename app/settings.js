@@ -7,9 +7,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
-  Text,
-  View,
+  Text
 } from "react-native";
 import { auth } from "../firebase";
 
@@ -48,7 +46,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.sectionTitle}>Preferences</Text>
+      {/* <Text style={styles.sectionTitle}>Preferences</Text>
 
       <View style={styles.row}>
         <Text style={styles.label}>Dark Theme</Text>
@@ -60,8 +58,8 @@ export default function SettingsScreen() {
           value={notificationsEnabled}
           onValueChange={setNotificationsEnabled}
         />
-      </View>
-      <Pressable style={styles.button} onPress={() => router.push("/about")}>
+      </View> */}
+      <Pressable style={styles.button} onPress={() => router.push("/about-app")}>
         <Text style={styles.buttonText}>About This App</Text>
       </Pressable>
       <Pressable
