@@ -514,7 +514,7 @@ const forceResetManual = async () => {
     resetCountdownIntervalRef.current = null;
   }
 
-  const minutes = Math.floor(elapsed * 3000 / 60);
+  const minutes = Math.floor(elapsed / 60);
   console.log('Manual reset - elapsed minutes:', minutes);
   if (minutes >= 5) {
     setElapsed(0);
