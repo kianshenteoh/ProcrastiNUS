@@ -68,6 +68,11 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
         </Pressable>
       )} */}
 
+      <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
+        <FontAwesome5 name="store" size={16} color="#fff" />
+        <Text style={styles.shopTxt}>Shop</Text>
+      </Pressable>
+
       <Text style={styles.invTitle}>My Inventory</Text>
       {inventory.length ? (
         <FlatList
@@ -89,11 +94,6 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       ) : (
         <Text style={styles.invEmpty}>No food yet – visit the shop!</Text>
       )}
-
-      <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
-        <FontAwesome5 name="store" size={16} color="#fff" />
-        <Text style={styles.shopTxt}>Shop</Text>
-      </Pressable>
 
       <Modal visible={feedModal} animationType="fade" transparent>
         <View style={styles.overlay}>
@@ -205,10 +205,10 @@ const styles = StyleSheet.create({
   barBg: { height: 10, borderRadius: 5, backgroundColor: '#e5e7eb', overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
 
-  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 10, marginBottom: 10, justifyContent: 'center', width: '50%' },
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 30, marginBottom: 10, justifyContent: 'center', width: '50%' },
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
-  invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
+  invTitle: { fontSize: 22, fontWeight: '800', marginTop: 25, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
   invCard: { width: 100, maxWidth: 110, minWidth: 90, height: 65, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2, justifyContent: 'center' },
   invLabel: { fontSize: 13, marginTop: 4, color: '#374151', fontWeight: '600' },
   invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 20, marginBottom: 80 },
