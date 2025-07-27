@@ -2,7 +2,7 @@ import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { auth, db } from '@/firebase';
 import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { FlatList, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -16,6 +16,18 @@ export default function LeaderboardScreen() {
     bolt: '#10b981',
     moon: '#8b5cf6',
   };
+
+  // const allBadges = {
+  //   firstTask: { icon: 'star', color: '#ffbf00' },
+  //   taskMaster: { icon: 'tasks', color: '#3b82f6' },
+  //   productivityPro: { icon: 'bolt', color: '#10b981' },
+  //   firstFriend: { icon: 'user-friends', color: '#ffbf00' },
+  //   socialButterfly: { icon: 'users', color: '#3b82f6' },
+  //   studyBuddy: { icon: 'book', color: '#10b981' },
+  //   firstSession: { icon: 'star', color: '#ffbf00' },
+  //   studyStreak: { icon: 'fire', color: '#ff5e00' },
+  //   longSession: { icon: 'brain', color: '#3b82f6' }
+  // };
 
   const [friendsPetsAndHours, setFriendsPetsAndHours] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +74,15 @@ export default function LeaderboardScreen() {
               getTotalHours(friendId)
             ]);
 
+            // const badgeSnap = await getDoc(doc(db, 'users', friendId, 'badges', 'data'));
+            // const earnedBadges = badgeSnap.exists() ? badgeSnap.data().earned || [] : [];
+
+            // // Limit display to 3 badges for leaderboard
+            // const badgeIcons = earnedBadges.slice(0, 3).map(badgeId => {
+            //   const badge = allBadges[badgeId];
+            //   return badge ? { icon: badge.icon, color: badge.color } : null;
+            // }).filter(Boolean);
+
             return {
               id: friendId,
               petName: updatedPet.name || 'Unknown',
@@ -69,10 +90,11 @@ export default function LeaderboardScreen() {
               level: Math.floor(updatedPet.totalXp / 1000),
               hoursWeek,
               hoursTotal,
-              badgeIcons: ['fire', 'tasks', 'sun'],
-              totalBadges: 3,
+              // badgeIcons,
+              // totalBadges: earnedBadges.length,
               pet: petImages[updatedPet.image] || petImages.default,
             };
+
           } catch {
             return null;
           }
@@ -87,7 +109,7 @@ export default function LeaderboardScreen() {
       });
 
       return result;
-    } catch (e) {
+    } catch (e) { 
       console.error("Leaderboard fetch failed:", e);
       return [];
     }
@@ -137,15 +159,27 @@ export default function LeaderboardScreen() {
               <Text style={styles.petName}>{item.petName}</Text>
               <Text style={styles.ownerName}>Owner: {item.ownerName}</Text>
               <Text style={styles.level}>Lvl {item.level}</Text>
-              <View style={styles.badgeRow}>
-                {item.badgeIcons.map((icon) => (
-                  <View key={icon} style={[styles.badgeIcon, { backgroundColor: badgeColors[icon] || '#0ea5e9' }]}>
-                    <FontAwesome5 name={icon} size={14} color="#fff" />
-                  </View>
-                ))}
-                <Text style={styles.moreDots}>...</Text>
+              {/* <View style={styles.badgeRow}>
+                {item.badgeIcons.length > 0 ? (
+                  <>
+                    {item.badgeIcons.map((badge, idx) => (
+                      <View key={idx} style={[styles.badgeIcon, { backgroundColor: badge.color }]}>
+                        <FontAwesome5
+                          name={FontAwesome5.glyphMap[badge.icon] ? badge.icon : 'medal'}
+                          size={14}
+                          color="#fff"
+                        />
+                      </View>
+                    ))}
+                    {item.totalBadges > 3 && <Text style={styles.moreDots}>...</Text>}
+                  </>
+                ) : (
+                  <Text style={styles.totalBadges}>No badges yet</Text>
+                )}
               </View>
-              <Text style={styles.totalBadges}>{item.totalBadges} badges total</Text>
+              <Text style={styles.totalBadges}>
+                {item.totalBadges} badge{item.totalBadges !== 1 ? 's' : ''} total
+              </Text> */}
             </View>
             <View style={styles.hoursCol}>
               <View style={styles.hourRow}>
