@@ -155,9 +155,9 @@ export default function ProfileScreen() {
 
         <View style={styles.actionColumn}>
           <View style={styles.statsRow}>
-            <Stat label="Weekly Study hrs" value={user.weeklyHours} icon="hourglass" />
-            <Stat label="Total Study hrs" value={user.totalHours} icon="clock" />
-            <Stat label="Tasks Completed" value={user.tasksCompleted} icon="tasks" />
+            <Stat label="Weekly hrs" value={user.weeklyHours} icon="hourglass" />
+            <Stat label="Total hrs" value={user.totalHours} icon="clock" />
+            <Stat label={`Tasks Done`} value={user.tasksCompleted} icon="tasks" />
           </View>
 
           <Text style={styles.badgesTitle}>Badges</Text>

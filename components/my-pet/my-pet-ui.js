@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
   invTitle: { fontSize: 22, fontWeight: '800', marginTop: 25, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
-  invCard: { width: 100, maxWidth: 110, minWidth: 90, height: 65, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2, justifyContent: 'center' },
+  invCard: { width: 100, maxWidth: 110, minWidth: 90, height: 80, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2, justifyContent: 'center' },
   invLabel: { fontSize: 13, marginTop: 4, color: '#374151', fontWeight: '600' },
   invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 20, marginBottom: 80 },
 
