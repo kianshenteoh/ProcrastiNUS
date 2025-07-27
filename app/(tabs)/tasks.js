@@ -309,6 +309,7 @@ const renderRightActions = (progress, dragX, task) => {
         badgeAwarded = {
           id: 'firstTask',
           name: 'First Task',
+          description: 'Created first task',
           icon: 'star',
           color: '#ffbf00'
         };
@@ -319,6 +320,7 @@ const renderRightActions = (progress, dragX, task) => {
         badgeAwarded = {
           id: 'taskMaster',
           name: 'Task Master',
+          description: 'Completed 5 tasks',
           icon: 'tasks',
           color: '#3b82f6'
         };
@@ -329,6 +331,7 @@ const renderRightActions = (progress, dragX, task) => {
         badgeAwarded = {
           id: 'productivityPro',
           name: 'Productivity Pro',
+          description: 'Completed 10 tasks',
           icon: 'bolt',
           color: '#10b981'
         };
@@ -481,6 +484,10 @@ const renderRightActions = (progress, dragX, task) => {
           <Text style={styles.badgeLabel}>{newBadge.name}</Text>
         </View>
       )}
+
+      <Text style={{ textAlign: 'center', marginBottom: 18, fontWeight: '600' }}>
+          {newBadge && newBadge.description}
+      </Text>
       
       <Text style={{ textAlign: 'center', marginBottom: 16 }}>
         You've earned a new badge for your achievements!
