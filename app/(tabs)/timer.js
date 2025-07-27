@@ -270,6 +270,8 @@ const awardCoins = async (amount) => {
   const currentCoins = snap.exists() ? snap.data().coins || 0 : 0;
   const newCoins = currentCoins + Math.floor(amount);
 
+  alert(`You earned ${Math.floor(amount)} coins! You now have ${newCoins} coins.`);
+
   await updateDoc(walletRef, { coins: newCoins });
 };
 
@@ -464,8 +466,8 @@ const refreshStudyHours = async () => {
         badgeAwarded = STUDY_BADGES.firstSession;
       }
 
-      // Check for long session (30+ minutes)
-      if (durationInMinutes >= 30 && !currentBadges.includes('longSession')) {
+      // Check for long session (2 hours and above)
+      if (durationInMinutes >= 120 && !currentBadges.includes('longSession')) {
         newBadges.push('longSession');
         badgeAwarded = STUDY_BADGES.longSession;
       }
@@ -522,7 +524,7 @@ const forceResetManual = async () => {
     resetCountdownIntervalRef.current = null;
   }
 
-  const minutes = Math.floor(elapsed / 60);
+  const minutes = Math.floor(elapsed * 30000 / 60);
   console.log('Manual reset - elapsed minutes:', minutes);
   if (minutes >= 5) {
     setElapsed(0);
@@ -578,11 +580,11 @@ const forceResetManual = async () => {
         {mode === 'stopwatch' && running
           ? quote
           : mode === 'stopwatch' && !running && resetTimer
-            ? `${Math.floor(resetCountdown / 60)} minutes and ${resetCountdown % 60} seconds until stopwatch resets`
+            ? `${Math.floor(resetCountdown / 60)} minutes and ${resetCountdown % 60} seconds until stopwatch resets. No coins will be awarded for this session.`
             : mode === 'stopwatch'
               ? "Start the stopwatch and stay focused! Reward: 1 coin per minute studied."
               : initialTime === 0
-                ? "Start the timer and put down your phone! Reward: 1 coin per minute studied."
+                ? "Start the timer and put down your phone! Reward: 2 coins per minute studied."
                 : quote}
       </Text>
 
@@ -649,7 +651,11 @@ const forceResetManual = async () => {
               <Text style={styles.badgeLabel}>{newBadge.name}</Text>
             </View>
           )}
-          
+
+          <Text style={{ textAlign: 'center', marginBottom: 18, fontWeight: '600' }}>
+              {newBadge && newBadge.description}
+          </Text>
+        
           <Text style={{ textAlign: 'center', marginBottom: 16 }}>
             You've earned a new badge for your study achievements!
           </Text>
