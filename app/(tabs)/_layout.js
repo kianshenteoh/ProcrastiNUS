@@ -1,10 +1,8 @@
-import { HapticTab } from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 function CenterTabButton(props) {
   const focused = props.accessibilityState?.selected ?? false;
@@ -31,14 +29,16 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: tintColor,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-          },
-          default: {},
-        }),
+        tabBarStyle: {
+          backgroundColor: '#f5f7fa', 
+          borderTopColor:'#f5f7fa',  
+          position: 'absolute',
+          elevation: 10,             
+          shadowColor: '#000',        
+          shadowOpacity: 0.1,
+          shadowOffset: { width: 0, height: -2 },
+          shadowRadius: 5,
+        },
       }}
     >
       <Tabs.Screen
@@ -93,4 +93,4 @@ const styles = StyleSheet.create({
   centerWrapper: { top: -10, justifyContent: 'center', alignItems: 'center' },
   centerButton: { width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgb(232, 77, 77)', justifyContent: 'center', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.2, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5 },
   centerFocused: { backgroundColor: '#cc0000' },
-});
+}); 
