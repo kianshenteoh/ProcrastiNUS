@@ -8,10 +8,8 @@ import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler'
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { auth, db } from '../../firebase';
 
-
 export default function TasksScreen() {
   const nav = useNavigation();
-
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState('Medium');
@@ -24,7 +22,7 @@ export default function TasksScreen() {
   const [lastFetched, setLastFetched] = useState(null);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [newBadge, setNewBadge] = useState(null);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const loadAndCleanTasks = async () => {
@@ -70,8 +68,6 @@ export default function TasksScreen() {
 
     loadAndCleanTasks();
   }, [lastFetched]);
-
-
 
   const trackTaskEvent = async eventType => {
     const rawEmail = auth.currentUser?.email;
@@ -156,19 +152,19 @@ export default function TasksScreen() {
         trackTaskEvent('created');
         await logToAllGroupLogs(userId, 'created task', title.trim());
         
-        // Check for badges after creating a task
         const badge = await checkForBadges();
         if (badge) {
           setNewBadge(badge);
           setShowBadgeModal(true);
         }
       }
+      setModalVisible(false);
+      resetForm();
     } catch (error) {
       console.error('Error saving task:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    resetForm();
-    setModalVisible(false);
   };
 
   const startEdit = task => {
@@ -210,28 +206,19 @@ export default function TasksScreen() {
     const profileRef = doc(db, 'users', userId, 'profile', 'data');
 
     try {
-      // First check if task exists and isn't already completed
       const taskSnap = await getDoc(taskRef);
       if (!taskSnap.exists() || taskSnap.data().completed) return;
 
-      // Optimistically update UI
       setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: true } : t)));
 
-      // Perform all updates in a single batch
       const batch = writeBatch(db);
-      
-      // Mark task as completed
       batch.update(taskRef, { completed: true });
-      
-      // Increment tasksCompleted in profile
       batch.update(profileRef, { tasksCompleted: increment(1) });
 
       await batch.commit();
       trackTaskEvent('completed');
-
       await logToAllGroupLogs(userId, 'completed task', taskSnap.data().title);
       
-      // Check for badges after completing a task
       const badge = await checkForBadges();
       if (badge) {
         setNewBadge(badge);
@@ -239,7 +226,6 @@ export default function TasksScreen() {
       }
     } catch (error) {
       console.error('Error completing task:', error);
-      // Rollback UI if error occurs
       setTasks(prev => prev.map(t => (t.id === id ? { ...t, completed: false } : t)));
     }
   };
@@ -264,22 +250,22 @@ export default function TasksScreen() {
     </View>
   );
 
-const renderRightActions = (progress, dragX, task) => {
-  const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+  const renderRightActions = (progress, dragX, task) => {
+    const scale = dragX.interpolate({ inputRange: [-100, 0], outputRange: [1, 0], extrapolate: 'clamp' });
 
-  const isCompleted = task.completed;
-  const actionText = isCompleted ? '↺ Undo' : '✓ Complete';
-  const actionColor = isCompleted ? '#f0a500' : 'green';
-  const onPress = isCompleted ? () => uncompleteTask(task.id) : () => completeTask(task.id);
+    const isCompleted = task.completed;
+    const actionText = isCompleted ? '↺ Undo' : '✓ Complete';
+    const actionColor = isCompleted ? '#f0a500' : 'green';
+    const onPress = isCompleted ? () => uncompleteTask(task.id) : () => completeTask(task.id);
 
-  return (
-    <Pressable onPress={onPress} style={[styles.completeAction, { backgroundColor: actionColor }]}>
-      <Animated.Text style={[styles.completeText, { transform: [{ scale }] }]}>
-        {actionText}
-      </Animated.Text>
-    </Pressable>
-  );
-};
+    return (
+      <Pressable onPress={onPress} style={[styles.completeAction, { backgroundColor: actionColor }]}>
+        <Animated.Text style={[styles.completeText, { transform: [{ scale }] }]}>
+          {actionText}
+        </Animated.Text>
+      </Pressable>
+    );
+  };
 
   const uncompleteTask = async (id) => {
     const rawEmail = auth.currentUser?.email;
@@ -290,23 +276,15 @@ const renderRightActions = (progress, dragX, task) => {
     const profileRef = doc(db, 'users', userId, 'profile', 'data');
 
     try {
-      // Optimistically update UI
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: false } : task));
 
-      // Perform all updates in a single batch
       const batch = writeBatch(db);
-      
-      // Mark task as not completed
       batch.update(taskRef, { completed: false });
-      
-      // Decrement tasksCompleted in profile
       batch.update(profileRef, { tasksCompleted: increment(-1) });
 
       await batch.commit();
-      
     } catch (error) {
       console.error('Error marking task as incomplete:', error);
-      // Rollback UI if error occurs
       setTasks(t => t.map(task => task.id === id ? { ...task, completed: true } : task));
     }
   };
@@ -317,19 +295,16 @@ const renderRightActions = (progress, dragX, task) => {
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
     
     try {
-      // Get current tasks count from profile
       const profileRef = doc(db, 'users', userId, 'profile', 'data');
       const profileSnap = await getDoc(profileRef);
       const tasksCompleted = profileSnap.exists() ? profileSnap.data().tasksCompleted || 0 : 0;
 
-      // Get current badges
       const badgesRef = doc(db, 'users', userId, 'badges', 'data');
       const badgesSnap = await getDoc(badgesRef);
       const currentBadges = badgesSnap.exists() ? badgesSnap.data().earned || [] : [];
       const newBadges = [...currentBadges];
       let badgeAwarded = null;
 
-      // Check for First Task badge
       if (tasksCompleted === 1 && !currentBadges.includes('firstTask')) {
         newBadges.push('firstTask');
         badgeAwarded = {
@@ -340,7 +315,6 @@ const renderRightActions = (progress, dragX, task) => {
           color: '#ffbf00'
         };
       }
-      // Check for Task Master badge (5 tasks)
       else if (tasksCompleted === 5 && !currentBadges.includes('taskMaster')) {
         newBadges.push('taskMaster');
         badgeAwarded = {
@@ -351,7 +325,6 @@ const renderRightActions = (progress, dragX, task) => {
           color: '#3b82f6'
         };
       }
-      // Check for Productivity Pro badge (10 tasks)
       else if (tasksCompleted === 10 && !currentBadges.includes('productivityPro')) {
         newBadges.push('productivityPro');
         badgeAwarded = {
@@ -376,13 +349,12 @@ const renderRightActions = (progress, dragX, task) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 0 }}>
-        <Text style={styles.headerTitle}>My Tasks</Text>
-        <Pressable onPress={() => nav.navigate('daily-quests')} style={styles.dailyBtn}>
-          <FontAwesome6 name="list-check" size={24} color="#3479DB" />
-        </Pressable>
-      </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 0 }}>
+          <Text style={styles.headerTitle}>My Tasks</Text>
+          <Pressable onPress={() => nav.navigate('daily-quests')} style={styles.dailyBtn}>
+            <FontAwesome6 name="list-check" size={24} color="#3479DB" />
+          </Pressable>
+        </View>
 
         <Pressable style={styles.addBtn} onPress={() => setModalVisible(true)}>
           <Text style={styles.addBtnText}>+ New Task</Text>
@@ -426,33 +398,32 @@ const renderRightActions = (progress, dragX, task) => {
           ))}
 
           <View style={{ paddingBottom: 120 }}>          
-          <Text style={[styles.groupHeader, {color: 'green'}]}>✓ Completed Tasks</Text>
+            <Text style={[styles.groupHeader, {color: 'green'}]}>✓ Completed Tasks</Text>
             {tasks.filter(t => t.completed).length === 0 ? (
               <Text style={[styles.empty, {marginVertical: 10}]}>No completed tasks</Text>
             ) : (
               <>
-              <Text style={[styles.swipeToCompleteText, {marginVertical: 10}]}>Swipe left to undo a completed task</Text>
-              {tasks
-              .filter(t => t.completed)
-              .sort((a, b) => b.createdAt - a.createdAt)
-              .map(item => (
-                <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item)}>
-                  <View style={[styles.card, styles.cardCompleted]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.cardTitle, styles.completedText]}>{item.title}</Text>
-                      <Text style={styles.cardSubtitle}>
-                        {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
-                        {/* {console.log('Due date:', item.dueDate)} */}
-                      </Text>
+                <Text style={[styles.swipeToCompleteText, {marginVertical: 10}]}>Swipe left to undo a completed task</Text>
+                {tasks
+                .filter(t => t.completed)
+                .sort((a, b) => b.createdAt - a.createdAt)
+                .map(item => (
+                  <Swipeable key={item.id} renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item)}>
+                    <View style={[styles.card, styles.cardCompleted]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.cardTitle, styles.completedText]}>{item.title}</Text>
+                        <Text style={styles.cardSubtitle}>
+                          {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
+                        </Text>
+                      </View>
+                      <View style={styles.cardActions}>
+                        <Pressable onPress={() => deleteTask(item.id)}>
+                          <Text style={[styles.action, styles.delete]}>Delete</Text>
+                        </Pressable>
+                      </View>
                     </View>
-                    <View style={styles.cardActions}>
-                      <Pressable onPress={() => deleteTask(item.id)}>
-                        <Text style={[styles.action, styles.delete]}>Delete</Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                </Swipeable>
-              ))}
+                  </Swipeable>
+                ))}
               </>
             )}
           </View>
@@ -491,43 +462,45 @@ const renderRightActions = (progress, dragX, task) => {
               )}
               <View style={styles.modalBtns}>
                 <Pressable style={[styles.btn, styles.cancelBtn]} onPress={() => { resetForm(); setModalVisible(false); }}><Text style={styles.btnTxt}>Cancel</Text></Pressable>
-                <Pressable style={[styles.btn, styles.saveBtn]} onPress={saveTask}><Text style={[styles.btnTxt, { color: '#fff' }]}>{editId ? 'Update' : 'Save'}</Text></Pressable>
+                <Pressable style={[styles.btn, styles.saveBtn, isSubmitting && { opacity: 0.7 }]} onPress={saveTask} disabled={isSubmitting}>
+                  <Text style={[styles.btnTxt, { color: '#fff' }]}>{editId ? 'Update' : isSubmitting ? 'Saving...' : 'Save'}</Text>
+                </Pressable>
               </View>
             </View>
           </View>
         </Modal>
 
         <Modal visible={showBadgeModal} transparent animationType="fade">
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-    <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
-      <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>🎉 New Badge Unlocked!</Text>
-      
-      {newBadge && (
-        <View style={[styles.badgeCard, { backgroundColor: newBadge.color + '55', marginBottom: 16 }]}>
-          <View style={[styles.badgeIconWrap, { backgroundColor: newBadge.color }]}>
-            <FontAwesome5 name={newBadge.icon} size={24} color="#fff" />
-          </View>
-          <Text style={styles.badgeLabel}>{newBadge.name}</Text>
-        </View>
-      )}
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 16 }}>🎉 New Badge Unlocked!</Text>
+              
+              {newBadge && (
+                <View style={[styles.badgeCard, { backgroundColor: newBadge.color + '55', marginBottom: 16 }]}>
+                  <View style={[styles.badgeIconWrap, { backgroundColor: newBadge.color }]}>
+                    <FontAwesome5 name={newBadge.icon} size={24} color="#fff" />
+                  </View>
+                  <Text style={styles.badgeLabel}>{newBadge.name}</Text>
+                </View>
+              )}
 
-      <Text style={{ textAlign: 'center', marginBottom: 18, fontWeight: '600' }}>
-          {newBadge && newBadge.description}
-      </Text>
-      
-      <Text style={{ textAlign: 'center', marginBottom: 16 }}>
-        You've earned a new badge for your achievements!
-      </Text>
-      
-      <Pressable 
-        onPress={() => setShowBadgeModal(false)}
-        style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, width: '100%' }}
-      >
-        <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Awesome!</Text>
-      </Pressable>
-    </View>
-  </View>
-</Modal>
+              <Text style={{ textAlign: 'center', marginBottom: 18, fontWeight: '600' }}>
+                  {newBadge && newBadge.description}
+              </Text>
+              
+              <Text style={{ textAlign: 'center', marginBottom: 16 }}>
+                You've earned a new badge for your achievements!
+              </Text>
+              
+              <Pressable 
+                onPress={() => setShowBadgeModal(false)}
+                style={{ backgroundColor: '#4b7bec', padding: 10, borderRadius: 6, width: '100%' }}
+              >
+                <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Awesome!</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </View>
     </GestureHandlerRootView>
   );
@@ -571,23 +544,23 @@ const styles = StyleSheet.create({
   completeText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   calendarBtn:{position:'absolute',bottom:30,right:20,backgroundColor:'#ff7a00',padding:20,borderRadius:25,elevation:4,shadowColor:'#000',shadowOpacity:.3,shadowOffset:{width:0,height:2},shadowRadius:4},
   badgeCard: {
-  width: 120,
-  alignItems: 'center',
-  paddingVertical: 12,
-  borderRadius: 16,
-},
-badgeIconWrap: {
-  width: 50,
-  height: 50,
-  borderRadius: 25,
-  justifyContent: 'center',
-  alignItems: 'center',
-  marginBottom: 6,
-},
-badgeLabel: {
-  color: '#1f2937',
-  fontWeight: '600',
-  textAlign: 'center',
-  fontSize: 12,
-},
+    width: 120,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+  },
+  badgeIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  badgeLabel: {
+    color: '#1f2937',
+    fontWeight: '600',
+    textAlign: 'center',
+    fontSize: 12,
+  },
 });
