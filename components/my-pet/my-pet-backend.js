@@ -12,7 +12,7 @@ export default function PetAndBadgesBackend() {
   const XP_GAIN_RATE = 10;
 
   const [pet, setPet] = useState(null);
-  const [wallet, setWallet] = useState({ coins: 100000 });
+  const [wallet, setWallet] = useState({ coins: 100 });
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState([]);
 
@@ -89,7 +89,7 @@ export default function PetAndBadgesBackend() {
 
         let finalWallet;
         if (!walletSnap.exists()) {
-          finalWallet = { coins: 10000 };
+          finalWallet = { coins: 100 };
           await setDoc(walletRef, finalWallet);
         } else {
           const walletData = walletSnap.data();
