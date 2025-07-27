@@ -73,7 +73,7 @@ export default function PomodoroScreen() {
 
               const fullMinutes = Math.floor(initialTime / 60);
               if (fullMinutes > 0) {
-                awardCoins(fullMinutes);
+                awardCoins(2 * fullMinutes);
                 recordStudySession(fullMinutes);
                 //refreshStudyHours(); 
               }
@@ -168,7 +168,7 @@ export default function PomodoroScreen() {
             console.log('Time spent:', timeSpent, 'seconds');
             const minutes = Math.floor(elapsedSeconds / 60);
             if (minutes > 0) {
-              const coinsToGive = Math.max(1, Math.floor(minutes / 2)); 
+              const coinsToGive = Math.max(1, Math.floor(minutes)); 
               awardCoins(coinsToGive);
               recordStudySession(minutes);
             }
