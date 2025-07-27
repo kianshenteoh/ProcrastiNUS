@@ -114,7 +114,7 @@ export default function TasksScreen() {
     const task = {
       title: title.trim(),
       priority,
-      dueDate: hasDueDate ? dueDate : null,
+      dueDate: hasDueDate && dueDate instanceof Date ? dueDate : null,
       completed: false,
       createdAt: new Date()
     };
@@ -148,7 +148,13 @@ export default function TasksScreen() {
   const startEdit = task => {
     setTitle(task.title);
     setPriority(task.priority);
-    setDueDate(task.dueDate ? new Date(task.dueDate) : null);
+    setDueDate(
+      task.dueDate
+        ? (typeof task.dueDate.toDate === 'function'
+            ? task.dueDate.toDate()
+            : new Date(task.dueDate))
+        : null
+    );
     setHasDueDate(!!task.dueDate);
     setEditId(task.id);
     setModalVisible(true);
@@ -338,9 +344,6 @@ const renderRightActions = (progress, dragX, task) => {
     return null;
   };
 
-
-
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
@@ -370,7 +373,16 @@ const renderRightActions = (progress, dragX, task) => {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.cardTitle}>{item.title}</Text>
                         <Text style={styles.cardSubtitle}>
-                          {item.dueDate ? `Due: ${item.dueDate.toDate().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'No due date'}
+                          {item.dueDate
+                            ? `Due: ${(item.dueDate.toDate?.() || new Date(item.dueDate)).toLocaleString('en-US', {
+                                year: 'numeric',
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}`
+                            : 'No due date'}
                         </Text>
                       </View>
                       <View style={styles.cardActions}>
@@ -401,6 +413,7 @@ const renderRightActions = (progress, dragX, task) => {
                       <Text style={[styles.cardTitle, styles.completedText]}>{item.title}</Text>
                       <Text style={styles.cardSubtitle}>
                         {item.dueDate ? `Due: ${new Date(item.dueDate).toLocaleString()}` : 'No due date'}
+                        {/* {console.log('Due date:', item.dueDate)} */}
                       </Text>
                     </View>
                     <View style={styles.cardActions}>
@@ -433,7 +446,7 @@ const renderRightActions = (progress, dragX, task) => {
               {hasDueDate && (
                 <>
                   <Pressable onPress={() => setShowDatePicker(true)} style={styles.datePickerBtn}>
-                    <Text style={styles.datePickerText}>{dueDate ? new Date(dueDate).toLocaleString() : 'Pick due date & time'}</Text>
+                    <Text style={styles.datePickerText}>{dueDate ? (dueDate.toDate?.() || dueDate).toLocaleString('en-US', { year: 'numeric', weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Pick due date & time'}</Text>
                   </Pressable>
                   <DateTimePickerModal
                     isVisible={showDatePicker}

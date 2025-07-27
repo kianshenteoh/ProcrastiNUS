@@ -16,11 +16,30 @@ export default function DailyQuestsScreen() {
       const rawEmail = auth.currentUser?.email;
       if (!rawEmail) return;
       const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-      
-      // Fetch daily stats
+
+      const todayStr = new Date().toDateString();
+
       const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
       const statsSnap = await getDoc(statsRef);
-      const statsData = statsSnap.exists() ? statsSnap.data() : { created: 0, completed: 0, hasOverdue: false };
+
+      let statsData = { created: 0, completed: 0, hasOverdue: false, date: todayStr };
+
+      // If existing stats exist and are from today, use them
+      if (statsSnap.exists()) {
+        const existingData = statsSnap.data();
+        if (existingData.date === todayStr) {
+          statsData = existingData;
+        } else {
+          // Date mismatch → reset daily counters
+          await updateDoc(statsRef, {
+            created: 0,
+            completed: 0,
+            hasOverdue: false,
+            date: todayStr
+          });
+        }
+      }
+
       setDailyStats(statsData);
 
       // Fetch wallet data
@@ -28,13 +47,12 @@ export default function DailyQuestsScreen() {
       const walletSnap = await getDoc(walletRef);
       const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0, claimedQuests: {} };
       setWallet(walletData);
-      
-      // Check if any quests were claimed today
-      const today = new Date().toDateString();
+
+      // Claimed quests check
       const claimedToday = {};
       if (walletData.claimedQuests) {
         Object.keys(walletData.claimedQuests).forEach(questId => {
-          claimedToday[questId] = walletData.claimedQuests[questId] === today;
+          claimedToday[questId] = walletData.claimedQuests[questId] === todayStr;
         });
       }
       setClaimedQuests(claimedToday);
@@ -42,6 +60,7 @@ export default function DailyQuestsScreen() {
 
     fetchStats();
   }, []);
+
 
   if (!dailyStats) {
     return <Text style={{ padding: 20 }}>Loading quests...</Text>;
@@ -126,14 +145,8 @@ export default function DailyQuestsScreen() {
       </View>
       
       <ScrollView style={styles.list}>
-        <Text style={styles.sectionTitle}>Incomplete</Text>
-        {incompleteQuests.length ? incompleteQuests.map(renderQuestCard) : (
-          <Text style={styles.empty}>No incomplete quests</Text>
-        )}
-        <Text style={styles.sectionTitle}>Completed</Text>
-        {completedQuests.length ? completedQuests.map(renderQuestCard) : (
-          <Text style={styles.empty}>No completed quests</Text>
-        )}
+        {incompleteQuests.map(renderQuestCard)}
+        {completedQuests.map(renderQuestCard)}
         <View style={{ paddingBottom: 120 }} />
       </ScrollView>
     </View>
