@@ -9,10 +9,15 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleLogin = async creds => {
+  const handleLogin = async (creds) => {
+    if (isLoggingIn) return;
+    
+    setIsLoggingIn(true);
     const mail = creds?.email ?? email;
     const pass = creds?.password ?? password;
+    
     try {
       await signInWithEmailAndPassword(auth, mail.trim(), pass);
       router.replace('./(tabs)/tasks');
@@ -26,6 +31,8 @@ export default function LoginScreen() {
         errorMessage = 'Invalid email or password.';
       }
       alert(errorMessage);
+    } finally {
+      setIsLoggingIn(false);
     }
   };
   
@@ -58,16 +65,23 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
-        <Pressable style={styles.btn} onPress={() => handleLogin()}>
+        <Pressable 
+          style={[styles.btn, isLoggingIn && { opacity: 0.7 }]} 
+          onPress={() => handleLogin()}
+          disabled={isLoggingIn}
+        >
           <FontAwesome5 name="sign-in-alt" size={16} color="#fff" />
-          <Text style={styles.btnTxt}>Login</Text>
+          <Text style={styles.btnTxt}>
+            {isLoggingIn ? 'Logging in...' : 'Login'}
+          </Text>
         </Pressable>
 
         <View style={styles.registerRow}>
           <Text style={styles.registerTxt}>No account? </Text>
           <Link href="/RegisterScreen"><Text style={styles.registerLink}>Register</Text></Link>
         </View>
-{/* 
+
+        {/* 
         <Pressable style={styles.quickBtn} onPress={handleQuickLogin1}>
           <Text style={styles.quickTxt}>Quick Login Account 1 (Developer)</Text>
         </Pressable>
@@ -75,7 +89,7 @@ export default function LoginScreen() {
         <Pressable style={styles.quickBtn} onPress={handleQuickLogin2}>
           <Text style={styles.quickTxt}>Quick Login Account 2 (Developer)</Text>
         </Pressable>
-       */}
+        */}
       </View>
     </View> 
   );
