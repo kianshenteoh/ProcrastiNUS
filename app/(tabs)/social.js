@@ -537,7 +537,7 @@ export default function SocialScreen() {
 
   return (
     <MenuProvider>
-      <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 80 }}>
 
         {/* add friend modal */}
         <Modal

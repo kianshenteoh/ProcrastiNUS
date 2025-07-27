@@ -22,7 +22,7 @@ export default function DailyQuestsScreen() {
       const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
       const statsSnap = await getDoc(statsRef);
 
-      let statsData = { created: 0, completed: 0, hasOverdue: false, date: todayStr };
+      let statsData = { created: 0, completed: 0, date: todayStr };
 
       // If existing stats exist and are from today, use them
       if (statsSnap.exists()) {
@@ -30,11 +30,10 @@ export default function DailyQuestsScreen() {
         if (existingData.date === todayStr) {
           statsData = existingData;
         } else {
-          // Date mismatch → reset daily counters
+          // Date mismatch - reset daily counters
           await updateDoc(statsRef, {
             created: 0,
             completed: 0,
-            hasOverdue: false,
             date: todayStr
           });
         }
@@ -67,8 +66,8 @@ export default function DailyQuestsScreen() {
   }
 
   const dailyQuests = [
-    { id: 'complete2', title: 'Complete 2 Tasks', progress: { current: dailyStats.completed, target: 2 }, reward: 50 },
-    { id: 'create2', title: 'Create 2 Tasks', progress: { current: dailyStats.created, target: 2 }, reward: 30 },
+    { id: 'create2', title: 'Create 2 Tasks', progress: { current: dailyStats.created, target: 2 }, reward: 15 },
+    { id: 'complete2', title: 'Complete 2 Tasks', progress: { current: dailyStats.completed, target: 2 }, reward: 30 },
   ];
 
   const getProgressPct = (current, target) => Math.min(current / target, 1);

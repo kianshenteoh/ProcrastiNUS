@@ -197,6 +197,14 @@ export default function PomodoroScreen() {
           { text: 'Start Anyway', style: 'destructive', onPress: () => startTimer(m * 60) }
         ]
       );
+    } else if (m > 300) {
+      Alert.alert(
+        'Session too long',
+        'Sessions longer than 5 hours are not allowed. Please enter a shorter time.',
+        [
+          { text: 'OK', style: 'cancel' }
+        ]
+      );
     } else {
       startTimer(m * 60);
     }
@@ -581,9 +589,9 @@ const forceResetManual = async () => {
       {mode === 'timer' && !running && secondsLeft === 0 && (
         <View>
           <View style={styles.row}>
-            <Preset label="15m" onPress={() => startTimer(900)} />
-            <Preset label="30m" onPress={() => startTimer(1800)} />
-            <Preset label="60m" onPress={() => startTimer(3600)} />
+            <Preset label="25m" onPress={() => startTimer(25 * 60)} />
+            <Preset label="60m" onPress={() => startTimer(60 * 60)} />
+            <Preset label="90m" onPress={() => startTimer(90 * 60)} />
           </View>
           <View style={styles.customInputContainer}>
             <TextInput style={styles.input} placeholderTextColor="#fff" keyboardType="numeric" value={customMinutes} onChangeText={setCustomMinutes} placeholder="Enter minutes" />
