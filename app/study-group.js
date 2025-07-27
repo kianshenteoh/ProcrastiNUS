@@ -201,7 +201,10 @@ export default function StudyGroupScreen() {
       </Modal>
 
       <View style={styles.headerRow}>
-        <Text style={styles.title}>{groupName} <Text style={styles.groupId}>ID: {groupId}</Text></Text>
+        <View>
+          <Text style={styles.title}>{groupName} </Text>
+          <Text style={styles.groupId}>ID: {groupId}</Text>
+        </View>
         <Pressable style={styles.inviteBtn} onPress={() => setInviteModalVisible(true)}>
           <MaterialIcons name="person-add-alt" size={18} color="#fff" />
           <Text style={styles.inviteTxt}>Add</Text>

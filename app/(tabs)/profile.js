@@ -222,6 +222,11 @@ export default function ProfileScreen() {
                     return;
                   }
 
+                  if (trimmedName.length > 15) {
+                    alert('Name is too long! Max: 15 characters.');
+                    return;
+                  }
+
                   const nameQuery = query(
                     collectionGroup(db, 'profile'),
                     where('name', '==', trimmedName)

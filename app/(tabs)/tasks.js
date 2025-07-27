@@ -128,6 +128,10 @@ export default function TasksScreen() {
 
   const saveTask = async () => {
     if (!title.trim()) return;
+    if (title.trim().length > 30) {
+      alert('Task title too long! Max: 30 characters.');
+      return;
+    }
 
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return;
