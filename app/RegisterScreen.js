@@ -23,6 +23,11 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try { 
+      if (name.length > 15) {
+        alert('Name is too long! Max: 15 characters.');
+        setIsLoading(false);
+        return;
+      }
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
       const userId = email.trim().replace(/[.#$/[\]]/g, '_');

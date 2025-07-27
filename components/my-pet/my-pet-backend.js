@@ -302,6 +302,10 @@ export default function PetAndBadgesBackend() {
 
   const renamePet = async (newName) => {
     if (!petDocRef) return;
+    if (newName.length > 12) {
+      alert('Pet name is too long. Max: 12 characters.');
+      return;
+    }
     const updatedPet = { ...pet, name: newName.trim() };
     await updateDoc(petDocRef, { name: newName.trim() });
     setPet(updatedPet);

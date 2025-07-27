@@ -392,8 +392,19 @@ export default function SocialScreen() {
       const groupRef = doc(db, 'studyGroups', groupId);
 
       const groupSnap = await getDoc(groupRef);
+
       if (groupSnap.exists()) {
         alert('Group ID already taken');
+        return;
+      }
+
+      if (groupName.length > 20) {
+        alert('Group Name is too long! Max: 20 characters.')
+        return;
+      }
+
+      if (groupId.length > 10) {
+        alert('Group ID is too long! Max: 10 characters.')
         return;
       }
 
@@ -586,7 +597,7 @@ export default function SocialScreen() {
           </View>
         </Modal>
 
-        {/* creat group modal */}
+        {/* create group modal */}
         <Modal visible={createModalVisible} transparent animationType="slide" onRequestClose={() => setCreateModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
