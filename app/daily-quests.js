@@ -1,7 +1,7 @@
 import { auth, db } from '@/firebase';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { doc, getDoc, increment, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, increment, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -12,52 +12,58 @@ export default function DailyQuestsScreen() {
   const [wallet, setWallet] = useState({ coins: 0 });
 
   useEffect(() => {
-    const fetchStats = async () => {
-      const rawEmail = auth.currentUser?.email;
-      if (!rawEmail) return;
-      const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const todayStr = new Date().toDateString();
 
-      const todayStr = new Date().toDateString();
+    const fetchInitialData = async () => {
+      try {
+        const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+        const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+        
+        const [statsSnap, walletSnap] = await Promise.all([
+          getDoc(statsRef),
+          getDoc(walletRef)
+        ]);
 
-      const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
-      const statsSnap = await getDoc(statsRef);
-
-      let statsData = { created: 0, completed: 0, date: todayStr };
-
-      // If existing stats exist and are from today, use them
-      if (statsSnap.exists()) {
-        const existingData = statsSnap.data();
-        if (existingData.date === todayStr) {
-          statsData = existingData;
+        let statsData = { created: 0, completed: 0, date: todayStr };
+        if (statsSnap.exists() && statsSnap.data().date === todayStr) {
+          statsData = statsSnap.data();
         } else {
-          // Date mismatch - reset daily counters
-          await updateDoc(statsRef, {
-            created: 0,
-            completed: 0,
-            date: todayStr
+          await setDoc(statsRef, statsData);
+        }
+
+        setDailyStats(statsData);
+
+        const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0, claimedQuests: {} };
+        if (!walletSnap.exists()) {
+          await setDoc(walletRef, walletData);
+        }
+
+        const claimedToday = {};
+        if (walletData.claimedQuests) {
+          Object.keys(walletData.claimedQuests).forEach(questId => {
+            claimedToday[questId] = walletData.claimedQuests[questId] === todayStr;
           });
         }
+        setClaimedQuests(claimedToday);
+        setWallet(walletData);
+      } catch (error) {
+        console.error('Error fetching initial data:', error);
       }
-
-      setDailyStats(statsData);
-
-      // Fetch wallet data
-      const walletRef = doc(db, 'users', userId, 'wallet', 'data');
-      const walletSnap = await getDoc(walletRef);
-      const walletData = walletSnap.exists() ? walletSnap.data() : { coins: 0, claimedQuests: {} };
-      setWallet(walletData);
-
-      // Claimed quests check
-      const claimedToday = {};
-      if (walletData.claimedQuests) {
-        Object.keys(walletData.claimedQuests).forEach(questId => {
-          claimedToday[questId] = walletData.claimedQuests[questId] === todayStr;
-        });
-      }
-      setClaimedQuests(claimedToday);
     };
 
-    fetchStats();
+    const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
+    const unsubscribe = onSnapshot(statsRef, (doc) => {
+      if (doc.exists()) {
+        setDailyStats(doc.data());
+      }
+    });
+
+    fetchInitialData();
+
+    return () => unsubscribe();
   }, []);
 
 

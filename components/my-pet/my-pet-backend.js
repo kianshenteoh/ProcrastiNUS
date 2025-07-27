@@ -87,14 +87,7 @@ export default function PetAndBadgesBackend() {
           };
         }
 
-        let finalWallet;
-        if (!walletSnap.exists()) {
-          finalWallet = { coins: 100 };
-          await setDoc(walletRef, finalWallet);
-        } else {
-          const walletData = walletSnap.data();
-          finalWallet = walletData?.coins === undefined ? { coins: 0 } : walletData;
-        }
+        const finalWallet = walletSnap.data();
 
         let finalInventory;
         if (!inventorySnap.exists()) {

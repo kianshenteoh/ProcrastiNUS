@@ -143,6 +143,17 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
             >
               <Text style={styles.shopTxt}>Save</Text>
             </Pressable>
+            <Pressable 
+              style={{ marginTop: 1 }}
+              onPress={() => {
+                setNameModal(false);
+                if (pet.name === 'No Name Yet :(') {
+                  setNewName('No Name Yet :(');
+                }
+              }}
+            >
+              <Text style={styles.closeTxt}>Cancel</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>

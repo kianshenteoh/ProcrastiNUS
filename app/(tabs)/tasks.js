@@ -35,6 +35,8 @@ export default function TasksScreen() {
       if (!rawEmail) return;
 
       const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+      await initializeWallet();
+      
       const tasksCollection = collection(db, 'users', userId, 'tasks');
       const snapshot = await getDocs(tasksCollection); 
 
@@ -75,15 +77,18 @@ export default function TasksScreen() {
     const rawEmail = auth.currentUser?.email;
     if (!rawEmail) return;
     const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const todayStr = new Date().toDateString();
     const statsRef = doc(db, 'users', userId, 'dailyStats', 'data');
 
     try {
       const statsSnap = await getDoc(statsRef);
-      if (!statsSnap.exists()) {
+   
+      if (!statsSnap.exists() || statsSnap.data().date !== todayStr) {
         await setDoc(statsRef, { 
           created: 0, 
           completed: 0, 
-          hasOverdue: false 
+          hasOverdue: false,
+          date: todayStr
         });
       }
 
@@ -96,6 +101,23 @@ export default function TasksScreen() {
       console.error('Error updating daily stats:', error);
     }
   }
+
+  const initializeWallet = async () => {
+    const rawEmail = auth.currentUser?.email;
+    if (!rawEmail) return;
+    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+    const walletRef = doc(db, 'users', userId, 'wallet', 'data');
+    
+    try {
+      const walletSnap = await getDoc(walletRef);
+      if (!walletSnap.exists()) {
+        await setDoc(walletRef, { coins: 100, claimedQuests: {} });
+      }
+    } catch (error) {
+      console.error('Error initializing wallet:', error);
+    }
+  };
+
   const resetForm = () => {
     setTitle('');
     setPriority('Medium');
