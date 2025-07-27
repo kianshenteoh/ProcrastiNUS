@@ -1,5 +1,5 @@
 import { auth, db } from '@/firebase';
-import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
+import { getTotalHours, getWeeklyHours } from '@/util/getStudyHours';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -236,7 +236,7 @@ export default function ProfileScreen() {
               onPress={async () => {
                 const perm = await ImagePicker.requestCameraPermissionsAsync();
                 if (!perm.granted) return;
-                const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaType.Images });
                 if (!result.canceled && result.assets?.[0]?.uri) {
                   setNewAvatar(result.assets[0].uri);
                 }
@@ -252,7 +252,7 @@ export default function ProfileScreen() {
               onPress={async () => {
                 const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
                 if (!perm.granted) return;
-                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaType.Images });
                 if (!result.canceled && result.assets?.[0]?.uri) {
                   setNewAvatar(result.assets[0].uri);
                 }

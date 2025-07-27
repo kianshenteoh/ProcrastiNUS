@@ -1,6 +1,6 @@
 import petImages from '@/assets/pet-images';
 import { auth, db } from '@/firebase';
-import { logToPersonalAndGroupLog, logToPersonalLog } from '@/lib/logActivity';
+import { logToPersonalAndGroupLog, logToPersonalLog } from '@/util/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';

@@ -1,4 +1,4 @@
-import { logToAllGroupLogs } from '@/lib/logActivity';
+import { logToAllGroupLogs } from '@/util/logActivity';
 import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc, updateDoc, writeBatch } from 'firebase/firestore';

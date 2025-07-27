@@ -1,5 +1,5 @@
 import { auth, db } from '@/firebase';
-import { logToAllGroupLogs } from '@/lib/logActivity';
+import { logToAllGroupLogs } from '@/util/logActivity';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { useEffect, useMemo, useRef, useState } from 'react';

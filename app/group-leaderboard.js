@@ -1,7 +1,7 @@
 import petImages from '@/assets/pet-images';
 import { computePetStats } from '@/components/my-pet/my-pet-backend';
 import { db } from '@/firebase';
-import { getTotalHours, getWeeklyHours } from '@/lib/getStudyHours';
+import { getTotalHours, getWeeklyHours } from '@/util/getStudyHours';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';

@@ -1,5 +1,5 @@
 import { STUDY_BADGES } from '@/constants/study-badges';
-import { logToAllGroupLogs } from '@/lib/logActivity';
+import { logToAllGroupLogs } from '@/util/logActivity';
 import { FontAwesome5 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { startOfWeek } from 'date-fns';
