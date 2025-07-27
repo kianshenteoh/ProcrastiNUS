@@ -17,10 +17,18 @@ export default function LoginScreen() {
       await signInWithEmailAndPassword(auth, mail.trim(), pass);
       router.replace('./(tabs)/tasks');
     } catch (err) {
-      alert(err.message);
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (err.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled.';
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        errorMessage = 'Invalid email or password.';
+      }
+      alert(errorMessage);
     }
   };
-
+  
   const handleQuickLogin1 = () => handleLogin({ email: 'b@gmail.com', password: '123456' });
   const handleQuickLogin2 = () => handleLogin({ email: 'e@gmail.com', password: '123456' });
 

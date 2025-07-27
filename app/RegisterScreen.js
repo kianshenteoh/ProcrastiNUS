@@ -53,11 +53,11 @@ export default function RegisterScreen() {
       setIsLoading(false);
       let errorMessage = 'Registration failed. Please try again.';
       if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'Email already in use.';
+        errorMessage = 'This email is already in use.';
       } else if (err.code === 'auth/weak-password') {
         errorMessage = 'Password should be at least 6 characters.';
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
+        errorMessage = 'Please enter a valid email address.';
       }
       Alert.alert('Error', errorMessage);
     }
