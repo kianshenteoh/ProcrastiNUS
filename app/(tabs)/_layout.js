@@ -7,10 +7,7 @@ import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 function CenterTabButton(props) {
-  const focused =
-    props.accessibilityState?.selected ??
-    props.selected ??
-    false;
+  const focused = props.accessibilityState?.selected ?? false;
 
   return (
     <TouchableOpacity
@@ -25,14 +22,14 @@ function CenterTabButton(props) {
   );
 }
 
-
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const tintColor = Colors[colorScheme ?? 'light'].tint;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: tintColor,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -42,26 +39,31 @@ export default function TabLayout() {
           },
           default: {},
         }),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="tasks"
         options={{
           title: 'Tasks',
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="tasks" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome5 size={24} name="tasks" color={focused ? tintColor : '#aaa'} />
+          ),
         }}
-/>
+      />
       <Tabs.Screen
         name="social"
         options={{
           title: 'Social',
-          tabBarIcon: ({ color }) => <FontAwesome5 size={28} name="user-friends" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome5 size={24} name="user-friends" color={focused ? tintColor : '#aaa'} />
+          ),
         }}
       />
       <Tabs.Screen
         name="timer"
         options={{
           title: 'Timer',
-          tabBarIcon: () => null, 
+          tabBarIcon: () => null, // icon is handled inside CenterTabButton
           tabBarButton: (props) => <CenterTabButton {...props} />,
         }}
       />
@@ -69,14 +71,18 @@ export default function TabLayout() {
         name="my-pet"
         options={{
           title: 'My Pet',
-          tabBarIcon: ({ color }) => <MaterialIcons size={28} name="pets" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <MaterialIcons size={28} name="pets" color={focused ? tintColor : '#aaa'} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="person" color={color} />,
+          tabBarIcon: ({ focused }) => (
+            <Ionicons size={28} name="person" color={focused ? tintColor : '#aaa'} />
+          ),
         }}
       />
     </Tabs>
