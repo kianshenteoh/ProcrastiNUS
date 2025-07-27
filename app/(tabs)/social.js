@@ -688,7 +688,7 @@ export default function SocialScreen() {
               <Image source={petImages[item.image]} style={styles.petImage} />
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.level}>Lvl {Math.floor(item.totalXp / 1000)}</Text>
-              <Text style={styles.hunger}>Hunger: {item.hunger}%</Text>
+              <Text style={styles.hunger}>Energy: {item.hunger}%</Text>
               <Text style={styles.ownerName}>Owner: {item.ownerName}</Text> 
               <Pressable 
                 onPress={() => {

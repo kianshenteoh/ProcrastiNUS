@@ -245,7 +245,7 @@ export default function ViewPetScreen() {
         <Text style={styles.petName}>{typeof pet?.name === 'string' ? pet.name : 'Unnamed Pet'}</Text>
         <Text style={styles.level}>Lvl {typeof pet?.level === 'number' ? pet.level : 1}</Text>
         <Text style={styles.hunger}>XP: {typeof pet?.xp === 'number' ? pet.xp % 1000 : 0}/1000</Text>
-        <Text style={styles.hunger}>Hunger: {typeof pet?.hunger === 'number' ? pet.hunger : 0}%</Text>
+        <Text style={styles.hunger}>Energy: {typeof pet?.hunger === 'number' ? pet.hunger : 0}%</Text>
       </View>
 
       <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>

@@ -7,19 +7,20 @@ export default function AboutAppScreen() {
 
   return (
     <ScrollView style={styles.wrapper} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.title}>About ProcrasiNUS</Text>
+      <Text style={styles.title}>About ProcrastiNUS</Text>
 
       <Text style={styles.sectionText}>
         ProcrastiNUS is a gamified productivity app that motivates you to study by taking care of a virtual pet. 
-        As you log more study hours, your pet grows stronger, earns coins, unlocks levels, and stays healthy.
+        As you log more study hours, your pet earns coins, unlocks levels, and stays healthy.
+        It has an extensive social component, allowing you to join study groups, compete on leaderboards, and interact with friends.
       </Text>
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Features</Text>
         <Text style={styles.bullet}>• Log study sessions to feed and level up your pet</Text>
-        <Text style={styles.bullet}>• Tasks Management</Text>
-        <Text style={styles.bullet}>• Built-in Calendar</Text>
-        <Text style={styles.bullet}>• Pomodoro timer</Text>
+        <Text style={styles.bullet}>• Task management system for organizing work </Text>
+        <Text style={styles.bullet}>• Built-in calendar for scheduling tasks and study blocks </Text>
+        <Text style={styles.bullet}>• Timer to help focus and record study sessions </Text>
         <Text style={styles.bullet}>• Earn coins and badges as rewards</Text>
         <Text style={styles.bullet}>• Compete on weekly leaderboards</Text>
         <Text style={styles.bullet}>• Join or create study groups</Text>

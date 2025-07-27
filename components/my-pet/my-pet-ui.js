@@ -58,20 +58,16 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       <Text style={styles.level}>Lvl {pet.level}</Text>
 
       <Bar label="XP" val={xpPct} color="#60a5fa" displayText={`XP (${pet.xp}/${pet.xpToNext})`} />
-      <Bar label="Hunger" val={hungerPct} color={hungerColor} displayText={`Hunger (${pet.hunger}%)`} />
+      <Bar label="Hunger" val={hungerPct} color={hungerColor} displayText={`Energy (${pet.hunger}%)`} />
 
-      <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
-        <FontAwesome5 name="store" size={16} color="#fff" />
-        <Text style={styles.shopTxt}>Shop</Text>
-      </Pressable>
+      {/* {__DEV__ && (
+        <Pressable
+          style={{ padding: 10, backgroundColor: 'red', marginTop: 20 }}
+          onPress={() => simulateTimePassed(5)}>
+          <Text style={{ color: 'white' }}>Simulate 5 hours</Text>
+        </Pressable>
+      )} */}
 
-      {__DEV__ && (
-  <Pressable
-    style={{ padding: 10, backgroundColor: 'red', marginTop: 20 }}
-    onPress={() => simulateTimePassed(5)}>
-    <Text style={{ color: 'white' }}>Simulate 5 hours</Text>
-  </Pressable>
-)}
       <Text style={styles.invTitle}>My Inventory</Text>
       {inventory.length ? (
         <FlatList
@@ -93,6 +89,11 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
       ) : (
         <Text style={styles.invEmpty}>No food yet – visit the shop!</Text>
       )}
+
+      <Pressable style={styles.shopBtn} onPress={() => setFeedModal(true)}>
+        <FontAwesome5 name="store" size={16} color="#fff" />
+        <Text style={styles.shopTxt}>Shop</Text>
+      </Pressable>
 
       <Modal visible={feedModal} animationType="fade" transparent>
         <View style={styles.overlay}>
@@ -119,12 +120,12 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
 
       <Modal visible={nameModal} animationType="slide" transparent>
         <View style={styles.overlay}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { justifyContent: 'center', alignItems: 'center' }]}>
             <Text style={styles.modalTitle}>Name Your Pet</Text>
             <Text style={{ marginBottom: 12, textAlign: 'center', color: '#4b5563' }}>
               What would you like to name your companion?
             </Text>
-            <View style={styles.inputBox}>
+            <View style={[styles.inputBox, { width: '95%' }]}>
               <TextInput
                 placeholder="e.g. Mochi"
                 style={styles.input}
@@ -133,7 +134,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
               />
             </View>
             <Pressable
-              style={[styles.shopBtn, { marginTop: 16, justifyContent: 'center' }]}
+              style={[styles.shopBtn, { marginTop: 16, justifyContent: 'center', width: '70%' }]}
               onPress={() => {
                 if (!newName.trim()) return;
                 renamePet(newName.trim());
@@ -151,9 +152,9 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Pet Rules</Text>
             <Text style={{ marginBottom: 12, color: '#4b5563', lineHeight: 20 }}>
-              • Hunger drops by <Text style={{ fontWeight: 'bold' }}>3%</Text> every hour.
-              {'\n'}• Your pet gains <Text style={{ fontWeight: 'bold' }}>10 XP</Text> per hour only when hunger is above <Text style={{ fontWeight: 'bold' }}>30%</Text>.
-              {'\n'}• If hunger is too low, your pet won't gain XP.
+              • Energy drops by <Text style={{ fontWeight: 'bold' }}>3%</Text> every hour.
+              {'\n'}• Your pet gains <Text style={{ fontWeight: 'bold' }}>10 XP</Text> per hour only when energy is above <Text style={{ fontWeight: 'bold' }}>30%</Text>.
+              {'\n'}• If energy is too low, your pet won't gain XP.
             </Text>
             <Pressable style={styles.closeBtn} onPress={() => setInfoModal(false)}>
               <Text style={styles.closeTxt}>Got it</Text>
@@ -197,20 +198,20 @@ const styles = StyleSheet.create({
   infoBtn: {padding: 8, borderRadius: 14,backgroundColor: '#3b82f6'},
 
   petBox: { alignItems: 'center', marginVertical: 12 },
-  img: { width: 180, height: 180, resizeMode: 'contain' },
+  img: { width: 250, height: 250, resizeMode: 'contain' },
   petName: { fontSize: 24, fontWeight: '800', marginTop: 6, color: '#374151' },
-  level: { fontSize: 20, fontWeight: '700', marginVertical: 4, color: '#f87171' },
+  level: { fontSize: 20, fontWeight: '700', marginVertical: 0, marginBottom: 10, color: '#f87171' },
   barLbl: { fontSize: 14, color: '#6b7280', marginBottom: 2, fontWeight: '600' },
   barBg: { height: 10, borderRadius: 5, backgroundColor: '#e5e7eb', overflow: 'hidden' },
   barFill: { height: 10, borderRadius: 5 },
 
-  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 20, justifyContent: 'center' },
+  shopBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0ea5e9', paddingHorizontal: 26, paddingVertical: 12, borderRadius: 30, marginTop: 10, marginBottom: 10, justifyContent: 'center', width: '50%' },
   shopTxt: { color: '#fff', fontWeight: '800', fontSize: 16, marginLeft: 6, textAlign: 'center' },
 
   invTitle: { fontSize: 22, fontWeight: '800', marginTop: 32, marginBottom: 12, color: '#1e3a8a', alignSelf: 'flex-start', paddingLeft: 20 },
-  invCard: { width: 100, maxWidth: 100, minWidth: 90, height: 60, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
-  invLabel: { fontSize: 12, marginTop: 4, color: '#374151', fontWeight: '600' },
-  invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 4 },
+  invCard: { width: 100, maxWidth: 110, minWidth: 90, height: 65, alignItems: 'center', marginHorizontal: 6, paddingVertical: 10, backgroundColor: '#fff', borderRadius: 12, elevation: 2, justifyContent: 'center' },
+  invLabel: { fontSize: 13, marginTop: 4, color: '#374151', fontWeight: '600' },
+  invEmpty: { fontSize: 12, color: '#6b7280', alignSelf: 'center', marginTop: 20, marginBottom: 80 },
 
   inputBox: {backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,},
   input: {fontSize: 16,color: '#111827'},
