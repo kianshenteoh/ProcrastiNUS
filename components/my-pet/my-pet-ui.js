@@ -12,9 +12,9 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
   const [newName, setNewName] = useState(pet.name);
 
   const foods = [
-    { id: 'biscuit', label: 'Biscuit (+10%)', cost: 30, hunger: 10, icon: 'cookie-bite' },
-    { id: 'snack', label: 'Snack (+20%)', cost: 50, hunger: 20, icon: 'bone' },
-    { id: 'premium', label: 'Big Mac (+50%)', cost: 100, hunger: 50, icon: 'hamburger' },
+    { id: 'biscuit', label: `Biscuit\n(+10%)`, cost: 30, hunger: 10, icon: 'cookie-bite' },
+    { id: 'snack', label: `Snack\n(+20%)`, cost: 50, hunger: 20, icon: 'bone' },
+    { id: 'premium', label: `Big Mac\n(+50%)`, cost: 100, hunger: 50, icon: 'hamburger' },
   ]; 
 
   const canAfford = f => wallet.coins >= f.cost;
@@ -154,6 +154,7 @@ export default function PetAndBadges({ pet, wallet, inventory, buyFood, useFood,
             <Text style={{ marginBottom: 12, color: '#4b5563', lineHeight: 20 }}>
               • Energy drops by <Text style={{ fontWeight: 'bold' }}>3%</Text> every hour.
               {'\n'}• Your pet gains <Text style={{ fontWeight: 'bold' }}>10 XP</Text> per hour only when energy is above <Text style={{ fontWeight: 'bold' }}>30%</Text>.
+              {'\n'}• Feeding your pet increases its energy.
               {'\n'}• If energy is too low, your pet won't gain XP.
             </Text>
             <Pressable style={styles.closeBtn} onPress={() => setInfoModal(false)}>
