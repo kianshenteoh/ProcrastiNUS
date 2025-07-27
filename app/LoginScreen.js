@@ -59,7 +59,7 @@ export default function LoginScreen() {
           <Text style={styles.registerTxt}>No account? </Text>
           <Link href="/RegisterScreen"><Text style={styles.registerLink}>Register</Text></Link>
         </View>
-
+{/* 
         <Pressable style={styles.quickBtn} onPress={handleQuickLogin1}>
           <Text style={styles.quickTxt}>Quick Login Account 1 (Developer)</Text>
         </Pressable>
@@ -67,7 +67,7 @@ export default function LoginScreen() {
         <Pressable style={styles.quickBtn} onPress={handleQuickLogin2}>
           <Text style={styles.quickTxt}>Quick Login Account 2 (Developer)</Text>
         </Pressable>
-      
+       */}
       </View>
     </View> 
   );

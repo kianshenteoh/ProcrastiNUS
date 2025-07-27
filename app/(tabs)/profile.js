@@ -42,6 +42,46 @@ export default function ProfileScreen() {
     { id: 'longSession', name: 'Focused Learner', icon: 'brain', color: '#3b82f6' }
   ];
 
+  const pickImage = async (type) => {
+    try {
+      let result;
+      if (type === 'camera') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Camera access is needed to take photos');
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+      } else {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Gallery access is needed to select photos');
+          return;
+        }
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+      }
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setNewAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    } finally {
+      setPickerVisible(false);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       const fetchUserData = async () => {
@@ -64,19 +104,19 @@ export default function ProfileScreen() {
           const statsData = statsSnap.exists() ? statsSnap.data() : {};
           const badgesData = badgesSnap.exists() ? badgesSnap.data() : {};
 
-        const [weeklyHours, totalHours] = await Promise.all([
-          getWeeklyHours(userId),
-          getTotalHours(userId)
-        ]);
+          const [weeklyHours, totalHours] = await Promise.all([
+            getWeeklyHours(userId),
+            getTotalHours(userId)
+          ]);
 
-        setUser(prev => ({
-          ...prev,
-          name: profileData.name || 'Anonymous',
-          avatar: profileData.avatar || prev.avatar,
-          totalHours: totalHours || 0,
-          weeklyHours: weeklyHours || 0,
-          tasksCompleted: profileData.tasksCompleted || 0,
-        }));
+          setUser(prev => ({
+            ...prev,
+            name: profileData.name || 'Anonymous',
+            avatar: profileData.avatar || prev.avatar,
+            totalHours: totalHours || 0,
+            weeklyHours: weeklyHours || 0,
+            tasksCompleted: profileData.tasksCompleted || 0,
+          }));
 
           setEarnedBadges(badgesData.earned || []);
         } catch (err) {
@@ -101,50 +141,47 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-      <View style={styles.topSection}>
-        <Image source={{ uri: user.avatar }} style={styles.avatar} />
-        <Text style={styles.displayName}>{user.name}</Text>
-        <Pressable onPress={() => {
-          setNewName(user.name);
-          setNewAvatar(user.avatar);
-          setEditModalVisible(true);
-        }}>
-          <Text style={styles.editProfileBtn}>Edit Profile</Text>
-        </Pressable>
-      </View>
-
-
-        <View style={styles.actionColumn}>
-
-        <View style={styles.statsRow}>
-          <Stat label="Weekly Study hrs" value={user.weeklyHours} icon="hourglass" />
-          <Stat label="Total Study hrs" value={user.totalHours} icon="clock" />
-          <Stat label="Tasks Completed" value={user.tasksCompleted} icon="tasks" />
+        <View style={styles.topSection}>
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
+          <Text style={styles.displayName}>{user.name}</Text>
+          <Pressable onPress={() => {
+            setNewName(user.name);
+            setNewAvatar(user.avatar);
+            setEditModalVisible(true);
+          }}>
+            <Text style={styles.editProfileBtn}>Edit Profile</Text>
+          </Pressable>
         </View>
 
+        <View style={styles.actionColumn}>
+          <View style={styles.statsRow}>
+            <Stat label="Weekly Study hrs" value={user.weeklyHours} icon="hourglass" />
+            <Stat label="Total Study hrs" value={user.totalHours} icon="clock" />
+            <Stat label="Tasks Completed" value={user.tasksCompleted} icon="tasks" />
+          </View>
+
           <Text style={styles.badgesTitle}>Badges</Text>
-            <View style={styles.badgeGrid}>
-              {earnedBadges.length > 0 ? (
-                earnedBadges.map(badgeId => {
-                  const badge = badges.find(b => b.id === badgeId);
-                  if (!badge) return null;
-                  return (
-                    <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color + '55' }]}>
-                      <View style={[styles.badgeIconWrap, { backgroundColor: badge.color }]}>
-                        <FontAwesome5 name={badge.icon} size={24} color="#fff" />
-                      </View>
-                      <Text style={styles.badgeLabel}>{badge.name}</Text>
+          <View style={styles.badgeGrid}>
+            {earnedBadges.length > 0 ? (
+              earnedBadges.map(badgeId => {
+                const badge = badges.find(b => b.id === badgeId);
+                if (!badge) return null;
+                return (
+                  <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color + '55' }]}>
+                    <View style={[styles.badgeIconWrap, { backgroundColor: badge.color }]}>
+                      <FontAwesome5 name={badge.icon} size={24} color="#fff" />
                     </View>
-                  );
-                })
-              ) : (
-                <Text style={styles.noBadgesText}>No badges earned yet</Text>
-              )}
-            </View>
+                    <Text style={styles.badgeLabel}>{badge.name}</Text>
+                  </View>
+                );
+              })
+            ) : (
+              <Text style={styles.noBadgesText}>No badges earned yet</Text>
+            )}
+          </View>
         </View>
       </ScrollView>
 
-      {/* Edit Profile Modal */}
       <Modal visible={editModalVisible} transparent animationType="slide">
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: '#fff', padding: 20, borderRadius: 12, width: '80%' }}>
@@ -226,49 +263,44 @@ export default function ProfileScreen() {
         </View>
       </Modal>
 
-      {/* Image Picker Modal */}
       <Modal visible={pickerVisible} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%', alignItems: 'center' }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', marginBottom: 12 }}>Change Profile Picture</Text>
+        <Pressable 
+          style={styles.pickerBackdrop}
+          onPress={() => setPickerVisible(false)}
+        >
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerTitle}>Change Profile Picture</Text>
 
             <Pressable
-              onPress={async () => {
-                const perm = await ImagePicker.requestCameraPermissionsAsync();
-                if (!perm.granted) return;
-                const result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaType.Images });
-                if (!result.canceled && result.assets?.[0]?.uri) {
-                  setNewAvatar(result.assets[0].uri);
-                }
-                setPickerVisible(false);
-              }}
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+              onPress={() => pickImage('camera')}
+              style={({ pressed }) => [
+                styles.pickerButton,
+                pressed && styles.pickerButtonPressed
+              ]}
             >
-              <FontAwesome5 name="camera" size={18} color="#0ea5e9" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: '600' }}>Camera</Text>
+              <FontAwesome5 name="camera" size={18} color="#0ea5e9" style={styles.pickerIcon} />
+              <Text style={styles.pickerButtonText}>Take Photo</Text>
             </Pressable>
 
             <Pressable
-              onPress={async () => {
-                const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                if (!perm.granted) return;
-                const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaType.Images });
-                if (!result.canceled && result.assets?.[0]?.uri) {
-                  setNewAvatar(result.assets[0].uri);
-                }
-                setPickerVisible(false);
-              }}
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
+              onPress={() => pickImage('gallery')}
+              style={({ pressed }) => [
+                styles.pickerButton,
+                pressed && styles.pickerButtonPressed
+              ]}
             >
-              <FontAwesome5 name="images" size={18} color="#0ea5e9" style={{ marginRight: 12 }} />
-              <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: '600' }}>Choose from Gallery</Text>
+              <FontAwesome5 name="images" size={18} color="#0ea5e9" style={styles.pickerIcon} />
+              <Text style={styles.pickerButtonText}>Choose from Gallery</Text>
             </Pressable>
 
-            <Pressable onPress={() => setPickerVisible(false)} style={{ marginTop: 16 }}>
-              <Text style={{ color: '#888', fontWeight: '600' }}>Cancel</Text>
+            <Pressable 
+              onPress={() => setPickerVisible(false)} 
+              style={styles.pickerCancelButton}
+            >
+              <Text style={styles.pickerCancelText}>Cancel</Text>
             </Pressable>
           </View>
-        </View>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -281,15 +313,6 @@ function Stat({ label, value, icon }) {
       <Text style={styles.statValue}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
-  );
-}
-
-function QuickBtn({ label, icon, onPress }) {
-  return (
-    <Pressable style={styles.actionChip} onPress={onPress}>
-      <FontAwesome5 name={icon} size={18} color="#fff" style={{ marginRight: 6 }} />
-      <Text style={styles.actionLabel}>{label}</Text>
-    </Pressable>
   );
 }
 
@@ -308,25 +331,19 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 20, fontWeight: '700', marginTop: 8, marginBottom: 4},
   statLabel: { fontSize: 12, color: '#666' },
   actionColumn: { flexDirection: 'column', marginTop: 10, marginBottom: 10, gap: 12 },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#4b7bec',
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  actionLabel: { color: '#fff', fontSize: 14, fontWeight: '600' },
   badgesTitle: { fontSize: 22, fontWeight: '800', marginTop: 22, marginBottom: 12, color: 'black', alignSelf: 'flex-start', paddingLeft: 5 },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 20 },
   badgeCard: { width: '45%', alignItems: 'center', marginBottom: 14, paddingVertical: 12, borderRadius: 16 },
   badgeIconWrap: { width: 50, height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center', marginBottom: 6 },
   badgeLabel: { color: '#1f2937', fontWeight: '600', textAlign: 'center', fontSize: 10 },
-  noBadgesText: {
-  color: '#666',
-  fontStyle: 'italic',
-  textAlign: 'center',
-  width: '100%',
-  marginTop: 20,
-},
+  noBadgesText: { color: '#666', fontStyle: 'italic', textAlign: 'center', width: '100%', marginTop: 20 },
+  pickerBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+  pickerContainer: { backgroundColor: '#fff', borderRadius: 12, padding: 24, width: '80%' },
+  pickerTitle: { fontSize: 18, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
+  pickerButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderRadius: 8, marginBottom: 10 },
+  pickerButtonPressed: { backgroundColor: '#f0f0f0' },
+  pickerIcon: { marginRight: 12 },
+  pickerButtonText: { fontSize: 16, color: '#0ea5e9', fontWeight: '600' },
+  pickerCancelButton: { marginTop: 10, padding: 10, alignItems: 'center' },
+  pickerCancelText: { color: '#888', fontWeight: '600' }
 });

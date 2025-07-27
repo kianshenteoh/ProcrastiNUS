@@ -2,10 +2,9 @@
   "expo": {
     "name": "ProcrastiNUS",
     "slug": "frontend",
-    "icon": "./assets/images/icon.png",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/adaptive-icon.png",
     "scheme": "procrastinus",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -42,16 +41,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/notification-icon.png",
-          "color": "#ffffff",
-          "sounds": ["./assets/sounds/notification.wav"],
-          "mode": "production"
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

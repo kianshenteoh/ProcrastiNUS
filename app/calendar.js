@@ -256,22 +256,27 @@ export default function HorizontalCalendar() {
   };
 
   const parseNUSModsURL = (url) => {
-    try {
-      const parsed = new URL(url);
-      const pathname = parsed.pathname; 
-      const semMatch = pathname.match(/sem-(\d)/i);
-      const semester = semMatch ? parseInt(semMatch[1], 10) : 1;
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname; 
+    const semMatch = pathname.match(/sem-(\d)/i);
+    const semester = semMatch ? parseInt(semMatch[1], 10) : 1;
 
-      const params = parsed.searchParams;
-      const modules = [];
-      for (const [code, selections] of params.entries()) {
+    const params = parsed.searchParams;
+    const modules = [];
+    const hiddenModules = params.get('hidden')?.split(',') || [];
+    
+    for (const [code, selections] of params.entries()) {
+      if (code === 'hidden' || !selections) continue;
+      if (!hiddenModules.includes(code)) {
         modules.push({ code, classSelections: selections.split(',') });
       }
-      return { modules, semester };
-    } catch {
-      return null;
     }
-  };
+    return { modules, semester, hiddenModules };
+  } catch {
+    return null;
+  }
+};
 
   const formatWeeks = (weeks) => {
     if (!Array.isArray(weeks)) return '';
@@ -348,7 +353,7 @@ export default function HorizontalCalendar() {
       Alert.alert('Invalid URL', 'Import valid NUSMODS URL!');
       return;
     }
-    const { modules, semester: semFromUrl } = parsed;
+    const { modules, semester: semFromUrl, hiddenModules } = parsed;
 
     const academicYearKey = DEFAULT_ACADEMIC_YEAR;
     const ay = academicYears[academicYearKey];

@@ -69,7 +69,7 @@ export default function PetAndBadgesBackend() {
             ownerId: userId,
             ownerName: profileSnap.exists() ? profileSnap.data().name : 'Nameless',
             name: 'No Name Yet :(',
-            hunger: 100,
+            hunger: 80,
             totalXp: 1000,
             lastUpdated: Date.now(),
             image: Math.floor(Math.random() * 200),
