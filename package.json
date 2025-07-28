@@ -61,11 +61,15 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-typescript": "^7.27.1",
     "@react-native-community/cli": "latest",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.2.0",
     "@tsconfig/react-native": "^3.0.5",
     "@types/react": "~19.0.10",
+    "babel-jest": "^30.0.5",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
     "jest-expo": "^53.0.7",
@@ -74,15 +78,14 @@
   "jest": {
     "preset": "jest-expo",
     "setupFilesAfterEnv": [
-      "<rootDir>/jest.setup.js"
+      "@testing-library/jest-native/extend-expect"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!(jest-)?react-native|@react-native|expo(nent)?|@expo(nent)?|@react-navigation/.*)"
     ],
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/$1",
-      "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "identity-obj-proxy"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(jest-)?react-native|@react-native|@react-navigation|expo(nent)?|@expo(nent)?/.*)"
-    ]
+      "\\.(jpg|jpeg|png|gif|webp|svg|eot|otf|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js"
+    }
   },
   "private": true
 }

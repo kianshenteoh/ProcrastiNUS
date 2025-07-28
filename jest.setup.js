@@ -23,7 +23,7 @@ jest.mock('@expo/vector-icons', () => {
 });
 
 // Mock image imports
-jest.mock('@/assets/images/logo.png', () => 'mocked-image');
+// jest.mock('@/assets/images/logo.png', () => 'mocked-image');
 
 // Avoid warning about native animation
 // jest.mock('react-native/Libraries/Animated/src/NativeAnimatedHelper');
