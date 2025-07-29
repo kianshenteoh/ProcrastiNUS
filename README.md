@@ -2,7 +2,7 @@
 
 # **Introducing ProcrastiNUS**
 
-Project Poster: [Link](https://drive.google.com/file/d/1WnCz7iVv1cahiWv1JT4rR6cGVSdKrbe4/view?usp=sharing)
+Project Poster: [Link]([[https://drive.google.com/file/d/1WnCz7iVv1cahiWv1JT4rR6cGVSdKrbe4/view?usp=sharing](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton))
 
 Project Video: [Link](https://drive.google.com/file/d/1DWbNFiW_EzcqOQZ_da02bEMJw3HeQqq1/view?usp=sharing)
 
@@ -35,4 +35,6 @@ Alternatively, download Expo Go on your mobile phone and open the following link
 https://expo.dev/preview/update?message=%20expo%20publishing&updateRuntimeVersion=1.0.0&createdAt=2025-06-29T15%3A46%3A06.531Z&slug=exp&projectId=f610f733-68e4-40ec-b9e7-2004b8bce9f8&group=cdb3f45e-6fd1-4545-870f-cec852810c63  
 
 ## Project Poster
-![ProcrastiNUS](https://github.com/user-attachments/assets/97f15c63-4ade-4197-bea8-8efb9b5dd467)
+<img width="2245" height="3179" alt="ProcrastiNUS Poster(2)" src="https://github.com/user-attachments/assets/a70f30fa-017d-4a52-bebf-8066e04b8177" />
+
+
