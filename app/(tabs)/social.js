@@ -7,7 +7,7 @@ import { addDoc, collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, q
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Menu, MenuOption, MenuOptions, MenuProvider, MenuTrigger } from 'react-native-popup-menu';
-import { computePetStats } from '../../components/my-pet/my-pet-backend';
+import { fetchFriendsPets } from '../../util/fetchFriendsPets';
 
 export default function SocialScreen() {
   const router = useRouter();
@@ -94,72 +94,72 @@ export default function SocialScreen() {
 
   const [friendsPets, setFriendsPets] = useState([]);
 
-  const fetchFriendsPets = async (shouldBypassCache = false) => {
-    const rawEmail = auth.currentUser?.email;
-    if (!rawEmail) return [];
+  // const fetchFriendsPets = async (shouldBypassCache = false) => {
+  //   const rawEmail = auth.currentUser?.email;
+  //   if (!rawEmail) return [];
 
-    const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
-    const cacheRef = doc(db, 'users', userId, 'friends', 'petsCache');
+  //   const userId = rawEmail.replace(/[.#$/[\]]/g, '_');
+  //   const cacheRef = doc(db, 'users', userId, 'friends', 'petsCache');
 
-    try {
-      // Check if cached data exists
-      const cacheSnap = await getDoc(cacheRef);
-      if (cacheSnap.exists()) {
-        const cachedData = cacheSnap.data();
-        const lastUpdated = cachedData.lastUpdated?.toMillis?.() || 0;
-        const now = Date.now();
+  //   try {
+  //     // Check if cached data exists
+  //     const cacheSnap = await getDoc(cacheRef);
+  //     if (cacheSnap.exists()) {
+  //       const cachedData = cacheSnap.data();
+  //       const lastUpdated = cachedData.lastUpdated?.toMillis?.() || 0;
+  //       const now = Date.now();
 
-        if (!shouldBypassCache && now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
-          return cachedData.pets;
-        }
-      }
+  //       if (!shouldBypassCache && now - lastUpdated < 15 * 60 * 1000 && Array.isArray(cachedData.pets)) {
+  //         return cachedData.pets;
+  //       }
+  //     }
 
-      // Otherwise, fetch fresh data and cache it
-      const friendsSnap = await getDoc(doc(db, 'users', userId, 'friends', 'list'));
-      if (!friendsSnap.exists()) return [];
+  //     // Otherwise, fetch fresh data and cache it
+  //     const friendsSnap = await getDoc(doc(db, 'users', userId, 'friends', 'list'));
+  //     if (!friendsSnap.exists()) return [];
 
-      const friendIds = Object.keys(friendsSnap.data());
-      if (friendIds.length === 0) return [];
+  //     const friendIds = Object.keys(friendsSnap.data());
+  //     if (friendIds.length === 0) return [];
 
-      const petPromises = friendIds.map(async (fid) => {
-        try {
-          const [petSnap, profileSnap] = await Promise.all([
-            getDoc(doc(db, 'users', fid, 'pet', 'data')),
-            getDoc(doc(db, 'users', fid, 'profile', 'data')),
-          ]);
+  //     const petPromises = friendIds.map(async (fid) => {
+  //       try {
+  //         const [petSnap, profileSnap] = await Promise.all([
+  //           getDoc(doc(db, 'users', fid, 'pet', 'data')),
+  //           getDoc(doc(db, 'users', fid, 'profile', 'data')),
+  //         ]);
 
-          if (!petSnap.exists()) return null;
+  //         if (!petSnap.exists()) return null;
 
-          const petData = petSnap.data();
-          const { updatedPet } = computePetStats(petData, 30, 20, 2);
-          const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
+  //         const petData = petSnap.data();
+  //         const { updatedPet } = computePetStats(petData, 30, 20, 2);
+  //         const ownerName = profileSnap.exists() ? profileSnap.data().name : 'Unknown';
 
-          return {
-            id: fid,
-            ...updatedPet,
-            ownerName,
-            ownerId: fid,
-          };
-        } catch {
-          return null;
-        }
-      });
+  //         return {
+  //           id: fid,
+  //           ...updatedPet,
+  //           ownerName,
+  //           ownerId: fid,
+  //         };
+  //       } catch {
+  //         return null;
+  //       }
+  //     });
 
-      const petData = await Promise.all(petPromises);
-      const result = petData.filter(Boolean);
+  //     const petData = await Promise.all(petPromises);
+  //     const result = petData.filter(Boolean);
 
-      // Update the cache with a new timestamp
-      await setDoc(cacheRef, {
-        pets: result,
-        lastUpdated: new Date()
-      });
+  //     // Update the cache with a new timestamp
+  //     await setDoc(cacheRef, {
+  //       pets: result,
+  //       lastUpdated: new Date()
+  //     });
 
-      return result;
-    } catch (error) {
-      console.error('Failed to fetch friends:', error);
-      return [];
-    }
-  };
+  //     return result;
+  //   } catch (error) {
+  //     console.error('Failed to fetch friends:', error);
+  //     return [];
+  //   }
+  // };
 
     // dummy data
     // const [groups, setGroups] = useState([

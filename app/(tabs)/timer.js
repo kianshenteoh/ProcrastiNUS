@@ -611,7 +611,7 @@ const forceResetManual = async () => {
             </Pressable>
           ): (
             <>
-            <Pressable style = {styles.startBtn} onPress = {() => { 
+            <Pressable testID="motivational-quote" style = {styles.startBtn} onPress = {() => { 
               getRandomQuote();
               setRunning(true)}}>
               <FontAwesome5 name="play" size={24} color="#fff" />
