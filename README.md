@@ -2,7 +2,7 @@
 
 # **Introducing ProcrastiNUS**
 
-Project Poster: [Link]([[https://drive.google.com/file/d/1WnCz7iVv1cahiWv1JT4rR6cGVSdKrbe4/view?usp=sharing](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton))
+Project Poster: [Link](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 Project Video: [Link](https://drive.google.com/file/d/1DWbNFiW_EzcqOQZ_da02bEMJw3HeQqq1/view?usp=sharing)
 
