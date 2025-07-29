@@ -4,9 +4,9 @@
 
 Project Poster: [Link](https://www.canva.com/design/DAGrxwNJUxw/jFz9dWRb_UT8UhLzw0ceLQ/edit?utm_content=DAGrxwNJUxw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
-Project Video: [Link](https://drive.google.com/file/d/1DWbNFiW_EzcqOQZ_da02bEMJw3HeQqq1/view?usp=sharing)
+Project Video: [Link](https://youtu.be/_owLWpv0Urk)
 
-Milestone Report: [Link](https://docs.google.com/document/d/1V7rjCyE62qVefXPZ790mt6HpE1Ug5mOMYLTRUQSTTZ4/edit?usp=sharing)
+Milestone Report: [Link](https://docs.google.com/document/d/1BMTs_luF9yjaH4wS0DzmpmY9n-VTCE8UM-mZDaVLrYg/edit?usp=sharing)
 
 ### Motivation
 
