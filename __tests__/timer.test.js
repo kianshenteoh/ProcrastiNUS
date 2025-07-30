@@ -91,4 +91,17 @@ describe('PomodoroScreen Tests', () => {
     expect(getByTestId('motivational-quote')).toBeTruthy();
     });
 
+    // 5. Verify timer completion
+    it('completes 25-minute timer and shows completion message', () => {
+    const { getByText } = render(<PomodoroScreen />);
+    
+    fireEvent.press(getByText('25m'));
+    
+    act(() => {
+        jest.advanceTimersByTime(25 * 60 * 1000); // Fast-forward 25 mins
+    });
+    
+    expect(getByText("Time's Up!")).toBeTruthy();
+    });
+
 });
