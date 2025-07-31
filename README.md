@@ -28,7 +28,7 @@ Our aim is to create a mobile application tailored for NUS students that encoura
 ## Deployment
 Scan the below QR Code to download the APK file for ProcrastiNUS!
 
-![image](<img width="262" height="261" alt="image" src="https://github.com/user-attachments/assets/daa5aa25-4505-45ec-bbad-1f5caa4b8686" />)
+<img width="262" height="261" alt="Image" src="https://github.com/user-attachments/assets/c3851cb6-2ab7-4ce0-821d-a42f8bc91653" />
 
 Alternatively, download Expo Go on your mobile phone and open the following link in the app to access ProcrastiNUS!
 
